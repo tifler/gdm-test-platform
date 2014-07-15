@@ -1072,7 +1072,7 @@ void MScalerGetPlaneInfo(const struct MScalerImageFormat *img,
 
         case HW_FMT_ARGB:
             pi->comps = 1;
-            pi->bpl[0] = img->width * 3;
+            pi->bpl[0] = img->width << 2;
             pi->stride[0] = (((pi->bpl[0] + 3) >> 2) << 2);
             pi->height[0] = img->height;
             break;
