@@ -7,12 +7,18 @@
 
 BASE_ROOTFS_DIR	:=/home2/tifler/work/ramdisk/vgroup_rootfs
 CROSS_COMPILE   :=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
-DEFAULT_BIN_DIR	:=/usr/bin
-DEFAULT_LIB_DIR	:=/usr/lib
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 #------------------------------------------------------------------------------
+
+ifneq (,$(TARGET_DIR))
+DEFAULT_BIN_DIR	:=$(TARGET_DIR)
+DEFAULT_LIB_DIR	:=$(TARGET_DIR)
+else
+DEFAULT_BIN_DIR	:=/usr/bin
+DEFAULT_LIB_DIR	:=/usr/lib
+endif
 
 ifndef   SUBDIRS
 
