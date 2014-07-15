@@ -25,7 +25,7 @@ LOCAL_LFLAGS	:= -L$(BASEDIR)/libs/libmscaler -lmscaler
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libini -lini
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 
-COPY_SOURCE_DIR	:= tc
+COPY_SOURCE_DIR	:= tc images
 COPY_TARGET_DIR	:= /usr/share
 
 #------------------------------------------------------------------------------

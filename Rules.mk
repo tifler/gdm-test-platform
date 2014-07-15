@@ -63,7 +63,7 @@ else
 endif
 ifneq (,$(COPY_SOURCE_DIR))
 ifneq (,$(COPY_TARGET_DIR))
-	@rm -rf $(BASE_ROOTFS_DIR)/output/target/$(COPY_TARGET_DIR)/$(COPY_SOURCE_DIR)
+	$(foreach dir,$(COPY_SOURCE_DIR),$(shell rm -rf $(BASE_ROOTFS_DIR)/output/target/$(COPY_TARGET_DIR)/$(dir)))
 endif
 endif
 
