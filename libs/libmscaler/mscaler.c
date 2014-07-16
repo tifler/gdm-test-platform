@@ -702,6 +702,12 @@ static int isValidImageFormat(struct MScaler *scaler,
         return 0;
     }
 
+    if (format->width > MSCALER_MAX_WIDTH ||
+            format->height > MSCALER_MAX_HEIGHT) {
+        ERR("Size is over the limit.");
+        return 0;
+    }
+
     if (!IS_VALID_ALIGN(format->width, MSCALER_HALIGN_ORDER) || 
             !IS_VALID_ALIGN(format->height, MSCALER_VALIGN_ORDER)) {
         ERR("Size is not aligned.(%d x %d)", format->width, format->height);
