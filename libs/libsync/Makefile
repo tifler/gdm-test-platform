@@ -10,11 +10,16 @@
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 ifndef	BASEDIR
-BASEDIR	:= $(shell pwd)/..
+BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= libmscaler libini libion libsync
+TARGET			:= libsync.so
+OBJS			:= sync.o
+
+LOCAL_CFLAGS    := -I$(BASEDIR)/include
+LOCAL_CFLAGS	+= -fPIC
+LOCAL_LFLAGS	+= -shared
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
