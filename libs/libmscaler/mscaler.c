@@ -702,6 +702,12 @@ static int isValidImageFormat(struct MScaler *scaler,
         return 0;
     }
 
+    if (format->width > MSCALER_MAX_WIDTH ||
+            format->height > MSCALER_MAX_HEIGHT) {
+        ERR("Size is over the limit.");
+        return 0;
+    }
+
     if (!IS_VALID_ALIGN(format->width, MSCALER_HALIGN_ORDER) || 
             !IS_VALID_ALIGN(format->height, MSCALER_VALIGN_ORDER)) {
         ERR("Size is not aligned.(%d x %d)", format->width, format->height);
@@ -1072,7 +1078,7 @@ void MScalerGetPlaneInfo(const struct MScalerImageFormat *img,
 
         case HW_FMT_ARGB:
             pi->comps = 1;
-            pi->bpl[0] = img->width * 3;
+            pi->bpl[0] = img->width << 2;
             pi->stride[0] = (((pi->bpl[0] + 3) >> 2) << 2);
             pi->height[0] = img->height;
             break;
