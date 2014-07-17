@@ -21,7 +21,6 @@
 #ifndef __MSCALER_H__
 #define __MSCALER_H__
 
-// exynos5 의 헤더를 포함하기 위함.
 #include <linux/videodev2.h>
 
 /*****************************************************************************/
@@ -31,7 +30,7 @@
 #define MSCALER_MIN_WIDTH               (64)
 #define MSCALER_MIN_HEIGHT              (64)
 
-// 1 << 4 = 16
+// 1 << 4 = 16 pixel align
 #define MSCALER_HALIGN_ORDER            (4)
 #define MSCALER_VALIGN_ORDER            (1)
 
@@ -92,8 +91,8 @@ struct MScalerImageFormat {
 
 struct MScalerPlane {
     unsigned int length;    /* size in bytes */
-    int fd; /* ion shared fd(dmabuf fd) */
-    void *base; /* mapped virtual addr */
+    int fd;                 /* ion shared fd(dmabuf fd) */
+    void *base;             /* mmapped virtual addr */
 };
 
 struct MScalerPlaneInfo {
@@ -144,6 +143,7 @@ int MScalerRun(MScalerHandle handle);
 int MScalerWaitDone(MScalerHandle handle, int timeout);
 int MScalerCancel(MScalerHandle handle);
 int MScalerRunSync(MScalerHandle handle, int timeout);
+int MScalerStop(MScalerHandle handle);
 void MScalerClose(MScalerHandle handle);
 int MScalerTryLock(MScalerHandle handle);
 int MScalerLock(MScalerHandle handle, int timeout);

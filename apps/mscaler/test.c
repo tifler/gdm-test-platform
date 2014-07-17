@@ -53,6 +53,7 @@ struct TCEntry {
     int dontSend;
     int dontRemove;
     int randomCount;
+    int loopCount;
     struct TCImageFormat src;
     struct TCImageFormat dst;
 };
@@ -471,11 +472,12 @@ static void removeImage(const struct TCEntry *tc, struct MScalerImageData *data)
 static int doTestCase(struct TCEntry *tc)
 {
     int ret;
+    int loopCount;
     struct MScalerImageFormat srcFormat, dstFormat;
     struct MScalerImageData srcData, dstData;
     struct MScalerBufferInfo srcBufInfo, dstBufInfo;
 
-                TRACE_LINE;
+    TRACE_LINE;
 
     ASSERT(tc);
     ASSERT(tc->src.path);
@@ -541,25 +543,42 @@ static int doTestCase(struct TCEntry *tc)
         goto err3;
     }
 
-    ret = MScalerSetImageData(hScaler, &srcData, &dstData);
-    if (ret) {
-        DBG("MScalerSetImageData() failed.");
-        goto err3;
-    }
+    // -----
+    ESTIMATE_START("TEST ESTIMATION");
+    // -----
 
-    ret = MScalerRun(hScaler);
-    if (ret) {
-        DBG("MScalerRun() failed.");
-        goto err4;
-    }
+    loopCount = tc->loopCount;
 
-    ret = MScalerWaitDone(hScaler, -1);
-    if (ret) {
-        DBG("MScalerWaitDone() failed.");
-        goto err4;
-    }
+    do {
+        ret = MScalerSetImageData(hScaler, &srcData, &dstData);
+        if (ret) {
+            DBG("MScalerSetImageData() failed.");
+            goto err3;
+        }
+
+        ret = MScalerRun(hScaler);
+        if (ret) {
+            DBG("MScalerRun() failed.");
+            goto err4;
+        }
+
+        ret = MScalerWaitDone(hScaler, -1);
+        if (ret) {
+            DBG("MScalerWaitDone() failed.");
+            goto err4;
+        }
+
+        loopCount--;
+
+    } while(loopCount > 0);
+
+    MScalerStop(hScaler);
 
     MScalerUnlock(hScaler);
+
+    // -----
+    ESTIMATE_STOP();
+    // -----
 
     storeImage(tc, &dstData);
 
@@ -637,6 +656,9 @@ static struct TCEntry *buildTCTable(dictionary *dict)
 
         sprintf(key, "%s:RandomCount", section);
         e->randomCount = iniparser_getint(dict, key, 0);
+
+        sprintf(key, "%s:LoopCount", section);
+        e->loopCount = iniparser_getint(dict, key, 0);
 
         sprintf(key, "%s:SrcPath", section);
         e->src.path = iniparser_getstring(dict, key, NULL);

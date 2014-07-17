@@ -30,10 +30,11 @@
 
 /*****************************************************************************/
 
-#define SCALER_FLAG_SRC_FORMAT              (0x01)
-#define SCALER_FLAG_SRC_DATA                (0x02)
-#define SCALER_FLAG_DST_FORMAT              (0x10)
-#define SCALER_FLAG_DST_DATA                (0x20)
+#define SCALER_FLAG_SRC_FORMAT              (0x0001)
+#define SCALER_FLAG_SRC_DATA                (0x0002)
+#define SCALER_FLAG_DST_FORMAT              (0x0010)
+#define SCALER_FLAG_DST_DATA                (0x0020)
+#define SCALER_FLAG_START_STREAMING         (0x8000)
 
 #define ARRAY_SIZE(a)                       (sizeof(a) / sizeof(a[0]))
 #define MAKE_COLOR_FORMAT(fmt)              .name = #fmt, .pixelformat = fmt
@@ -504,6 +505,9 @@ static int scalerStartStreaming(struct MScaler *scaler)
 {
     enum v4l2_buf_type bufType;
 
+    if (scaler->flags & SCALER_FLAG_START_STREAMING)
+        return 0;
+
     // src stream on
     bufType = scaler->src.bufType;
     if (ioctl(scaler->fd, VIDIOC_STREAMON, &bufType) < 0) {
@@ -520,6 +524,8 @@ static int scalerStartStreaming(struct MScaler *scaler)
         return -1;
     }
 
+    scaler->flags |= SCALER_FLAG_START_STREAMING;
+
     return 0;
 }
 
@@ -528,6 +534,26 @@ static int scalerStopStreaming(struct MScaler *scaler)
     int ret;
     enum v4l2_buf_type bufType;
     struct v4l2_requestbuffers reqbuf;
+
+    if (!(scaler->flags & SCALER_FLAG_START_STREAMING))
+        return 0;
+
+    switch (scaler->state) {
+        case MSCALER_STATE_IDLE:
+            DBG("Scaler is not started.");
+            return 0;
+
+        case MSCALER_STATE_LOCKED:
+            break;
+
+        case MSCALER_STATE_STARTED:
+            DBG("Scaler is running.");
+            return -EBUSY;
+
+        default:
+            ASSERT(! "Never reached !!!");
+            break;
+    }
 
     // src stream off
     bufType = scaler->src.bufType;
@@ -560,6 +586,8 @@ static int scalerStopStreaming(struct MScaler *scaler)
         ERR("VIDIOC_REQBUFS failed.");
         return -1;
     }
+
+    scaler->flags &= ~SCALER_FLAG_START_STREAMING;
 
     DBG("scalerStopStreaming done.");
 
@@ -654,11 +682,13 @@ static int scalerWaitDone(struct MScaler *scaler, int timeout_ms)
             return -1;
         }
 
+#if 0
         ret = scalerStopStreaming(scaler);
         if (ret < 0) {
             ERR("stopStreaming failed");
             return -1;
         }
+#endif  /*0*/
         scaler->state = MSCALER_STATE_LOCKED;
         ret = 0;
     }
@@ -906,6 +936,12 @@ int MScalerRunSync(MScalerHandle handle, int timeout_ms)
         return ret;
 
     return scalerWaitDone(scaler, timeout_ms);
+}
+
+int MScalerStop(MScalerHandle handle)
+{
+    struct MScaler *scaler = (struct MScaler *)handle;
+    return scalerStopStreaming(scaler);
 }
 
 void MScalerClose(MScalerHandle handle)

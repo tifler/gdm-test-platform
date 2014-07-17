@@ -71,6 +71,31 @@
 
 #endif  /*ANDROID*/
 
+#define ESTIMATE_START(title) \
+    do { \
+        unsigned int __diff_usec; \
+        unsigned int __boundary = 0; \
+        const char *__estimate_title = title; \
+        struct timeval __s_tv, __e_tv; \
+        gettimeofday(&__s_tv, (struct timezone *)0)
+
+#define ESTIMATE_START_BOUND(title, b) \
+    do { \
+        unsigned int __diff_usec; \
+        unsigned int __boundary = b; \
+        const char *__estimate_title = title; \
+        struct timeval __s_tv, __e_tv; \
+        gettimeofday(&__s_tv, (struct timezone *)0)
+
+#define ESTIMATE_STOP() \
+        gettimeofday(&__e_tv, (struct timezone *)0); \
+        __diff_usec = (__e_tv.tv_sec - __s_tv.tv_sec) * 1000000; \
+        __diff_usec += (__e_tv.tv_usec - __s_tv.tv_usec); \
+        if(__diff_usec >= __boundary) \
+        DBG("ESTIMATED TIME[%s] : %d(usec)\n", \
+                __estimate_title, __diff_usec); \
+    } while(0)
+
 #define __CHECK_LINE__          TRACE_LINE
 #define __CHECK_FUNC__          TRACE_FUNC
 
