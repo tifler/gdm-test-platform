@@ -22,6 +22,7 @@
 #define __MSCALER_H__
 
 #include <linux/videodev2.h>
+#include "mscaler-ioctl.h"
 
 /*****************************************************************************/
 
@@ -156,5 +157,15 @@ struct MScalerPixelFormat *MScalerGetPixelFormatByName(const char *name);
 struct MScalerPixelFormat *MScalerGetPixelFormat(unsigned int pixelformat);
 void MScalerGetPlaneInfo(const struct MScalerImageFormat *img,
         int plane, struct MScalerPlaneInfo *pi);
+
+// coeffs
+int MScalerSetScalerCoeff(
+        MScalerHandle handle, const struct mscaler_scaler_coeff *coeff);
+int MScalerSetRGBCoeff(
+        MScalerHandle handle, const struct mscaler_rgb_coeff *coeff);
+int MScalerSetNRCoeff(
+        MScalerHandle handle, const struct mscaler_nr_coeff *coeff);
+int MScalerSetRingCoeff(
+        MScalerHandle handle, const struct mscaler_ring_coeff *coeff);
 
 #endif  /*__MSCALER_H__*/

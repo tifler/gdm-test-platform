@@ -20,6 +20,7 @@ OBJS			:= test.o
 LOCAL_CFLAGS	:= -I$(BASEDIR)/libs/libmscaler
 LOCAL_CFLAGS	+= -I$(BASEDIR)/libs/libini
 LOCAL_CFLAGS	+= -I$(BASEDIR)/libs/libion
+LOCAL_CFLAGS	+= -I$(BASEDIR)/include
 
 LOCAL_LFLAGS	:= -L$(BASEDIR)/libs/libmscaler -lmscaler
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libini -lini

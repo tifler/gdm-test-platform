@@ -134,6 +134,14 @@ enum MScalerState {
     MSCALER_STATE_COUNT
 };
 
+enum {
+    COEFF_TYPE_SCALER,
+    COEFF_TYPE_RGB,
+    COEFF_TYPE_NR,
+    COEFF_TYPE_RING,
+    COEFF_TYPE_COUNT,
+};
+
 /*****************************************************************************/
 
 static struct MScalerPixelFormat pixelFormats[] = {
@@ -265,6 +273,31 @@ static struct MScalerPixelFormat pixelFormats[] = {
 };
 
 /*****************************************************************************/
+
+static int scalerSetCoeff(struct MScaler *scaler, int type, const void *coeffs)
+{
+    ASSERT(type >= 0);
+    ASSERT(type < COEFF_TYPE_COUNT);
+
+    switch (scaler->state) {
+        case MSCALER_STATE_IDLE:
+            DBG("Scaler is not locked.");
+            return -EINVAL;
+
+        case MSCALER_STATE_LOCKED:
+            break;
+
+        case MSCALER_STATE_STARTED:
+            DBG("Scaler is running.");
+            return -EBUSY;
+
+        default:
+            ASSERT(! "Never reached !!!");
+            break;
+    }
+
+    return ioctl(scaler->fd, VIDIOC_MSCALER_SET_SCALER_COEFF + type, coeffs);
+}
 
 static int scalerLock(struct MScaler *scaler, int timeout_ms)
 {
@@ -1130,4 +1163,40 @@ void MScalerGetPlaneInfo(const struct MScalerImageFormat *img,
             DIE("Not supported format for source image.");
             break;
     }
+}
+
+int MScalerSetScalerCoeff(
+        MScalerHandle handle, const struct mscaler_scaler_coeff *coeff)
+{
+    struct MScaler *scaler;
+    ASSERT(handle);
+    scaler = (struct MScaler *)handle;
+    return scalerSetCoeff(scaler, COEFF_TYPE_SCALER, coeff);
+}
+
+int MScalerSetRGBCoeff(
+        MScalerHandle handle, const struct mscaler_rgb_coeff *coeff)
+{
+    struct MScaler *scaler;
+    ASSERT(handle);
+    scaler = (struct MScaler *)handle;
+    return scalerSetCoeff(scaler, COEFF_TYPE_RGB, coeff);
+}
+
+int MScalerSetNRCoeff(
+        MScalerHandle handle, const struct mscaler_nr_coeff *coeff)
+{
+    struct MScaler *scaler;
+    ASSERT(handle);
+    scaler = (struct MScaler *)handle;
+    return scalerSetCoeff(scaler, COEFF_TYPE_NR, coeff);
+}
+
+int MScalerSetRingCoeff(
+        MScalerHandle handle, const struct mscaler_ring_coeff *coeff)
+{
+    struct MScaler *scaler;
+    ASSERT(handle);
+    scaler = (struct MScaler *)handle;
+    return scalerSetCoeff(scaler, COEFF_TYPE_RING, coeff);
 }

@@ -16,7 +16,10 @@ endif
 
 TARGET			:= libmscaler.so
 OBJS			:= mscaler.o
+
 LOCAL_CFLAGS	:= -fPIC
+LOCAL_CFLAGS	+= -I$(BASEDIR)/include
+
 LOCAL_LFLAGS	:= -shared
 
 #------------------------------------------------------------------------------
