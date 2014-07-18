@@ -35,10 +35,6 @@
 #define MSCALER_HALIGN_ORDER            (4)
 #define MSCALER_VALIGN_ORDER            (1)
 
-#define VIDIOC_MSCALER_LOCK             (BASE_VIDIOC_PRIVATE + 1)
-#define VIDIOC_MSCALER_TRYLOCK          (BASE_VIDIOC_PRIVATE + 2)
-#define VIDIOC_MSCALER_UNLOCK           (BASE_VIDIOC_PRIVATE + 3)
-
 /*****************************************************************************/
 
 enum {
