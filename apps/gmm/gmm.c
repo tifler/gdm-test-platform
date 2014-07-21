@@ -161,8 +161,6 @@ int main(int argc, char **argv)
     }
 
     addr = strtoul(argv[2], NULL, 0);
-    mem = openMemory(addr, getPageSize());
-    ASSERT(mem);
 
     if (mode == READ_MODE) {
         u32 i;
@@ -172,10 +170,14 @@ int main(int argc, char **argv)
         if (argc == 4)
             count = strtoul(argv[3], NULL, 0);
 
+        mem = openMemory(addr, count * 4);
+        ASSERT(mem);
+
         for (i = 0; i < count; i++) {
             getReg(mem, addr + i * 4, &data, sizeof(data));
             printf("0x%08x: 0x%08x\n", addr + i * 4, data);
         }
+        closeMemory(mem);
     }
     else {
         u32 i;
@@ -186,6 +188,9 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
 
+        mem = openMemory(addr, (argc - 3) * 4);
+        ASSERT(mem);
+
         for (i = 3; i < argc; i++) {
             ndata = strtoul(argv[i], NULL, 0);
             getReg(mem, addr, &odata, sizeof(odata));
@@ -194,43 +199,8 @@ int main(int argc, char **argv)
             printf("0x%08x: 0x%08x -> 0x%08x\n", addr, odata, ndata);
             addr += sizeof(odata);
         }
-    }
-
-    closeMemory(mem);
-
-
-#if 0
-    if (argc >= 3) {
-        u32 addr;
-        u32 data;
-
-        addr = strtoul(argv[1], NULL, 0);
-        mem = openMemory(addr, getPageSize());
-        ASSERT(mem);
-        getReg(mem, addr, &data, sizeof(data));
-        printf("0x%08x: 0x%08x\n", addr, data);
         closeMemory(mem);
     }
-    else if (argc == 3) {
-        u32 addr;
-        u32 odata, ndata;
-
-        addr = strtoul(argv[1], NULL, 0);
-        ndata = strtoul(argv[2], NULL, 0);
-
-        mem = openMemory(addr, getPageSize());
-        ASSERT(mem);
-        getReg(mem, addr, &odata, sizeof(odata));
-        setReg(mem, addr, &ndata, sizeof(ndata));
-        getReg(mem, addr, &ndata, sizeof(ndata));
-        printf("0x%08x: 0x%08x -> 0x%08x\n", addr, odata, ndata);
-        closeMemory(mem);
-    }
-    else {
-        usage(argc, argv);
-        exit(EXIT_FAILURE);
-    }
-#endif  /*0*/
 
     return 0;
 }
