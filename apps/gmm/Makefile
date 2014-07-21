@@ -3,18 +3,22 @@
 # Odyssesus Test Platform Makefiles
 #
 # AUTHOR	: ydlee@anapass.com
-# DATE		: 2014-07-14
+# DATE		: 2014-07-21
 #
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 ifndef	BASEDIR
-BASEDIR	:= $(shell pwd)/..
+BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= mscaler gmm
+TARGET			:= gmm
+OBJS			:= gmm.o
+
+LOCAL_CFLAGS	:=
+LOCAL_LFLAGS	:=
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

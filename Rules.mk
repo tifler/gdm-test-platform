@@ -6,7 +6,9 @@
 #------------------------------------------------------------------------------
 
 BASE_ROOTFS_DIR	:=/home2/tifler/work/ramdisk/vgroup_rootfs
+ifndef CROSS_COMPILE
 CROSS_COMPILE   :=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
+endif
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
@@ -16,8 +18,8 @@ ifneq (,$(TARGET_DIR))
 DEFAULT_BIN_DIR	:=$(TARGET_DIR)
 DEFAULT_LIB_DIR	:=$(TARGET_DIR)
 else
-DEFAULT_BIN_DIR	:=/usr/bin
-DEFAULT_LIB_DIR	:=/usr/lib
+DEFAULT_BIN_DIR	:=$(BASE_ROOTFS_DIR)/output/target/usr/bin
+DEFAULT_LIB_DIR	:=$(BASE_ROOTFS_DIR)/output/target/usr/lib
 endif
 
 ifndef   SUBDIRS
@@ -26,11 +28,16 @@ ifndef   SUBDIRS
 # Generic Rules
 #------------------------------------------------------------------------------
 
-CFLAGS          :=-Wall -pipe -I. $(LOCAL_CFLAGS)
+CFLAGS          := -Wall -pipe -I. $(LOCAL_CFLAGS)
 LFLAGS          := $(LOCAL_LFLAGS)
 
+ifeq ($(CROSS_COMPILE),HOST)
+CC				:= gcc
+LD				:= ld
+else
 CC				:=$(CROSS_COMPILE)gcc
 LD				:=$(CROSS_COMPILE)ld
+endif
 
 .PHONY: clean distclean install
 
@@ -41,9 +48,9 @@ $(TARGET):  $(OBJS)
 
 install:    $(TARGET)
 ifeq ($(suffix $(TARGET)),.so)
-	install -D $(TARGET) $(BASE_ROOTFS_DIR)/output/target/$(DEFAULT_LIB_DIR)
+	install -D $(TARGET) $(DEFAULT_LIB_DIR)
 else
-	install -D $(TARGET) $(BASE_ROOTFS_DIR)/output/target/$(DEFAULT_BIN_DIR)
+	install -D $(TARGET) $(DEFAULT_BIN_DIR)
 endif
 ifneq (,$(COPY_SOURCE_DIR))
 ifneq (,$(COPY_TARGET_DIR))
@@ -57,9 +64,9 @@ clean:
 distclean:  clean
 	@rm -rf $(TARGET) $(OBJS)
 ifeq ($(suffix $(TARGET)),.so)
-	@rm -rf $(BASE_ROOTFS_DIR)/output/target/$(DEFAULT_LIB_DIR)/$(TARGET)
+	@rm -rf $(DEFAULT_LIB_DIR)/$(TARGET)
 else
-	@rm -rf $(BASE_ROOTFS_DIR)/output/target/$(DEFAULT_BIN_DIR)/$(TARGET)
+	@rm -rf $(DEFAULT_BIN_DIR)/$(TARGET)
 endif
 ifneq (,$(COPY_SOURCE_DIR))
 ifneq (,$(COPY_TARGET_DIR))
