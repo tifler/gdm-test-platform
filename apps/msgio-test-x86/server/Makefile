@@ -18,8 +18,8 @@ CROSS_COMPILE	:= HOST
 TARGET			:= server
 OBJS			:= server.o
 
-LOCAL_CFLAGS	:= -I../../../libs/libmsgio-x86
-LOCAL_LFLAGS	:= -L../../../libs/libmsgio-x86 -lmsgio -lpthread
+LOCAL_CFLAGS	:= -I$(BASEDIR)/libs/libmsgio-x86
+LOCAL_LFLAGS	:= -L$(BASEDIR)/libs/libmsgio-x86 -lmsgio -lpthread
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

@@ -111,6 +111,7 @@ struct gdm_msghdr *gdm_recvmsg(int sockfd)
 
     // modify to real recv size
     hdr->buflen = size;
+    hdr->fdcount = 0;
     
     cmsg = CMSG_FIRSTHDR(&msg);
     if (cmsg) {
