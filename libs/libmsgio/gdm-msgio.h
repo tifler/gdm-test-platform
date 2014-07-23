@@ -6,9 +6,9 @@
 /*****************************************************************************/
 
 // max buffer size per 1 sendmsg
-#define GDM_MAX_BUF_SIZE                (4096)
+#define GDM_MSGIO_MAX_BUF_SIZE          (4096)
 // max transfer file descriptor count per 1 sendmsg
-#define GDM_MAX_FD_COUNT                (16)
+#define GDM_MSGIO_MAX_FD_COUNT          (16)
 
 /*****************************************************************************/
 

@@ -91,7 +91,7 @@ struct gdm_msghdr *gdm_recvmsg(int sockfd)
     struct cmsghdr *cmsg;
     struct gdm_msghdr *hdr;
 
-    hdr = gdm_alloc_msghdr(GDM_MAX_BUF_SIZE, GDM_MAX_FD_COUNT);
+    hdr = gdm_alloc_msghdr(GDM_MSGIO_MAX_BUF_SIZE, GDM_MSGIO_MAX_FD_COUNT);
     ASSERT(hdr);
 
     iov.iov_base = hdr->buf;

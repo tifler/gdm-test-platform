@@ -118,6 +118,11 @@ static int server_loop(const char *serverPath)
         client_sock =
             accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
 
+        if (client_sock < 0) {
+            perror("accept");
+            continue;
+        }
+
         process_client(client_sock, (struct sockaddr *)&client_addr, client_len);
     }
 
