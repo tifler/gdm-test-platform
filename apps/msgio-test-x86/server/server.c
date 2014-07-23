@@ -50,12 +50,8 @@ static void *client_thread(void *arg)
         DBG("read(%d bytes) = %s", (int)len, linebuf);
         len = sprintf(linebuf, "Server writing to fds[%d]\n", i);
         write(msg->fds[i], linebuf, len);
-    }
-
-    sleep(1);
-
-    for (i = 0; i < msg->fdcount; i++)
         close(msg->fds[i]);
+    }
 
     gdm_free_msghdr(msg);
     close(client->sockfd);

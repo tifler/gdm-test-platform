@@ -12,6 +12,9 @@ struct gdm_msghdr *gdm_alloc_msghdr(ssize_t buflen, ssize_t fdcount)
 {
     struct gdm_msghdr *hdr;
 
+    ASSERT(buflen <= GDM_MSGIO_MAX_BUF_SIZE);
+    ASSERT(fdcount <= GDM_MSGIO_MAX_FD_COUNT);
+
     hdr = calloc(1, sizeof(*hdr));
     ASSERT(hdr);
 
@@ -105,8 +108,6 @@ struct gdm_msghdr *gdm_recvmsg(int sockfd)
     msg.msg_controllen = CMSG_SPACE(sizeof(int) * hdr->fdcount);
 
     size = recvmsg(sockfd, &msg, 0);
-    ASSERT(size > 0);
-    DBG("real recv size = %d", (int)size);
 
     // modify to real recv size
     hdr->buflen = size;
