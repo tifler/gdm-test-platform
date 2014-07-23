@@ -3,18 +3,24 @@
 # Odyssesus Test Platform Makefiles
 #
 # AUTHOR	: ydlee@anapass.com
-# DATE		: 2014-07-14
+# DATE		: 2014-07-21
 #
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 ifndef	BASEDIR
-BASEDIR	:= $(shell pwd)/..
+BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= libmscaler libini libion libsync libmsgio libmsgio-x86
+CROSS_COMPILE	:= HOST
+DO_NOT_INSTALL	:= 1
+TARGET			:= libmsgio.so
+OBJS			:= gdm-msgio.o
+
+LOCAL_CFLAGS	:= -fPIC
+LOCAL_LFLAGS	:= -shared
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

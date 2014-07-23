@@ -47,6 +47,7 @@ $(TARGET):  $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS)
 
 install:    $(TARGET)
+ifndef	DO_NOT_INSTALL
 ifeq ($(suffix $(TARGET)),.so)
 	install -D $(TARGET) $(DEFAULT_LIB_DIR)
 else
@@ -57,6 +58,9 @@ ifneq (,$(COPY_TARGET_DIR))
 	cp -a $(COPY_SOURCE_DIR) $(BASE_ROOTFS_DIR)/output/target/$(COPY_TARGET_DIR)
 endif
 endif
+else	# DO_NOT_INSTALL
+	@echo "$(TARGET): skip install(DO_NOT_INSTALL is set) !!!"
+endif	# DO_NOT_INSTALL
 
 clean:
 	@rm -rf $(TARGET) $(OBJS)

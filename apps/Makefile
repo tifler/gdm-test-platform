@@ -14,7 +14,7 @@ BASEDIR	:= $(shell pwd)/..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= mscaler gmm
+SUBDIRS	:= mscaler gmm msgio-test-x86
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

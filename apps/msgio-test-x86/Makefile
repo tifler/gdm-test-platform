@@ -10,11 +10,13 @@
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 ifndef	BASEDIR
-BASEDIR	:= $(shell pwd)/..
+BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= libmscaler libini libion libsync libmsgio libmsgio-x86
+DO_NOT_INSTALL	:= 1
+SUBDIRS	:= server client
+export DO_NOT_INSTALL
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
