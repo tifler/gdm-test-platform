@@ -10,11 +10,11 @@
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 ifndef	BASEDIR
-BASEDIR	:= $(shell pwd)/..
+BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= mscaler gmm msgio-test-x86 display
+SUBDIRS	:= yuv_player
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
