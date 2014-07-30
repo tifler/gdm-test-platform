@@ -14,8 +14,10 @@
 /*****************************************************************************/
 
 #define UNIX_SOCKET_PATH                "/tmp/sock_msgio"
-#define BUFFER_SIZE                     (4096)
+//#define BUFFER_SIZE                     (4096)
+#define BUFFER_SIZE                     (0)
 #define FD_COUNT                        (16)
+#define MIN(a, b)                       ((a) > (b) ? (b) : (a))
 
 /*****************************************************************************/
 
@@ -33,6 +35,7 @@ static void test_msgio(int sockfd)
     int ret;
     int len;
     ssize_t size;
+    char tmpbuf[4096];
     struct gdm_msghdr *msg;
 
     msg = gdm_alloc_msghdr(BUFFER_SIZE, FD_COUNT);
@@ -41,17 +44,20 @@ static void test_msgio(int sockfd)
 
     msg->fdcount = FD_COUNT;
     for (i = 0; i < msg->fdcount; i++) {
-        len = snprintf(msg->buf, msg->buflen - 1, "/tmp/msgio-file-%04d", i);
-        msg->fds[i] = open(msg->buf, O_RDWR | O_CREAT | O_TRUNC, 0644);
+        len = snprintf(tmpbuf, sizeof(tmpbuf) - 1, "/tmp/msgio-file-%04d", i);
+        msg->fds[i] = open(tmpbuf, O_RDWR | O_CREAT | O_TRUNC, 0644);
         ASSERT(msg->fds[i] > 0);
         DBG("msg->fds[%d] = %d", i, msg->fds[i]);
-        msg->buf[len++] = '\n';
-        ret = write(msg->fds[i], msg->buf, len);
-        DBG("snprintf(%d) write(%d)", len, ret);
+        if (msg->buflen > 0) {
+            strncpy(msg->buf, tmpbuf, len);
+            msg->buf[len++] = '\n';
+            ret = write(msg->fds[i], msg->buf, len);
+            DBG("snprintf(%d) write(%d)", len, ret);
+        }
     }
 
     size = gdm_sendmsg(sockfd, msg);
-    ASSERT(size > 0);
+    ASSERT(size >= 0);
     DBG("Send msg size = %d", (int)size);
 
     for (i = 0; i < msg->fdcount; i++) {
