@@ -38,7 +38,7 @@
 #include <linux/types.h>
 #include <linux/stat.h>
 
-
+#include "sync.h"
 #include <ion_api.h>
 #include "gdm_fb.h"
 
@@ -58,6 +58,8 @@ struct ody_videofile {
 
 struct ody_videoframe {
 	int shared_fd;
+	int fence_fd;
+	int release_fd;
 	unsigned char *address;	/* virtual address */
 	int size;
 };
@@ -80,6 +82,9 @@ struct ody_player {
 	struct ody_videofile video_info;
 	struct ody_videoframe frame[2];
 
+	int sync_timeline_fd;
+	int fence_fd;
+	int release_fd;
 	int buf_index;
 
 	int renderer_stop;
@@ -126,6 +131,7 @@ static int get_framebuffer(int fd,
 		struct fb_fix_screeninfo *fi)
 {
 	int vsync_enable = 1;
+	int blank = FB_BLANK_UNBLANK;
 	int ret = 0;
 	if(ioctl(fd, FBIOGET_VSCREENINFO, vi) < 0) {
 		printf("failed to get fb0 info");
@@ -188,7 +194,7 @@ cleanup:
 
 }
 
-static int get_video_frame(int fd, unsigned char *pdata, int size, int *index)
+static int get_video_frame(int fd, unsigned char *pdata, int size)
 {
 	int ret;
 	int nread = 0;
@@ -200,8 +206,6 @@ static int get_video_frame(int fd, unsigned char *pdata, int size, int *index)
 		close(fd);
 		return -1;
 	}
-
-	*index ++;
 
 	return 0;
 }
@@ -242,6 +246,12 @@ static int dss_overlay_set(int fd, struct gdm_dss_overlay *req)
 	return ioctl(fd, GDMFB_OVERLAY_SET, req);
 }
 
+static int dss_overlay_buf_sync(int fd, struct gdm_dss_buf_sync *buf_sync)
+{
+	return ioctl(fd, GDMFB_BUFFER_SYNC, buf_sync);
+}
+
+
 static int dss_overlay_play(int fd, struct gdm_dss_overlay_data *req_data,
 	struct ody_videoframe *pframe)
 {
@@ -251,10 +261,9 @@ static int dss_overlay_play(int fd, struct gdm_dss_overlay_data *req_data,
 	return ioctl(fd, GDMFB_OVERLAY_PLAY, req_data);
 }
 
-static int dss_overlay_commit(int fd)
+static int dss_overlay_commit(int fd, struct fb_var_screeninfo *vi)
 {
-	return ioctl(fd, GDMFB_OVERLAY_COMMIT, NULL);
-
+	return ioctl(fd, FBIOPUT_VSCREENINFO, vi);
 }
 
 static int dss_overlay_unset(int fd, int ov_id)
@@ -263,62 +272,67 @@ static int dss_overlay_unset(int fd, int ov_id)
 
 }
 
+
 void player_cleanup(void *arg)
 {
 	pthread_cond_destroy(&video_renderer);
 	pthread_mutex_destroy(&renderer_mutex);
 
-	pthread_cond_destroy(&video_decoder);
-	pthread_mutex_destroy(&decoder_mutex);
+	//pthread_cond_destroy(&video_decoder);
+	//pthread_mutex_destroy(&decoder_mutex);
 }
 
 
-#if 0
 /* Decoding thread */
 void *decoding_thread(void *arg)
 {
+	int ret = 0;
 	int frame_num = 0;
+	int buf_ndx = 0;
+	char str[256];
+	unsigned val = 0;
+	struct sync_fence_info_data *info;
+
 	struct ody_player *gplayer = (struct ody_player *)arg;
-	int buf_ndx = gplayer->buf_index;
 
-	pthread_cleanup_push(player_cleanup, NULL);
-
-	sleep(1);	// waiting for rendering thread...
-
-	get_video_frame(gplayer->video_info.fd,
+	ret = get_video_frame(gplayer->video_info.fd,
 		(unsigned char*)gplayer->frame[buf_ndx].address,
-		gplayer->frame[buf_ndx].size,
-		&frame_num);
-	buf_ndx ^= 1;
+		gplayer->frame[buf_ndx].size);
+	if(ret == -1) {
+		gplayer->stop = 1;
+	}
 
-	pthread_cond_signal(&video_renderer);
+	buf_ndx = 1;
+	while(!gplayer->stop) {
+		pthread_cond_signal(&video_renderer);
+		usleep(10000);
 
-
-	while(!gplayer->stop || gplayer->renderer_stop == 0) {
-		int ret = 0;
 		ret = get_video_frame(gplayer->video_info.fd,
 			(unsigned char*)gplayer->frame[buf_ndx].address,
-			gplayer->frame[buf_ndx].size,
-			&frame_num);
+			gplayer->frame[buf_ndx].size);
+		frame_num ++;
 
 		if(ret == -1) {
 			gplayer->stop = 1;
-			pthread_cond_wait(&video_decoder, &decoder_mutex);
 			break;
 		}
 
-		pthread_cond_wait(&video_decoder, &decoder_mutex);
-
-		pthread_cond_signal(&video_renderer);
+		pthread_mutex_lock(&renderer_mutex);
+		if(gplayer->release_fd != -1) {
+			printf("wait frame done signal\n");
+			ret = sync_wait(gplayer->release_fd, 10000);
+		}
+		val ++;
+		pthread_mutex_unlock(&renderer_mutex);
+		buf_ndx ^= 1;
 
 	}
-	pthread_cleanup_pop(1);
 
-
+	close(gplayer->release_fd);
+	gplayer->release_fd = -1;
 }
-#endif
 
-#if 0
+
 void *rendering_thread(void *arg)
 {
 	int ret = 0;
@@ -326,87 +340,55 @@ void *rendering_thread(void *arg)
 	struct gdm_dss_overlay request;
 	struct gdm_dss_overlay_data req_data;
 	int buf_ndx;
+	int retireFd = -1;
+	struct gdm_dss_buf_sync buf_sync;
+	char str[256];
+	unsigned val = 0;
+
+	buf_ndx = 0;
+
+
+	sprintf(str, "player-buff fence");
 
 	dss_overlay_default_config(&request, gplayer);
 	ret = dss_overlay_set(gplayer->fb_info.fd, &request);
 
+	buf_sync.acq_fen_fd_cnt = 0;
+	buf_sync.acq_fen_fd = &gplayer->fence_fd;
+	gplayer->release_fd = -1;
+	buf_sync.rel_fen_fd = &gplayer->release_fd;
+	retireFd = -1;
+	buf_sync.retire_fen_fd = &retireFd;
+	dss_overlay_buf_sync(gplayer->fb_info.fd, &buf_sync);
+	
 	if(ret)
 		return;
 	else {
 		req_data.id = request.id;
 		printf("pipe id is %d\n", request.id);
 	}
-	while(!gplayer->stop)	{
-		pthread_cond_wait(&video_renderer, &renderer_mutex);
-
-		buf_ndx = (gplayer->buf_index ^ 1);
-		dss_overlay_play(gplayer->fb_info.fd, &req_data,
-			&gplayer->frame[buf_ndx]);
-
-		dss_overlay_commit(gplayer->fb_info.fd);
-
-		pthread_cond_signal(&video_decoder);
-	}
-
-	dss_overlay_unset(gplayer->fb_info.fd, request.id);
-
-	gplayer->renderer_stop = 1;
-
-}
-#else
-
-void *rendering_thread(void *arg)
-{
-	int ret = 0;
-	struct ody_player *gplayer = (struct ody_player *)arg;
-	struct gdm_dss_overlay request;
-	struct gdm_dss_overlay_data req_data;
-	int buf_ndx = 0;
-	int frame_num = 0;
-
-	dss_overlay_default_config(&request, gplayer);
-	ret = dss_overlay_set(gplayer->fb_info.fd, &request);
-
-	if(ret)
-		return;
-	else {
-		req_data.id = request.id;
-		printf("pipe id is %d\n", request.id);
-	}
-
 	pthread_cleanup_push(player_cleanup, NULL);
 
 	while(!gplayer->stop)	{
-		int ret = 0;
-		ret = get_video_frame(gplayer->video_info.fd,
-			gplayer->frame[buf_ndx].address,
-			gplayer->frame[buf_ndx].size,
-			&frame_num);
 
-		//printf("frame_num[%04d]: 0x%08x\n", frame_num,
-		//	gplayer->frame[buf_ndx].address);
-		if(ret == -1) {
-			gplayer->stop = 1;
+		pthread_cond_wait(&video_renderer, &renderer_mutex);
+		if(gplayer->stop)
 			break;
-		}
 
+		pthread_mutex_unlock(&renderer_mutex);
 		dss_overlay_play(gplayer->fb_info.fd, &req_data,
 			&gplayer->frame[buf_ndx]);
 
-		dss_overlay_commit(gplayer->fb_info.fd);
-
 		buf_ndx ^= 1;
-	}
+                gplayer->fb_info.vi.activate = FB_ACTIVATE_VBL;
+                gplayer->fb_info.vi.yoffset = gplayer->fb_info.vi.yres * buf_ndx;
+		dss_overlay_commit(gplayer->fb_info.fd, &gplayer->fb_info.vi);
 
+	}
+	pthread_cleanup_pop(1);
 	dss_overlay_unset(gplayer->fb_info.fd, request.id);
 
-	pthread_cleanup_pop(1);
-
-	gplayer->renderer_stop = 1;
-
 }
-
-#endif
 
 int main(int argc, char **argv)
 {
@@ -415,8 +397,9 @@ int main(int argc, char **argv)
 	struct ody_player gplayer;
 	struct ody_framebuffer *pfb;
 	struct ody_videofile *pvideo;
-
-	//signal(SIGPIPE, SIG_IGN);
+	char str[256];
+	unsigned val;
+	struct sync_fence_info_data *info;
 
 	memset(&gplayer, 0x00, sizeof(struct ody_player));
 	pfb = &gplayer.fb_info;
@@ -462,16 +445,21 @@ int main(int argc, char **argv)
 
 	}
 
+	sprintf(str, "player-buff fence - 0");
+	val = 1;
+
+//	gplayer.sync_timeline_fd = sw_sync_timeline_create();
+	gplayer.release_fd = -1;
+	gplayer.fence_fd = -1;
 
 	if(pthread_create(&rendering_worker, NULL, rendering_thread, &gplayer) != 0)
 		goto exit;
 
-	//if(pthread_create(&decoding_worker, NULL, decoding_thread, &gplayer) != 0)
-	//	goto exit;
+	if(pthread_create(&decoding_worker, NULL, decoding_thread, &gplayer) != 0)
+		goto exit;
 
 	pthread_detach(rendering_worker);
-	//pthread_detach(decoding_worker);
-
+	pthread_detach(decoding_worker);
 
 	while(!gplayer.stop) {
 
@@ -482,16 +470,16 @@ int main(int argc, char **argv)
 exit:
 
 	pthread_cancel(rendering_worker);
-	//pthread_cancel(decoding_worker);
+	pthread_cancel(decoding_worker);
 
+	sleep(1);
 	if(pfb->fd)
 		close(pfb->fd);
 
 	if(pvideo->fd)
 		close(pvideo->fd);
 
-
-
+//	close(gplayer.sync_timeline_fd);
 	return 0;
 }
 

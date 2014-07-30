@@ -13,7 +13,16 @@
 #define __BEGIN_DECLS
 #define __END_DECLS
 
-typedef int	private_handle_t;
+
+#define MAX_NUM_LAYERS	16
+
+typedef struct private_handle_t {
+	int 	fd;
+	int	offset;
+	int	format;
+	int	bufferType;
+};
+
 typedef int	buffer_handle_t;
 typedef int	bool;
 
@@ -47,6 +56,5 @@ typedef int	bool;
 
 
 #define ATRACE_CALL()	fprintf(stderr, " ATRACE(%s, %s(), %d): \n", __FILE__, __FUNCTION__, __LINE__)
-#define ATRACE_CALL()	fprintf(stderr, " BTRACE(%s, %s(), %d): \n", __FILE__, __FUNCTION__, __LINE__)
 
 #endif

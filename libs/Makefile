@@ -14,7 +14,7 @@ BASEDIR	:= $(shell pwd)/..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= libmscaler libini libion libsync libmsgio libmsgio-x86
+SUBDIRS	:= libmscaler libini libion libsync libmsgio libmsgio-x86 libhwc
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
