@@ -1,97 +1,56 @@
 /*
- * Copyright (C) 2012 Google, Inc.
+ *  sync.h
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *   Copyright 2012 Google, Inc
  *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
-#ifndef _UAPI_LINUX_SYNC_H
-#define _UAPI_LINUX_SYNC_H
+#ifndef __SYS_CORE_SYNC_H
+#define __SYS_CORE_SYNC_H
 
-#include <linux/ioctl.h>
-#include <linux/types.h>
+#include <sys/cdefs.h>
+#include <stdint.h>
 
-/**
- * struct sync_merge_data - data passed to merge ioctl
- * @fd2:	file descriptor of second fence
- * @name:	name of new fence
- * @fence:	returns the fd of the new fence to userspace
- */
-struct sync_merge_data {
-	__s32	fd2; /* fd of second fence */
-	char	name[32]; /* name of new fence */
-	__s32	fence; /* fd on newly created fence */
-};
+#include "android_wrapper.h"
 
-/**
- * struct sync_pt_info - detailed sync_pt information
- * @len:		length of sync_pt_info including any driver_data
- * @obj_name:		name of parent sync_timeline
- * @driver_name:	name of driver implmenting the parent
- * @status:		status of the sync_pt 0:active 1:signaled <0:error
- * @timestamp_ns:	timestamp of status change in nanoseconds
- * @driver_data:	any driver dependant data
- */
-struct sync_pt_info {
-	__u32	len;
-	char	obj_name[32];
-	char	driver_name[32];
-	__s32	status;
-	__u64	timestamp_ns;
+__BEGIN_DECLS
 
-	__u8	driver_data[0];
-};
-
-/**
- * struct sync_fence_info_data - data returned from fence info ioctl
- * @len:	ioctl caller writes the size of the buffer its passing in.
- *		ioctl returns length of sync_fence_data reutnred to userspace
- *		including pt_info.
- * @name:	name of fence
- * @status:	status of fence. 1: signaled 0:active <0:error
- * @pt_info:	a sync_pt_info struct for every sync_pt in the fence
- */
+// XXX: These structs are copied from the header "linux/sync.h".
 struct sync_fence_info_data {
-	__u32	len;
-	char	name[32];
-	__s32	status;
-
-	__u8	pt_info[0];
+ uint32_t len;
+ char name[32];
+ int32_t status;
+ uint8_t pt_info[0];
 };
 
-#define SYNC_IOC_MAGIC		'>'
+struct sync_pt_info {
+ uint32_t len;
+ char obj_name[32];
+ char driver_name[32];
+ int32_t status;
+ uint64_t timestamp_ns;
+ uint8_t driver_data[0];
+};
 
-/**
- * DOC: SYNC_IOC_WAIT - wait for a fence to signal
- *
- * pass timeout in milliseconds.  Waits indefinitely timeout < 0.
- */
-#define SYNC_IOC_WAIT		_IOW(SYNC_IOC_MAGIC, 0, __s32)
+/* timeout in msecs */
+int sync_wait(int fd, int timeout);
+int sync_merge(const char *name, int fd1, int fd2);
+struct sync_fence_info_data *sync_fence_info(int fd);
+struct sync_pt_info *sync_pt_info(struct sync_fence_info_data *info,
+                                  struct sync_pt_info *itr);
+void sync_fence_info_free(struct sync_fence_info_data *info);
 
-/**
- * DOC: SYNC_IOC_MERGE - merge two fences
- *
- * Takes a struct sync_merge_data.  Creates a new fence containing copies of
- * the sync_pts in both the calling fd and sync_merge_data.fd2.  Returns the
- * new fence's fd in sync_merge_data.fence
- */
-#define SYNC_IOC_MERGE		_IOWR(SYNC_IOC_MAGIC, 1, struct sync_merge_data)
+__END_DECLS
 
-/**
- * DOC: SYNC_IOC_FENCE_INFO - get detailed information on a fence
- *
- * Takes a struct sync_fence_info_data with extra space allocated for pt_info.
- * Caller should write the size of the buffer into len.  On return, len is
- * updated to reflect the total size of the sync_fence_info_data including
- * pt_info.
- *
- * pt_info is a buffer containing sync_pt_infos for every sync_pt in the fence.
- * To itterate over the sync_pt_infos, use the sync_pt_info.len field.
- */
-#define SYNC_IOC_FENCE_INFO	_IOWR(SYNC_IOC_MAGIC, 2,\
-	struct sync_fence_info_data)
-
-#endif /* _UAPI_LINUX_SYNC_H */
+#endif /* __SYS_CORE_SYNC_H */
