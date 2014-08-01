@@ -14,7 +14,7 @@ BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= hwcomposer
+SUBDIRS	:= hwcomposer pngdec
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
