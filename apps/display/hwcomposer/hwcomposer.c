@@ -214,6 +214,7 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 	else {
 		memcpy(&cur_ov->ov_data, req_data, sizeof(*req_data));
 		cur_ov->ov_data.id = cur_ov->ov_id;
+		cur_ov->is_new_data = 1;
 	}
 
 	return 0;
@@ -267,11 +268,15 @@ void *commit_thread(void *argp)
 				if(hwc_ctx->vid_cfg[i].is_update) {
 					gdss_io_set_overlay(fb_fd, &hwc_ctx->vid_cfg[i].ov_cfg);
 					hwc_ctx->vid_cfg[i].ov_id = hwc_ctx->vid_cfg[i].ov_cfg.id;
+					hwc_ctx->vid_cfg[i].is_update = 0;
 				}
 
-				if(hwc_ctx->vid_cfg[i].ov_data.data.memory_id != 0) {
+				if(hwc_ctx->vid_cfg[i].ov_data.data.memory_id != 0 && hwc_ctx->vid_cfg[i].is_new_data == 1) {
 					hwc_ctx->vid_cfg[i].ov_data.id = hwc_ctx->vid_cfg[i].ov_id;
 					gdss_io_overlay_queue(fb_fd, &hwc_ctx->vid_cfg[i].ov_data);
+					hwc_ctx->vid_cfg[i].is_new_data = 0;
+
+					close(hwc_ctx->vid_cfg[i].ov_data.data.memory_id);
 				}
 			}
 		}
@@ -281,13 +286,16 @@ void *commit_thread(void *argp)
 				if(hwc_ctx->gfx_cfg[i].is_update) {
 					gdss_io_set_overlay(fb_fd, &hwc_ctx->gfx_cfg[i].ov_cfg);
 					hwc_ctx->gfx_cfg[i].ov_id = hwc_ctx->gfx_cfg[i].ov_cfg.id;
+					hwc_ctx->gfx_cfg[i].is_update = 0;
 				}
 
-				if(hwc_ctx->gfx_cfg[i].ov_data.data.memory_id != 0) {
+				if(hwc_ctx->gfx_cfg[i].ov_data.data.memory_id != 0 && hwc_ctx->gfx_cfg[i].is_new_data == 1) {
 					hwc_ctx->gfx_cfg[i].ov_data.id = hwc_ctx->gfx_cfg[i].ov_id;
 					gdss_io_overlay_queue(fb_fd, &hwc_ctx->gfx_cfg[i].ov_data);
+					hwc_ctx->gfx_cfg[i].is_new_data = 0;
+					close(hwc_ctx->vid_cfg[i].ov_data.data.memory_id);
 				}
-			}	
+			}
 		}
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 

@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <inttypes.h>
 
+#include "android_wrapper.h"
+
 #define MAX_DISPLAYS            	(2)
 #define UNIX_SOCKET_PATH                "/tmp/sock_msgio"
 #define BACKLOG                         (10)
@@ -51,6 +53,7 @@ enum {
 
 struct overlay_context_t {
 	bool is_update;
+	bool is_new_data;
 	int ov_id;
 	struct gdm_dss_overlay ov_cfg;
 	struct gdm_dss_overlay_data ov_data;
