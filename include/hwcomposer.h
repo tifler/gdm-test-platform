@@ -53,6 +53,8 @@ enum {
 
 struct overlay_context_t {
 	bool is_update;
+	bool is_new_data;
+	int ov_id;
 	struct gdm_dss_overlay ov_cfg;
 	struct gdm_dss_overlay_data ov_data;
 	int application_id;
