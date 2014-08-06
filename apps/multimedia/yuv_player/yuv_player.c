@@ -131,7 +131,7 @@ static int get_framebuffer(int fd,
 		struct fb_fix_screeninfo *fi)
 {
 	int vsync_enable = 1;
-	int blank = FB_BLANK_UNBLANK;
+//	int blank = FB_BLANK_UNBLANK;
 	int ret = 0;
 	if(ioctl(fd, FBIOGET_VSCREENINFO, vi) < 0) {
 		printf("failed to get fb0 info");
@@ -196,17 +196,13 @@ cleanup:
 
 static int get_video_frame(int fd, unsigned char *pdata, int size)
 {
-	int ret;
+//	int ret;
 	int nread = 0;
-
-
 	nread = read(fd, pdata, size);
-
 	if(nread != size) {
 		close(fd);
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -255,8 +251,9 @@ static int dss_overlay_buf_sync(int fd, struct gdm_dss_buf_sync *buf_sync)
 static int dss_overlay_play(int fd, struct gdm_dss_overlay_data *req_data,
 	struct ody_videoframe *pframe)
 {
-	req_data->data.memory_id = pframe->shared_fd;
-	req_data->data.offset = 0;
+	req_data->num_plane = 1;
+	req_data->data[0].memory_id = pframe->shared_fd;
+	req_data->data[0].offset = 0;
 
 	return ioctl(fd, GDMFB_OVERLAY_PLAY, req_data);
 }
@@ -289,9 +286,7 @@ void *decoding_thread(void *arg)
 	int ret = 0;
 	int frame_num = 0;
 	int buf_ndx = 0;
-	char str[256];
 	unsigned val = 0;
-	struct sync_fence_info_data *info;
 
 	struct ody_player *gplayer = (struct ody_player *)arg;
 
@@ -330,6 +325,8 @@ void *decoding_thread(void *arg)
 
 	close(gplayer->release_fd);
 	gplayer->release_fd = -1;
+
+	return NULL;
 }
 
 
@@ -343,7 +340,6 @@ void *rendering_thread(void *arg)
 	int retireFd = -1;
 	struct gdm_dss_buf_sync buf_sync;
 	char str[256];
-	unsigned val = 0;
 
 	buf_ndx = 0;
 
@@ -360,9 +356,9 @@ void *rendering_thread(void *arg)
 	retireFd = -1;
 	buf_sync.retire_fen_fd = &retireFd;
 	dss_overlay_buf_sync(gplayer->fb_info.fd, &buf_sync);
-	
+
 	if(ret)
-		return;
+		return NULL;
 	else {
 		req_data.id = request.id;
 		printf("pipe id is %d\n", request.id);
@@ -388,18 +384,15 @@ void *rendering_thread(void *arg)
 	pthread_cleanup_pop(1);
 	dss_overlay_unset(gplayer->fb_info.fd, request.id);
 
+	return NULL;
 }
 
 int main(int argc, char **argv)
 {
-	int ret = 0;
-
 	struct ody_player gplayer;
 	struct ody_framebuffer *pfb;
 	struct ody_videofile *pvideo;
-	char str[256];
-	unsigned val;
-	struct sync_fence_info_data *info;
+//	unsigned val;
 
 	memset(&gplayer, 0x00, sizeof(struct ody_player));
 	pfb = &gplayer.fb_info;
@@ -445,10 +438,6 @@ int main(int argc, char **argv)
 
 	}
 
-	sprintf(str, "player-buff fence - 0");
-	val = 1;
-
-//	gplayer.sync_timeline_fd = sw_sync_timeline_create();
 	gplayer.release_fd = -1;
 	gplayer.fence_fd = -1;
 

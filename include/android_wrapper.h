@@ -16,12 +16,12 @@
 
 #define MAX_NUM_LAYERS	16
 
-typedef struct private_handle_t {
+typedef struct {
 	int 	fd;
 	int	offset;
 	int	format;
 	int	bufferType;
-};
+} private_handle_t;
 
 typedef int	buffer_handle_t;
 typedef int	bool;

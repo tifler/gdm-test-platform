@@ -170,37 +170,6 @@ enum gdm_dss_pipe_type {
 };
 
 
-struct gdm_fb_user_plane_alpha {
-	int		channel;
-	enum gdm_fb_blending blending_type;
-	unsigned char	plane_alpha;
-};
-
-struct gdm_fb_user_chroma {
-	int		enabled;
-	unsigned char	red;
-	unsigned char	green;
-	unsigned char	blue;
-};
-
-
-struct gdm_fb_ion_client {
-	int	fd;
-	int	offset;
-};
-
-struct gdm_fb_user_ion_client {
-	int	fd;
-	int	offset;
-};
-
-struct disp_info_type_suspend {
-	int op_enable;
-	int panel_power_on;
-};
-
-
-
 #define GDM_DSS_MAX_FENCE_FD		10
 #define GDM_DSS_BUF_SYNC_FLAG_WAIT	1
 #define GDM_BUF_SYNC_FLAG_RETIRE_FENCE	0x10
@@ -260,7 +229,8 @@ struct gdmfb_data {	/*msmfb_data */
 
 struct gdm_dss_overlay_data {
 	uint32_t id;
-	struct gdmfb_data data;
+	uint32_t num_plane;
+	struct gdmfb_data data[3];
 	struct gdmfb_data dst_data;
 };
 

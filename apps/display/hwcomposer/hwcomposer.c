@@ -194,7 +194,7 @@ static int register_overlay_cfg(struct hwc_context_t *hwc_ctx,
 static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 		int app_id, struct gdm_msghdr *msg)
 {
-
+	int i = 0;
 	struct overlay_context_t *cur_ov = NULL;;
 	struct gdm_hwc_msg *hwc_msg = NULL;
 	struct gdm_dss_overlay_data *req_data = NULL;
@@ -203,8 +203,9 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 	hwc_msg = (struct gdm_hwc_msg*)msg->buf;
 	req_data = (struct gdm_dss_overlay_data *)hwc_msg->data;
 
-	if(msg->fdcount > 0)
-		req_data->data.memory_id = msg->fds[0];
+	for(i = 0; i<msg->fdcount; i++) {
+		req_data->data[i].memory_id = msg->fds[i];
+	}
 
 	cur_ov = find_registered_overlay(hwc_ctx, app_id);
 
@@ -242,7 +243,7 @@ static int unregister_overlay_cfg(struct hwc_context_t *hwc_ctx,
 // default thread fb0
 void *commit_thread(void *argp)
 {
-	int i = 0, ret = 0;
+	int i = 0, ret = 0, j = 0;
 	struct hwc_context_t *hwc_ctx = (struct hwc_context_t *)argp;
 	struct fb_var_screeninfo *vi = &hwc_ctx->dpyAttr[0].vi;
 	int fb_fd = hwc_ctx->dpyAttr[0].fd;
@@ -258,10 +259,12 @@ void *commit_thread(void *argp)
 	gdss_io_buffer_sync(fb_fd, &buf_sync);
 
 	while(1) {
+
+		pthread_cond_wait(&hwc_ctx->commit_cond, &hwc_ctx->ov_lock);
 		buf_index ^= 1;
 
 		/* prepare */
-		pthread_mutex_lock(&hwc_ctx->ov_lock);
+		//pthread_mutex_lock(&hwc_ctx->ov_lock);
 
 		for(i = 0; i < MAX_VID_OVERLAY; i++) {
 			if(hwc_ctx->vid_cfg[i].application_id != 0) {
@@ -271,12 +274,13 @@ void *commit_thread(void *argp)
 					hwc_ctx->vid_cfg[i].is_update = 0;
 				}
 
-				if(hwc_ctx->vid_cfg[i].ov_data.data.memory_id != 0 && hwc_ctx->vid_cfg[i].is_new_data == 1) {
+				if(hwc_ctx->vid_cfg[i].ov_data.data[0].memory_id != 0 && hwc_ctx->vid_cfg[i].is_new_data == 1) {
 					hwc_ctx->vid_cfg[i].ov_data.id = hwc_ctx->vid_cfg[i].ov_id;
 					gdss_io_overlay_queue(fb_fd, &hwc_ctx->vid_cfg[i].ov_data);
 					hwc_ctx->vid_cfg[i].is_new_data = 0;
 
-					close(hwc_ctx->vid_cfg[i].ov_data.data.memory_id);
+					for(j = 0 ; j< hwc_ctx->vid_cfg[i].ov_data.num_plane; j++)
+						close(hwc_ctx->vid_cfg[i].ov_data.data[j].memory_id);
 				}
 			}
 		}
@@ -289,11 +293,11 @@ void *commit_thread(void *argp)
 					hwc_ctx->gfx_cfg[i].is_update = 0;
 				}
 
-				if(hwc_ctx->gfx_cfg[i].ov_data.data.memory_id != 0 && hwc_ctx->gfx_cfg[i].is_new_data == 1) {
+				if(hwc_ctx->gfx_cfg[i].ov_data.data[0].memory_id != 0 && hwc_ctx->gfx_cfg[i].is_new_data == 1) {
 					hwc_ctx->gfx_cfg[i].ov_data.id = hwc_ctx->gfx_cfg[i].ov_id;
 					gdss_io_overlay_queue(fb_fd, &hwc_ctx->gfx_cfg[i].ov_data);
 					hwc_ctx->gfx_cfg[i].is_new_data = 0;
-					close(hwc_ctx->vid_cfg[i].ov_data.data.memory_id);
+					close(hwc_ctx->gfx_cfg[i].ov_data.data[0].memory_id);
 				}
 			}
 		}
@@ -308,7 +312,7 @@ void *commit_thread(void *argp)
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
-		usleep(10*1000);
+		//usleep(10*1000);
 	}
 
 }
@@ -358,6 +362,7 @@ static void *client_thread(void *arg)
 					cmd_msg);
 			break;
 		}
+		pthread_cond_signal(&hwc_ctx->commit_cond);
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 		gdm_free_msghdr(cmd_msg);
 
@@ -455,9 +460,12 @@ int main(int argc, char **argv)
 	memset(hwc_ctx, 0x00, sizeof(*hwc_ctx));
 
 	open_framebuffer_device(hwc_ctx);
-	pthread_mutex_init(&hwc_ctx->ov_lock, NULL);
 
-	hwc_ctx->comm_cfg.port = 43000;
+	if(pthread_cond_init(&hwc_ctx->commit_cond, NULL) != 0) {
+		goto Exit;
+	}
+
+	pthread_mutex_init(&hwc_ctx->ov_lock, NULL);
 
 	pthread_create(&commitThread, NULL, commit_thread, hwc_ctx);
 	pthread_create(&serverThread, NULL, server_loop, hwc_ctx);
@@ -468,6 +476,8 @@ int main(int argc, char **argv)
 	while(!hwc_ctx->bstop)
 		sleep(1);
 
+Exit:
+	free(hwc_ctx);
 	return 0;
 }
 

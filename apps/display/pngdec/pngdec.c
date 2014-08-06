@@ -45,6 +45,7 @@
 #include "gdm-msgio.h"
 #include "debug.h"
 #include "hwcomposer.h"
+#include "sync.h"
 
 #define LCD_WIDTH	800
 #define LCD_HEIGHT	480
@@ -168,34 +169,6 @@ int read_png_file(char* file_name, struct image_desc *desc, DFBColor *transparen
 	}
 
 	switch (src_format) {
-#if 0
-		case DSPF_LUT8:
-			{
-				png_colorp info_palette;
-				int num_palette;
-
-				png_get_PLTE(png_ptr,info_ptr,&info_palette,&num_palette);
-
-				if (num_palette) {
-					png_byte *alpha;
-					int       i, num;
-
-					*palette_size = MIN (num_palette, 256);
-					for (i = 0; i < *palette_size; i++) {
-						palette[i].a = 0xFF;
-						palette[i].r = info_palette[i].red;
-						palette[i].g = info_palette[i].green;
-						palette[i].b = info_palette[i].blue;
-					}
-					if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS)) {
-						png_get_tRNS (png_ptr, info_ptr, &alpha, &num, NULL);
-						for (i = 0; i < MIN (num, *palette_size); i++)
-							palette[i].a = alpha[i];
-					}
-				}
-				break;
-			}
-#endif
 		case DSPF_RGB32:
 			png_set_filler (png_ptr, 0xFF,
 					PNG_FILLER_AFTER
@@ -256,11 +229,12 @@ int read_png_file(char* file_name, struct image_desc *desc, DFBColor *transparen
 	if (!dest_format)
 		dest_format = src_format;
 
+#if 0
 	/*	replace color in completely transparent pixels	*/
 	if (DFB_PIXELFORMAT_HAS_ALPHA(src_format))
 	{
 		unsigned char *row;
-		int			h;
+		int h;
 
 		for (row = data, h = height; h; h--, row += pitch) {
 			unsigned int *pixel;
@@ -272,6 +246,8 @@ int read_png_file(char* file_name, struct image_desc *desc, DFBColor *transparen
 			}
 		}
 	}
+#endif
+
 #if 0
 	if (DFB_BYTES_PER_PIXEL(src_format) != DFB_BYTES_PER_PIXEL(dest_format)) {
 		unsigned char *s, *d, *dest;
@@ -343,7 +319,7 @@ int read_png_file(char* file_name, struct image_desc *desc, DFBColor *transparen
 	desc->pitch = pitch;
 	desc->data = data;
 
-	printf("data: %08x\n", desc->data);
+	printf("data: %08x\n", (unsigned int)desc->data);
 
 	data = NULL;
 
@@ -409,6 +385,8 @@ static int scanning_directory(char *base_dir, struct gfx_context_t *gfx_ctx)
 	chdir("..");
 	closedir(dp);
 
+	return 0;
+
 }
 
 static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
@@ -421,8 +399,8 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 	req->src.width = desc->width;
 	req->src.height = desc->height;
 	req->src.format = GDM_DSS_PF_ARGB8888;
-	req->src.endian = 0;
-	req->src.swap = 0;
+	req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
+	req->src.swap = GDM_DSS_PF_ORDER_BGR;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_GFX;
 
 	req->src_rect.x = req->src_rect.y = 0;
@@ -435,10 +413,10 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 	if(req->src.height > LCD_HEIGHT)
 		req->src_rect.h = LCD_HEIGHT;
 	else
-		req->src_rect.h = req->src.width;
+		req->src_rect.h = req->src.height;
 
 	req->dst_rect.x = req->dst_rect.y = 0;
-	req->dst_rect.w = req->src_rect.w; 
+	req->dst_rect.w = req->src_rect.w;
 	req->dst_rect.h = req->src_rect.h;
 
 	req->transp_mask = 0;
@@ -454,7 +432,7 @@ static void dss_get_fence_fd(int sockfd, int *release_fd)
 	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-	printf("received msg: %0x\n", msg);
+	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
 		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
@@ -480,25 +458,31 @@ static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req)
 	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
 
 	gdm_sendmsg(sockfd, msg);
+
+	return 0;
 }
 
 
 
 static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 {
+	int i;
 	struct gdm_hwc_msg msg_data;
 	struct gdm_msghdr *msg = NULL;
 
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
 
-	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), 1);
+	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), req_data->num_plane);
 
 	msg_data.app_id = APP_ID_GRAP_PNG_DECODER;
 	msg_data.hwc_cmd = GDMFB_OVERLAY_PLAY;
 	memcpy(msg_data.data, req_data, sizeof(struct gdm_dss_overlay_data));
 	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
-	msg->fds[0] = req_data->data.memory_id;
+
+	for(i=0; i<req_data->num_plane; i++)
+		msg->fds[i] = req_data->data[i].memory_id;
 	gdm_sendmsg(sockfd, msg);
+	return 0;
 }
 
 static int dss_overlay_unset(int sockfd)
@@ -511,8 +495,15 @@ static int dss_overlay_unset(int sockfd)
 	msg_data.hwc_cmd = GDMFB_OVERLAY_UNSET;
 
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), 0);
-	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
-	gdm_sendmsg(sockfd, msg);
+
+	if(msg) {
+		memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
+		gdm_sendmsg(sockfd, msg);
+
+		return 0;
+	}
+
+	return -1;
 
 }
 
@@ -525,7 +516,6 @@ void *gfx_renderer(void *arg)
 	int sockfd;
 	struct sockaddr_un server_addr;
 
-	struct gdm_msghdr *msg;
 	struct gfx_context_t *gfx_ctx = (struct gfx_context_t *)arg;
 	struct gdm_dss_overlay req;
 	struct gdm_dss_overlay_data req_data;
@@ -552,6 +542,11 @@ void *gfx_renderer(void *arg)
 	// step-02: request overlay to display
 	dss_overlay_default_gfx_config(&req, gfx_ctx);
 	dss_overlay_set(sockfd, &req);
+	req_data.id = 0;
+	req_data.num_plane = 1;
+	req_data.data[0].memory_id = gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd;
+	req_data.data[0].offset = 0;
+
 	dss_overlay_queue(sockfd, &req_data);
 
 	// step-03: send framebuffer to display
@@ -569,8 +564,9 @@ void *gfx_renderer(void *arg)
 
 		memset(&req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 		req_data.id = 0;
-		req_data.data.memory_id = gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd;
-		req_data.data.offset = 0;
+		req_data.num_plane = 1;
+		req_data.data[0].memory_id = gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd;
+		req_data.data[0].offset = 0;
 		dss_overlay_queue(sockfd, &req_data);
 
 		dss_overlay_set(sockfd, &req);
@@ -618,12 +614,14 @@ void *gfx_renderer(void *arg)
 		}
 	}
 	close(sockfd);
+
+	return NULL;
+
 }
 
 
 int main(int argc, char **argv)
 {
-	int ret = 0;
 	struct gfx_context_t *gfx_context = NULL;
 
 	gfx_context = (struct gfx_context_t*)malloc(sizeof(struct gfx_context_t));

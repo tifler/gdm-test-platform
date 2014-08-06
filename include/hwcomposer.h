@@ -92,12 +92,13 @@ struct comm_context_t {
 	int sd_len;
 	int id;
 	pthread_t threadID;
-	int port;
 };
 
 struct hwc_context_t {
 
 	bool bstop;
+
+	pthread_cond_t	commit_cond;
 	pthread_mutex_t ov_lock;
 
 	int release_fence;
