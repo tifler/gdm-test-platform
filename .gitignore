@@ -15,7 +15,7 @@
 *.a
 *.s
 *.ko
-# *.so
+*.so
 *.so.dbg
 *.mod.c
 *.i
@@ -44,6 +44,7 @@ modules.builtin
 /System.map
 /Module.markers
 /Module.symvers
+tags
 
 #
 # Debian directory (make deb-pkg)

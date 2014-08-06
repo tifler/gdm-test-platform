@@ -53,7 +53,7 @@ static struct Memory *openMemory(u32 phyAddr, size_t size)
     mem->phyBase = phyAddr & pageMask;
     mem->size = (phyAddr + size - 
             mem->phyBase + pageSize - 1) / pageSize * pageSize;
-#if 0
+#if 1
     DBG("Will map 0x%08x to 0x%08x (len = %d)",
             mem->phyBase, mem->phyBase + mem->size - 1, mem->size);
 #endif  /*0*/
@@ -61,7 +61,7 @@ static struct Memory *openMemory(u32 phyAddr, size_t size)
     mem->base = mmap(NULL, mem->size,
             PROT_READ | PROT_WRITE, MAP_SHARED, mem->fd, mem->phyBase);
     ASSERT(mem->base != MAP_FAILED);
-#if 0
+#if 1
     DBG("Mapped address = %p\n", mem->base);
 #endif  /*0*/
 
@@ -177,6 +177,7 @@ int main(int argc, char **argv)
             getReg(mem, addr + i * 4, &data, sizeof(data));
             printf("0x%08x: 0x%08x\n", addr + i * 4, data);
         }
+        while(1) sleep(1);
         closeMemory(mem);
     }
     else {
