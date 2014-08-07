@@ -56,7 +56,9 @@ struct overlay_context_t {
 	bool is_new_data;
 	int ov_id;
 	struct gdm_dss_overlay ov_cfg;
-	struct gdm_dss_overlay_data ov_data;
+	struct gdm_dss_overlay_data ov_data_front;
+	struct gdm_dss_overlay_data ov_data_back;
+
 	int application_id;
 	int acquire_fence;
 	int release_fence;
@@ -97,6 +99,7 @@ struct comm_context_t {
 struct hwc_context_t {
 
 	bool bstop;
+	bool is_update;
 
 	pthread_cond_t	commit_cond;
 	pthread_mutex_t ov_lock;

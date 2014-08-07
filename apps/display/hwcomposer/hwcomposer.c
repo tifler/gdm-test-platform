@@ -22,6 +22,8 @@
 //#include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/select.h>
+#include <sys/time.h>
+
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <limits.h>
@@ -40,6 +42,8 @@
 #include "gdm-msgio.h"
 #include "debug.h"
 
+
+
 static inline int open_fb(int dpy) {
 	int fd = -1;
 #ifdef SUPPORT_ANDROID_SYSTEM
@@ -57,7 +61,7 @@ static inline int open_fb(int dpy) {
 static int open_framebuffer_device(struct hwc_context_t *ctx)
 {
 	int fb_fd = 0;
-
+	int i,j;
 	struct fb_fix_screeninfo fi;
 	struct fb_var_screeninfo vi;
 
@@ -101,6 +105,22 @@ static int open_framebuffer_device(struct hwc_context_t *ctx)
 
 
 	ctx->release_fence = -1;
+
+	for(i = 0; i < MAX_VID_OVERLAY; i++) {
+		for (j = 0; j< 3; j++) {
+			ctx->vid_cfg[i].ov_data_front.data[j].memory_id = -1;
+			ctx->vid_cfg[i].ov_data_back.data[j].memory_id = -1;
+		}
+	}
+
+	for(i = 0; i < MAX_GFX_OVERLAY; i++) {
+		for (j = 0; j< 3; j++) {
+			ctx->gfx_cfg[i].ov_data_front.data[j].memory_id = -1;
+			ctx->gfx_cfg[i].ov_data_back.data[j].memory_id = -1;
+		}
+
+	}
+
 
 	return 0;
 
@@ -203,8 +223,15 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 	hwc_msg = (struct gdm_hwc_msg*)msg->buf;
 	req_data = (struct gdm_dss_overlay_data *)hwc_msg->data;
 
+
+	//printf("[%s]msg->fdcount: %d\n", __FUNCTION__, msg->fdcount);
+
 	for(i = 0; i<msg->fdcount; i++) {
 		req_data->data[i].memory_id = msg->fds[i];
+	}
+
+	for(i = msg->fdcount; i<3; i++) {
+		req_data->data[i].memory_id = -1;
 	}
 
 	cur_ov = find_registered_overlay(hwc_ctx, app_id);
@@ -213,8 +240,15 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 		return -1;
 	}
 	else {
-		memcpy(&cur_ov->ov_data, req_data, sizeof(*req_data));
-		cur_ov->ov_data.id = cur_ov->ov_id;
+//		struct gdm_dss_overlay_data req_tmp = cur_ov->ov_data_front;
+		for(i=0;i< 3;i++) {
+			if(cur_ov->ov_data_back.data[i].memory_id != -1 && cur_ov->ov_data_back.data[i].memory_id != 0) {
+				close(cur_ov->ov_data_back.data[i].memory_id);
+			}
+		}
+
+		memcpy(&cur_ov->ov_data_back, req_data, sizeof(*req_data));
+		cur_ov->ov_data_back.id = cur_ov->ov_id;
 		cur_ov->is_new_data = 1;
 	}
 
@@ -261,10 +295,15 @@ void *commit_thread(void *argp)
 	while(1) {
 
 		pthread_cond_wait(&hwc_ctx->commit_cond, &hwc_ctx->ov_lock);
-		buf_index ^= 1;
 
 		/* prepare */
-		//pthread_mutex_lock(&hwc_ctx->ov_lock);
+	//	pthread_mutex_lock(&hwc_ctx->ov_lock);
+
+		if(hwc_ctx->is_update == 0) {
+			pthread_mutex_unlock(&hwc_ctx->ov_lock);
+			usleep(10*1000);
+			continue;
+		}
 
 		for(i = 0; i < MAX_VID_OVERLAY; i++) {
 			if(hwc_ctx->vid_cfg[i].application_id != 0) {
@@ -274,13 +313,16 @@ void *commit_thread(void *argp)
 					hwc_ctx->vid_cfg[i].is_update = 0;
 				}
 
-				if(hwc_ctx->vid_cfg[i].ov_data.data[0].memory_id != 0 && hwc_ctx->vid_cfg[i].is_new_data == 1) {
-					hwc_ctx->vid_cfg[i].ov_data.id = hwc_ctx->vid_cfg[i].ov_id;
-					gdss_io_overlay_queue(fb_fd, &hwc_ctx->vid_cfg[i].ov_data);
+				if(hwc_ctx->vid_cfg[i].ov_data_back.data[0].memory_id != -1 && hwc_ctx->vid_cfg[i].is_new_data == 1) {
+					hwc_ctx->vid_cfg[i].ov_data_back.id = hwc_ctx->vid_cfg[i].ov_id;
+					gdss_io_overlay_queue(fb_fd, &hwc_ctx->vid_cfg[i].ov_data_back);
 					hwc_ctx->vid_cfg[i].is_new_data = 0;
 
-					for(j = 0 ; j< hwc_ctx->vid_cfg[i].ov_data.num_plane; j++)
-						close(hwc_ctx->vid_cfg[i].ov_data.data[j].memory_id);
+					// previous buffer close
+					for(j = 0 ; j< hwc_ctx->vid_cfg[i].ov_data_front.num_plane; j++) {
+						close(hwc_ctx->vid_cfg[i].ov_data_front.data[j].memory_id);
+						hwc_ctx->vid_cfg[i].ov_data_front.data[j].memory_id = -1;
+					}
 				}
 			}
 		}
@@ -293,17 +335,39 @@ void *commit_thread(void *argp)
 					hwc_ctx->gfx_cfg[i].is_update = 0;
 				}
 
-				if(hwc_ctx->gfx_cfg[i].ov_data.data[0].memory_id != 0 && hwc_ctx->gfx_cfg[i].is_new_data == 1) {
-					hwc_ctx->gfx_cfg[i].ov_data.id = hwc_ctx->gfx_cfg[i].ov_id;
-					gdss_io_overlay_queue(fb_fd, &hwc_ctx->gfx_cfg[i].ov_data);
+				if(hwc_ctx->gfx_cfg[i].ov_data_back.data[0].memory_id != -1 && hwc_ctx->gfx_cfg[i].is_new_data == 1) {
+					hwc_ctx->gfx_cfg[i].ov_data_back.id = hwc_ctx->gfx_cfg[i].ov_id;
+					gdss_io_overlay_queue(fb_fd, &hwc_ctx->gfx_cfg[i].ov_data_back);
 					hwc_ctx->gfx_cfg[i].is_new_data = 0;
-					close(hwc_ctx->gfx_cfg[i].ov_data.data[0].memory_id);
+					// previous buffer close
+					for(j = 0 ; j< hwc_ctx->gfx_cfg[i].ov_data_front.num_plane; j++) {
+						close(hwc_ctx->gfx_cfg[i].ov_data_front.data[j].memory_id);
+						hwc_ctx->gfx_cfg[i].ov_data_front.data[j].memory_id = -1;
+					}
 				}
 			}
 		}
-		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 
+		for(i = 0; i < MAX_VID_OVERLAY; i++) {
+			if(hwc_ctx->vid_cfg[i].application_id != 0) {
+				struct gdm_dss_overlay_data tmp_data = hwc_ctx->vid_cfg[i].ov_data_front;
+				hwc_ctx->vid_cfg[i].ov_data_front = hwc_ctx->vid_cfg[i].ov_data_back;
+				hwc_ctx->vid_cfg[i].ov_data_back = tmp_data;
+			}
+		}
+
+		for(i = 0; i < MAX_GFX_OVERLAY; i++) {
+			if(hwc_ctx->gfx_cfg[i].application_id != 0) {
+				struct gdm_dss_overlay_data tmp_data = hwc_ctx->gfx_cfg[i].ov_data_front;
+				hwc_ctx->gfx_cfg[i].ov_data_front = hwc_ctx->gfx_cfg[i].ov_data_back;
+				hwc_ctx->gfx_cfg[i].ov_data_back = tmp_data;
+			}
+		}
+
+		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 		/* commit */
+
+		buf_index ^= 1;
 		vi->activate = FB_ACTIVATE_VBL;
 		vi->yoffset = vi->yres * buf_index;
 
@@ -312,7 +376,7 @@ void *commit_thread(void *argp)
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
-		//usleep(10*1000);
+
 	}
 
 }
@@ -352,8 +416,8 @@ static void *client_thread(void *arg)
 		case GDMFB_OVERLAY_UNSET:
 			unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
 			gdm_free_msghdr(cmd_msg);
+			hwc_ctx->is_update = 1;
 			pthread_mutex_unlock(&hwc_ctx->ov_lock);
-		//	hwc_ctx->bstop = 1;
 			printf("client_exit\n");
 			goto Exit;
 
@@ -362,7 +426,7 @@ static void *client_thread(void *arg)
 					cmd_msg);
 			break;
 		}
-		pthread_cond_signal(&hwc_ctx->commit_cond);
+		hwc_ctx->is_update = 1;
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 		gdm_free_msghdr(cmd_msg);
 
@@ -447,14 +511,26 @@ void *server_loop(void *argp)
 	return 0;
 }
 
+void timer_handler(struct hwc_context_t *hwc_ctx)
+{
+	int status = 0;
+//	printf("timer expired %d timers\n", ++ count);
+
+	pthread_mutex_lock(&hwc_ctx->ov_lock);
+	status = hwc_ctx->is_update;
+	pthread_mutex_unlock(&hwc_ctx->ov_lock);
+
+	if(status) {
+		pthread_cond_signal(&hwc_ctx->commit_cond);
+		hwc_ctx->is_update = 0;
+	}
+}
+
 
 int main(int argc, char **argv)
 {
 	struct hwc_context_t *hwc_ctx = NULL;
 	pthread_t commitThread, serverThread;;
-
-
-	signal(SIGPIPE, SIG_IGN);
 
 	hwc_ctx = (struct hwc_context_t *)malloc(sizeof(struct hwc_context_t));
 	memset(hwc_ctx, 0x00, sizeof(*hwc_ctx));
@@ -473,8 +549,11 @@ int main(int argc, char **argv)
 	pthread_detach(serverThread);
 	pthread_detach(commitThread);
 
-	while(!hwc_ctx->bstop)
-		sleep(1);
+
+	while(!hwc_ctx->bstop){
+		usleep(30*1000);
+		timer_handler(hwc_ctx);
+	}
 
 Exit:
 	free(hwc_ctx);

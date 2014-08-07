@@ -323,11 +323,11 @@ void *decoding_thread(void *arg)
 
 		if(gplayer->release_fd != -1) {
 			//printf("wait frame done signal\n");
-			ret = sync_wait(gplayer->release_fd, 10000);
+			ret = sync_wait(gplayer->release_fd, 1000);
 		}
 		buf_ndx ^= 1;
 
-		usleep(10*1000);
+		usleep(50*1000);
 	}
 
 	// unset
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
 	gplayer.frame[1].size[1] = gplayer.frame[0].size[1];
 	gplayer.frame[1].size[2] = gplayer.frame[0].size[2];
 
-	printf("frame size: %d %d\n", gplayer.frame[0].size, gplayer.frame[1].size);
+	printf("frame size: %d %d\n", gplayer.frame[0].size[0], gplayer.frame[1].size[0]);
 
 	if(alloc_video_memory(&gplayer.frame[0]) != 0) {/* front buffer */
 		goto exit;
