@@ -283,10 +283,12 @@ void *commit_thread(void *argp)
 	int fb_fd = hwc_ctx->dpyAttr[0].fd;
 	int buf_index = 0;
 	struct gdm_dss_buf_sync buf_sync;
+	struct gdm_display_commit display_commit;
 
 	pthread_detach(pthread_self());
 
 	memset(&buf_sync, 0x00, sizeof(buf_sync));
+	memset(&display_commit, 0x00, sizeof(struct gdm_display_commit));
 
 	buf_sync.acq_fen_fd_cnt = 0;
 	buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
@@ -367,6 +369,7 @@ void *commit_thread(void *argp)
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 		/* commit */
 
+#if 0
 		buf_index ^= 1;
 		vi->activate = FB_ACTIVATE_VBL;
 		vi->yoffset = vi->yres * buf_index;
@@ -376,6 +379,11 @@ void *commit_thread(void *argp)
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
+#else
+
+		gdss_io_display_commit(fb_fd, &display_commit);
+
+#endif
 
 	}
 
@@ -514,15 +522,21 @@ void *server_loop(void *argp)
 void timer_handler(struct hwc_context_t *hwc_ctx)
 {
 	int status = 0;
+	int skip;
 //	printf("timer expired %d timers\n", ++ count);
 
 	pthread_mutex_lock(&hwc_ctx->ov_lock);
 	status = hwc_ctx->is_update;
+	skip = hwc_ctx->skip;
 	pthread_mutex_unlock(&hwc_ctx->ov_lock);
 
-	if(status) {
+	if(status && skip >= 5) {
 		pthread_cond_signal(&hwc_ctx->commit_cond);
 		hwc_ctx->is_update = 0;
+		hwc_ctx->skip = 0;
+	}
+	else {
+		hwc_ctx->skip ++;
 	}
 }
 

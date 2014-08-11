@@ -4,15 +4,10 @@
 
 #include <linux/types.h>
 #include <linux/fb.h>
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/un.h>
-
 #include <inttypes.h>
-#include "gdm_fb.h"
-#include "android_wrapper.h"
 
-#include "writeback.h"
+#include "android_wrapper.h"
 
 #define MAX_DISPLAYS            	(2)
 #define UNIX_SOCKET_PATH                "/tmp/sock_msgio"
@@ -22,7 +17,7 @@
 #define APP_ID_MULTI_SAMPLE_PLAYER	0x00001000
 #define APP_ID_GRAP_PNG_DECODER		0x00002000
 #define APP_ID_CAMERA_PREVIEW		0x00004000
-#define APP_ID_GPU_RENDERER		0x00008000
+#define APP_ID_GPU_RENDERER			0x00008000
 
 
 /*****************************************************************************/
@@ -61,9 +56,8 @@ struct overlay_context_t {
 	bool is_new_data;
 	int ov_id;
 	struct gdm_dss_overlay ov_cfg;
-	struct gdm_dss_overlay_data ov_data_front;
 	struct gdm_dss_overlay_data ov_data_back;
-
+	struct gdm_dss_overlay_data ov_data_front;
 	int application_id;
 	int acquire_fence;
 	int release_fence;
@@ -104,14 +98,9 @@ struct comm_context_t {
 struct hwc_context_t {
 
 	bool bstop;
-	bool is_update;
-	int skip;
-	pthread_cond_t	commit_cond;
 	pthread_mutex_t ov_lock;
 
 	int release_fence;
-
-	unsigned char *fb_ptr;
 
 	struct comm_context_t comm_cfg;
 	struct display_attributes dpyAttr[MAX_DISPLAYS];	// fb0: physical, fb1: virtual for writeback
@@ -119,10 +108,6 @@ struct hwc_context_t {
 	struct overlay_context_t vid_cfg[MAX_VID_OVERLAY];
 	struct overlay_context_t gfx_cfg[MAX_GFX_OVERLAY];
 	struct overlay_context_t fb_cfg;
-
-
-
-	struct writeback_ctx_t *wb_ctx;
 };
 
 typedef struct {
