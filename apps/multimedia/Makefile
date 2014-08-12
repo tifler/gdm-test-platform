@@ -14,7 +14,7 @@ BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= yuv_player client_player
+SUBDIRS	:= yuv_player client_player mmeplayer
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

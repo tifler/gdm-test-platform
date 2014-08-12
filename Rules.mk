@@ -5,10 +5,16 @@
 #
 #------------------------------------------------------------------------------
 
-BASE_ROOTFS_DIR	:=/home2/tifler/work/ramdisk/vgroup_rootfs
-ifndef CROSS_COMPILE
-CROSS_COMPILE   :=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
-endif
+#BASE_ROOTFS_DIR	:=/home2/tifler/work/ramdisk/vgroup_rootfs
+#ifndef CROSS_COMPILE
+#CROSS_COMPILE   :=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
+#endif
+
+BASE_ROOTFS_DIR	:=/home1/hthwang/develop/odysseus/rootfs/vgroup_rootfs
+CROSS_COMPILE   :=/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-
+#TARGET_DIR :=$(BASE_ROOTFS_DIR)/output/target 
+#COPY_SOURCE_DIR :=
+#COPY_TARGET_DIR :=
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
@@ -29,13 +35,16 @@ ifndef   SUBDIRS
 #------------------------------------------------------------------------------
 
 CFLAGS          := -Wall -pipe -I. $(LOCAL_CFLAGS)
+CXXFLAGS		:= -Wall -pipe -I. $(LOCAL_CXXFLAGS)
 LFLAGS          := $(LOCAL_LFLAGS)
 
 ifeq ($(CROSS_COMPILE),HOST)
 CC				:= gcc
+CXX				:= g++
 LD				:= ld
 else
 CC				:=$(CROSS_COMPILE)gcc
+CXX				:=$(CROSS_COMPILE)g++
 LD				:=$(CROSS_COMPILE)ld
 endif
 

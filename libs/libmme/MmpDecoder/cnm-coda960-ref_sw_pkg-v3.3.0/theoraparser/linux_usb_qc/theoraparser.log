@@ -1,0 +1,14 @@
+﻿빌드 시작: 2014-02-10 오전 11:42:26
+     1>2 노드의 "D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\theoraparser\theoraparser.vcxproj" 프로젝트(build 대상)입니다.
+     1>PrepareForNMakeBuild:
+         "D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\linux_usb_qc\" 디렉터리를 만들고 있습니다.
+       Build:
+         "\VisualGDB.exe" /build "D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\theoraparser\theoraparser.vcxproj" "/solution:D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\qc_vs2010.sln" "/config:linux_usb_qc" "/platform:Win32"
+         '"\VisualGDB.exe"'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+         배치 파일이 아닙니다.
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.MakeFile.Targets(38,5): error MSB3073: ""\VisualGDB.exe" /build "D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\theoraparser\theoraparser.vcxproj" "/solution:D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\qc_vs2010.sln" "/config:linux_usb_qc" "/platform:Win32"" 명령이 종료되었습니다(코드: 9009).
+     1>"D:\VideoIP\CODA9\CODA960\trunk\fpga\board\ref-sw-4.0\theoraparser\theoraparser.vcxproj" 프로젝트를 빌드했습니다(build 대상). - 실패
+
+빌드하지 못했습니다.
+
+경과 시간: 00:00:03.44
