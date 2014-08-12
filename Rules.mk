@@ -11,7 +11,8 @@
 #endif
 
 BASE_ROOTFS_DIR	:=/home1/hthwang/develop/odysseus/rootfs/vgroup_rootfs
-CROSS_COMPILE   :=/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-
+#CROSS_COMPILE   :=/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-
+CROSS_COMPILE   :=/home2/shinsw/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-
 #TARGET_DIR :=$(BASE_ROOTFS_DIR)/output/target 
 #COPY_SOURCE_DIR :=
 #COPY_TARGET_DIR :=
