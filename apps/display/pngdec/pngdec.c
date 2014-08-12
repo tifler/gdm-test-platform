@@ -596,6 +596,7 @@ void *gfx_renderer(void *arg)
 		if(gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd > 0) {
 			munmap(gfx_ctx->desc[gfx_ctx->render_ndx].data, gfx_ctx->desc[gfx_ctx->render_ndx].size);
 			close(gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd);
+			gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd = -1;
 			memset(&gfx_ctx->desc[gfx_ctx->render_ndx], 0x00, sizeof(struct image_desc));
 		}
 
@@ -626,7 +627,7 @@ void *gfx_renderer(void *arg)
 		}
 	}
 	close(sockfd);
-
+	gfx_ctx->bstop = 1;
 	return NULL;
 
 }
@@ -649,7 +650,7 @@ int main(int argc, char **argv)
 	while(!gfx_context->bstop) {
 		sleep(1);
 	}
-
+	sleep(1);
 exit:
 	free(gfx_context);
 
