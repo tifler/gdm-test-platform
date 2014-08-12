@@ -398,9 +398,17 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 	req->blend_op = GDM_FB_BLENDING_COVERAGE;
 	req->src.width = desc->width;
 	req->src.height = desc->height;
-	req->src.format = GDM_DSS_PF_ARGB8888;
-	req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
-	req->src.swap = GDM_DSS_PF_ORDER_BGR;
+
+	if(desc->pixelformat == DSPF_RGB24) {
+		req->src.format = GDM_DSS_PF_RGB888;
+		//req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
+		req->src.swap = GDM_DSS_PF_ORDER_BGR;
+	}
+	else {
+		req->src.format = GDM_DSS_PF_ARGB8888;
+		req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
+		req->src.swap = GDM_DSS_PF_ORDER_BGR;
+	}
 	req->pipe_type = GDM_DSS_PIPE_TYPE_GFX;
 
 	req->src_rect.x = req->src_rect.y = 0;
@@ -537,7 +545,7 @@ void *gfx_renderer(void *arg)
 	ASSERT(ret == 0 && "connect() failed");
 
 	dss_get_fence_fd(sockfd, &gfx_ctx->release_fd);
-
+#if 0
 	read_png_file(gfx_ctx->img_filename[gfx_ctx->cur_ndx], &gfx_ctx->desc[gfx_ctx->render_ndx], &transparent);
 	// step-02: request overlay to display
 	dss_overlay_default_gfx_config(&req, gfx_ctx);
@@ -555,21 +563,24 @@ void *gfx_renderer(void *arg)
 
 	if(gfx_ctx->cur_ndx >= gfx_ctx->tot_num)
 		gfx_ctx->cur_ndx = 0;
+#endif
 
 	while(!gfx_ctx->bstop) {
 		read_png_file(gfx_ctx->img_filename[gfx_ctx->cur_ndx], &gfx_ctx->desc[gfx_ctx->render_ndx], &transparent);
 		// step-02: request overlay to display
-		dss_overlay_default_gfx_config(&req, gfx_ctx);
-		dss_overlay_set(sockfd, &req);
-
 		memset(&req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 		req_data.id = 0;
 		req_data.num_plane = 1;
 		req_data.data[0].memory_id = gfx_ctx->desc[gfx_ctx->render_ndx].shared_fd;
 		req_data.data[0].offset = 0;
+
+
+		printf("[%s]req_data.data[0].memory_id: %d\n", __FUNCTION__, req_data.data[0].memory_id);
+
+		dss_overlay_default_gfx_config(&req, gfx_ctx);
+		dss_overlay_set(sockfd, &req);
 		dss_overlay_queue(sockfd, &req_data);
 
-		dss_overlay_set(sockfd, &req);
 		if(gfx_ctx->release_fd != -1) {
 			//printf("wait frame done signal\n");
 			ret = sync_wait(gfx_ctx->release_fd, 10000);
@@ -590,6 +601,7 @@ void *gfx_renderer(void *arg)
 
 		cnt_loop ++;
 
+		usleep(1000*1000);
 		if(cnt_loop == 1000)
 			gfx_ctx->bstop = 1;
 

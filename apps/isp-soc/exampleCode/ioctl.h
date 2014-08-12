@@ -70,7 +70,7 @@ void DRIVER_RUN_EVENT(int);
 //]]
 #else
 
-//#define __USE_IO_MMAP
+#define __USE_IO_MMAP
 
 #   ifdef   __USE_IO_MMAP
 #define ISP_WRITE(a, v) (*(volatile uint32_t *)((char *)ISPBase + (a)) = ((uint32_t)(v)))

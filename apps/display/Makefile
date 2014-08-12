@@ -14,7 +14,7 @@ BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= hwcomposer pngdec
+SUBDIRS	:= hwcomposer pngdec disp_capture framebuffer
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
