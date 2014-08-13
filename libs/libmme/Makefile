@@ -83,7 +83,6 @@ MME_SRC_DEMUXER = \
   $(MME_TOP)/MmpDemuxer/MmpDemuxerBuffer.cpp \
   $(MME_TOP)/MmpDemuxer/MmpDemuxer.cpp \
   $(MME_TOP)/MmpDemuxer/MmpDemuxer_Ffmpeg.cpp \
-  $(MME_TOP)/MmpDemuxer/MmpDemuxer_FfmpegEx1.cpp \
   $(MME_TOP)/MmpDemuxer/MmpDemuxer_ammf.cpp \
   
 MME_SRC_MUXER = \
