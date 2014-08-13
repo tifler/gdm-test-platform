@@ -172,29 +172,18 @@ MMP_RESULT CMmpPlayerVideo::Open()
 
 MMP_RESULT CMmpPlayerVideo::Close()
 {
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] ++")));
-
     CMmpPlayer::Close();
 
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] CMmpDemuxer::DestroyObject")));
     CMmpDemuxer::DestroyObject(m_pDemuxer);  m_pDemuxer = NULL;
-    
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] CMmpDecoder::DestroyObject")));
     CMmpDecoder::DestroyObject(m_pDecoderVideo);  m_pDecoderVideo = NULL;
-    
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] CMmpRenderer::DestroyObject")));
     CMmpRenderer::DestroyObject(m_pRendererVideo);  m_pRendererVideo = NULL;
     
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] Free Y/U/V")));
     if(m_Y!=NULL) { free(m_Y); m_Y=NULL; }
     if(m_U!=NULL) { free(m_U); m_U=NULL; }
     if(m_V!=NULL) { free(m_V); m_V=NULL; }
 
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] Free Stream Buffer")));
     if(m_stream_buffer!=NULL) { free(m_stream_buffer); m_stream_buffer = NULL; }
     
-    MMPDEBUGMSG(1, (TEXT("[CMmpPlayerVideo::Close] --")));
-
     return MMP_SUCCESS;
 }
 

@@ -109,6 +109,7 @@ MME_SRC_RENDERER = \
   $(MME_TOP)/MmpRenderer/MmpRenderer_FileWriter.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_Dummy.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_OdyFpgaDisplay.cpp \
+  $(MME_TOP)/MmpRenderer/MmpRenderer_OdyClient.cpp \
   
 
 SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_VPULIB)
@@ -117,6 +118,8 @@ OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) \
             -I$(BASEDIR)/include\
             -I$(MME_TOP)/../libion \
+            -I$(MME_TOP)/../libmsgio\
+            -I$(MME_TOP)/../libhwc\
             -I$(FFMPEG_TOP) -I$(JPEGLIB_TOP)\
             -I$(MME_VPULIB_TOP)/vpuapi -I$(MME_VPULIB_TOP)/include \
             -I$(MME_TOP)/MmpGlobal \
@@ -131,6 +134,7 @@ LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync
+LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libmsgio -lmsgio
 
 
 #------------------------------------------------------------------------------

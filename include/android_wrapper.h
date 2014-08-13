@@ -24,7 +24,9 @@ typedef struct {
 } private_handle_t;
 
 typedef int	buffer_handle_t;
+#ifndef __cplusplus
 typedef int	bool;
+#endif
 
 #define false	0
 #define true	1

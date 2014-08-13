@@ -71,20 +71,15 @@ public:
 };
 static __GET_TICK_COUNT timeStart;
 
-
 MMP_U32 CMmpUtil::GetTickCount() {
     
     static time_t   secStart    = timeStart.tv_.tv_sec;
     static time_t   usecStart   = timeStart.tv_.tv_usec;
+                    
     timeval tv;
-    
-    gettimeofday(&tv, NULL);
 
-#if (MMP_OS == MMP_OS_LINUX_ARM)
-    return (tv.tv_sec - secStart) * 1100 + (tv.tv_usec - usecStart) / 1100;
-#else
+    gettimeofday(&tv, NULL);
     return (tv.tv_sec - secStart) * 1000 + (tv.tv_usec - usecStart) / 1000;
-#endif
 }
 
 MMP_S64 CMmpUtil::GetTickCountUS() {
@@ -415,17 +410,8 @@ MMP_RESULT CMmpUtil::HexStringToInt(MMP_CHAR* szHex, MMP_S32* value) // Hex Stri
     return mmpResult;
 }
 
-#if (MMP_OS==MMP_OS_NUCLEUS )
+#if (MMP_OS == MMP_OS_LINUX_ANDROID )
 
-MMP_RESULT CMmpUtil::Printf( TCHAR* lpszFormat, ... )
-{
-    
-    return MMP_SUCCESS;
-}
-
-#elif (MMP_OS==MMP_OS_LINUX )
-
-#ifdef __OMX_PLATFORM_ANDROID
 #include <utils/Log.h>
 
 MMP_RESULT CMmpUtil::Printf( TCHAR* msg, ... )
@@ -439,7 +425,7 @@ MMP_RESULT CMmpUtil::Printf( TCHAR* msg, ... )
 
     return MMP_SUCCESS;
 }
-#else
+#elif (MMP_OS == MMP_OS_LINUX)
 
 MMP_RESULT CMmpUtil::Printf(TCHAR* lpszFormat, ... )
 {
@@ -460,10 +446,9 @@ MMP_RESULT CMmpUtil::Printf(TCHAR* lpszFormat, ... )
 
     return MMP_SUCCESS;
 }
-#endif
 
+#elif (MMP_OS == MMP_OS_WIN32)
 
-#else
 MMP_RESULT CMmpUtil::Printf( TCHAR* lpszFormat, ... )
 {
     int nBuf ;
@@ -487,6 +472,8 @@ MMP_RESULT CMmpUtil::Printf( TCHAR* lpszFormat, ... )
 
     return MMP_SUCCESS;
 }
+#else
+#error "Select OS for CMmpUtil::Printf"
 #endif
 
 /*

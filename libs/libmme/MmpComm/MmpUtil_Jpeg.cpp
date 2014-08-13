@@ -35,7 +35,8 @@ extern "C" {
 MMP_RESULT CMmpUtil::Jpeg_SW_YUV420Planar_Enc(unsigned char* Y, unsigned char* U, unsigned char* V, 
                                int image_width, int image_height,
                                char* jpegfilename, int quality) {
-#if 0    
+    
+#if (MMP_OS==MMP_OS_WIN32)
     MMP_RESULT mmpResult = MMP_SUCCESS;
 
     struct jpeg_compress_struct cinfo;
@@ -173,8 +174,8 @@ MMP_RESULT CMmpUtil::Jpeg_SW_YUV420Planar_Enc(unsigned char* Y, unsigned char* U
                                char* jpegfilename, int quality, 
                                int enc_format /* 0:yuv444  1:yuv422  2:yuv411  3:gray */
                                ) {
-    
-#if 0
+
+#if (MMP_OS==MMP_OS_WIN32)
     MMP_RESULT mmpResult = MMP_SUCCESS;
 
     struct jpeg_compress_struct cinfo;
@@ -394,8 +395,8 @@ MMP_RESULT CMmpUtil::Jpeg_SW_YUV420Planar_Enc(unsigned char* Y, unsigned char* U
     if(picdata != NULL) {
         free(picdata);
     }
-#endif
 
+#endif
     return MMP_SUCCESS;
 }
 
@@ -409,7 +410,6 @@ FILE *out;
 
 extern void write_JPEG_file (JSAMPLE *scan, FILE *out)
 {
-#if 0
   extern int image_width, image_height, image_quality;
   struct jpeg_compress_struct cinfo;
   struct jpeg_error_mgr jerr;
@@ -439,9 +439,6 @@ extern void write_JPEG_file (JSAMPLE *scan, FILE *out)
   }
   jpeg_finish_compress(&cinfo);
   jpeg_destroy_compress(&cinfo);
-
-#endif
-
 }
 #endif 
 

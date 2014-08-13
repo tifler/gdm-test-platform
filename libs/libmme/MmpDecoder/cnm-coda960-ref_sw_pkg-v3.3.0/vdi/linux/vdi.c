@@ -3,11 +3,7 @@
 //
 // Copyright (c) 2006, Chips & Media.  All rights reserved.
 //------------------------------------------------------------------------------
-#if 1//defined(linux) || defined(__linux) || defined(ANDROID)
-
-#include "MmpDefine.h"
-
-#if (MMP_OS != MMP_OS_WIN32)
+#if defined(linux) || defined(__linux) || defined(ANDROID)
 
 #include <ctype.h>
 #include <stdio.h>
@@ -29,18 +25,6 @@
 #include "../vdi.h"
 #include "../vdi_osal.h"
 
-#if (MMP_OS == MMP_OS_WIN32)
-extern int vpu_open(char* drvname, int flag);
-extern int vpu_close(int fd);
-extern int vpu_ioctl(int fd, int cmd, void* parm);
-extern void *vpu_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
-
-#else
-#define vpu_open  open
-#define vpu_close close
-#define vpu_ioctl ioctl
-#define vpu_mmap mmap
-#endif
 
 typedef pthread_mutex_t	MUTEX_HANDLE;
 #define VPU_DEVICE_NAME "/dev/vpu"
@@ -51,6 +35,7 @@ typedef pthread_mutex_t	MUTEX_HANDLE;
 #		define VDI_SRAM_BASE_ADDR	ANA_CODEC_SRAM_BASE	// if we can know the sram address in SOC directly for vdi layer. it is possible to set in vdi layer without allocation from driver
 #		define VDI_SRAM_SIZE		0x20000		// FHD MAX size, 0x17D00  4K MAX size 0x34600
 #	define VDI_SYSTEM_ENDIAN VDI_LITTLE_ENDIAN
+#define VDI_NUM_LOCK_HANDLES				4
 
 #ifdef SUPPORT_MULTI_CORE_IN_ONE_DRIVER
 #define VPU_CORE_BASE_OFFSET 0x4000
@@ -110,8 +95,8 @@ int vdi_init(unsigned long coreIdx)
 {
 	vdi_info_t *vdi;
 	int i=0;
-
-    i = i;
+    int code_reuse = 0;
+ 
 	if (coreIdx > MAX_NUM_VPU_CORE)
 		return 0;
 
@@ -130,11 +115,9 @@ int vdi_init(unsigned long coreIdx)
 		return 0;
 	}
 
-#if 0
 	system("./load_vpu");
-#endif
 
-    vdi->vpu_fd = vpu_open(VPU_DEVICE_NAME, O_RDWR); // if this API supports VPU parallel processing using multi VPU. the driver should be made to open multiple times.
+	vdi->vpu_fd = open(VPU_DEVICE_NAME, O_RDWR);	// if this API supports VPU parallel processing using multi VPU. the driver should be made to open multiple times.
 	if (vdi->vpu_fd < 0) {
 		VLOG(ERR, "[VDI] Can't open vpu driver. permission would make the problem. try to run vdi/linux/driver/load.sh script\n");
         vdiInit_Unlock();
@@ -172,7 +155,7 @@ int vdi_init(unsigned long coreIdx)
 	}
 
 	vdi->vdb_register.size = VPU_BIT_REG_SIZE;
-	vdi->vdb_register.virt_addr = (unsigned long)vpu_mmap(NULL, vdi->vdb_register.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, 0);
+	vdi->vdb_register.virt_addr = (unsigned long)mmap(NULL, vdi->vdb_register.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, 0);
 	if ((void *)vdi->vdb_register.virt_addr == MAP_FAILED)
 	{
 		VLOG(ERR, "[VDI] fail to map vpu registers \n");
@@ -195,7 +178,9 @@ int vdi_init(unsigned long coreIdx)
 		goto ERR_VDI_INIT;
 	}
 
-	if (allocate_common_memory(coreIdx) < 0)
+    code_reuse = allocate_common_memory(coreIdx);
+	//if (allocate_common_memory(coreIdx) < 0)
+	if (code_reuse < 0)
 	{
 		VLOG(ERR, "[VDI] fail to get vpu common buffer from driver\n");
 		goto ERR_VDI_INIT;
@@ -209,7 +194,7 @@ int vdi_init(unsigned long coreIdx)
 	vdiInit_Unlock();
 
 	VLOG(INFO, "[VDI] success to init driver \n");
-	return 0;
+	return code_reuse;
 
 ERR_VDI_INIT:
 	vdi_unlock(coreIdx);
@@ -355,18 +340,20 @@ int allocate_common_memory(unsigned long coreIdx)
 
 	vdb.size = SIZE_COMMON*MAX_NUM_VPU_CORE;
 
-	if (vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_GET_COMMON_MEMORY, &vdb) < 0)
+	if (ioctl(vdi->vpu_fd, VDI_IOCTL_GET_COMMON_MEMORY, &vdb) < 0)
 	{
 		VLOG(ERR, "[VDI] fail to vdi_allocate_dma_memory size=%d\n", vdb.size);
 		return -1;
 	}
 
-	vdb.virt_addr = (unsigned long)vpu_mmap(NULL, vdb.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, vdb.phys_addr);
-	if ((void *)vdb.virt_addr == MAP_FAILED)
-	{
-		VLOG(ERR, "[VDI] fail to map common memory phyaddr=0x%x, size = %d\n", (int)vdb.phys_addr, (int)vdb.size);
-		return -1;
-	}
+
+
+		vdb.virt_addr = (unsigned long)mmap(NULL, vdb.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, vdb.phys_addr);
+		if ((void *)vdb.virt_addr == MAP_FAILED)
+		{
+			VLOG(ERR, "[VDI] fail to map common memory phyaddr=0x%x, size = %d\n", (int)vdb.phys_addr, (int)vdb.size);
+			return -1;
+		}
 
 	VLOG(INFO, "[VDI] allocate_common_memory, physaddr=0x%x, virtaddr=0x%x\n", (int)vdb.phys_addr, (int)vdb.virt_addr);
 
@@ -397,7 +384,11 @@ int allocate_common_memory(unsigned long coreIdx)
 
 	VLOG(INFO, "[VDI] vdi_get_common_memory physaddr=0x%x, size=%d, virtaddr=0x%x\n", (int)vdi->vpu_common_memory.phys_addr, (int)vdi->vpu_common_memory.size, (int)vdi->vpu_common_memory.virt_addr);
 
-	return 0;
+	
+    if(vdb.firmware_code_reuse)
+        return 1;
+    else		
+	    return 0;
 }
 
 
@@ -418,29 +409,29 @@ vpu_instance_pool_t *vdi_get_instance_pool(unsigned long coreIdx)
 	osal_memset(&vdb, 0x00, sizeof(vpudrv_buffer_t));
 	if (!vdi->pvip)
 	{
-		vdb.size = sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*4;
+		vdb.size = sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*VDI_NUM_LOCK_HANDLES;
         VLOG(INFO, "[VDI] sizeof(vpu_instance_pool_t)=%d, sizeof(MUTEX_HANDLE)=%d\n",
              sizeof(vpu_instance_pool_t), sizeof(MUTEX_HANDLE));
 
 #ifdef SUPPORT_MULTI_CORE_IN_ONE_DRIVER
 		vdb.size  *= MAX_NUM_VPU_CORE;
 #endif
-		if (vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_GET_INSTANCE_POOL, &vdb) < 0)
+		if (ioctl(vdi->vpu_fd, VDI_IOCTL_GET_INSTANCE_POOL, &vdb) < 0)
 		{
 			VLOG(ERR, "[VDI] fail to allocate get instance pool physical space=%d\n", (int)vdb.size);
 			return NULL;
 		}
 
-		vdb.virt_addr = (unsigned long)vpu_mmap(NULL, vdb.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, vdb.phys_addr);
-		if ((void *)vdb.virt_addr == MAP_FAILED)
-		{
-			VLOG(ERR, "[VDI] fail to map instance pool phyaddr=0x%x, size = %d\n", (int)vdb.phys_addr, (int)vdb.size);
-			return NULL;
-		}
+    		vdb.virt_addr = (unsigned long)mmap(NULL, vdb.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, vdb.phys_addr);
+    		if ((void *)vdb.virt_addr == MAP_FAILED)
+    		{
+    			VLOG(ERR, "[VDI] fail to map instance pool phyaddr=0x%x, size = %d\n", (int)vdb.phys_addr, (int)vdb.size);
+    			return NULL;
+    		}
 
 		osal_memcpy(&vdi->vpu_instance_pool_memory, &vdb, sizeof(vpudrv_buffer_t));
 
-		vdi->pvip = (vpu_instance_pool_t *)(vdb.virt_addr + (coreIdx*(sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*4)));
+		vdi->pvip = (vpu_instance_pool_t *)(vdb.virt_addr + (coreIdx*(sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*VDI_NUM_LOCK_HANDLES)));
 
 		vdi->vpu_mutex = (void *)((unsigned long)vdi->pvip + sizeof(vpu_instance_pool_t));	//change the pointer of vpu_mutex to at end pointer of vpu_instance_pool_t to assign at allocated position.
 		vdi->vpu_omx_mutex = (void *)((unsigned long)vdi->pvip + sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE));
@@ -464,7 +455,7 @@ int vdi_open_instance(unsigned long coreIdx, unsigned long instIdx)
 
 	inst_info.core_idx = coreIdx;
 	inst_info.inst_idx = instIdx;
-	if (vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_OPEN_INSTANCE, &inst_info) < 0)
+	if (ioctl(vdi->vpu_fd, VDI_IOCTL_OPEN_INSTANCE, &inst_info) < 0)
 	{
 		VLOG(ERR, "[VDI] fail to deliver open instance num instIdx=%d\n", (int)instIdx);
 		return -1;
@@ -485,7 +476,7 @@ int vdi_close_instance(unsigned long coreIdx, unsigned long instIdx)
 
 	inst_info.core_idx = coreIdx;
 	inst_info.inst_idx = instIdx;
-	if (vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_CLOSE_INSTANCE, &inst_info) < 0)
+	if (ioctl(vdi->vpu_fd, VDI_IOCTL_CLOSE_INSTANCE, &inst_info) < 0)
 	{
 		VLOG(ERR, "[VDI] fail to deliver open instance num instIdx=%d\n", (int)instIdx);
 		return -1;
@@ -515,7 +506,7 @@ int vdi_hw_reset(unsigned long coreIdx) // DEVICE_ADDR_SW_RESET
 	if(!vdi || !vdi || vdi->vpu_fd == -1 || vdi->vpu_fd == 0x00)
 		return -1;
 	
-	return vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_RESET, 0);
+	return ioctl(vdi->vpu_fd, VDI_IOCTL_RESET, 0);
 		
 }
 
@@ -630,12 +621,17 @@ void vmem_unlock(unsigned long coreIdx)
 
 int vdi_write_register(unsigned long coreIdx, unsigned int addr, unsigned int data)
 {
-	vdi_info_t *vdi = &s_vdi_info[coreIdx];
-	unsigned long *reg_addr = NULL;
-    reg_addr = reg_addr;
-	if(!vdi || vdi->vpu_fd==-1 || vdi->vpu_fd == 0x00)
-		return -1;
+    vdi_info_t *vdi;
+    unsigned long *reg_addr;
 
+
+
+    vdi = &s_vdi_info[coreIdx];
+
+    if(!vdi || vdi->vpu_fd == -1 || vdi->vpu_fd == 0x00)
+        return -1;
+
+    reg_addr = reg_addr; // To avoid compile errors.
 
 #ifdef SUPPORT_MULTI_CORE_IN_ONE_DRIVER
 	reg_addr = (unsigned long *)(addr + vdi->vdb_register.virt_addr + (coreIdx*VPU_CORE_BASE_OFFSET));
@@ -654,6 +650,10 @@ unsigned int vdi_read_register(unsigned long coreIdx, unsigned int addr)
 {
 	vdi_info_t *vdi = &s_vdi_info[coreIdx];
 	unsigned long *reg_addr = NULL;
+
+
+    if(!vdi || vdi->vpu_fd == -1 || vdi->vpu_fd == 0x00)
+        return (unsigned int)-1;
     reg_addr = reg_addr;
 
 
@@ -765,7 +765,7 @@ int vdi_allocate_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb)
 	vdb.size = vb->size;
 	vmem_lock(coreIdx);
 
-	if (vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY, &vdb) < 0)
+	if (ioctl(vdi->vpu_fd, VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY, &vdb) < 0)
 	{
 		VLOG(ERR, "[VDI] fail to vdi_allocate_dma_memory size=%d\n", vb->size);
         vmem_unlock(coreIdx);
@@ -777,6 +777,8 @@ int vdi_allocate_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb)
 	vb->phys_addr = (unsigned long)vdb.phys_addr;
 	vb->base = (unsigned long)vdb.base;
     vb->ion_shared_fd = vdb.ion_shared_fd;
+
+	printf("[hthwang: vdi_allocate_dma_memory] shared_fd = %d \n", vb->ion_shared_fd );
 	
 	//map to virtual address
     	vdb.virt_addr = (unsigned long)mmap(NULL, vdb.size, PROT_READ | PROT_WRITE,
@@ -920,7 +922,7 @@ void vdi_free_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb)
 		return ;
 	}
 	vmem_lock(coreIdx);
-	vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_FREE_PHYSICALMEMORY, &vdb);
+	ioctl(vdi->vpu_fd, VDI_IOCTL_FREE_PHYSICALMEMORY, &vdb);
 
 	vmem_unlock(coreIdx);
 	
@@ -963,7 +965,7 @@ int vdi_set_clock_gate(unsigned long coreIdx, int enable)
 		return -1;
 
 	vdi->clock_state = enable;
-	ret = vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_SET_CLOCK_GATE, &enable);
+	ret = ioctl(vdi->vpu_fd, VDI_IOCTL_SET_CLOCK_GATE, &enable);
 
 	return ret;
 }
@@ -983,10 +985,6 @@ int vdi_get_clock_gate(unsigned long coreIdx)
 
 int vdi_wait_bus_busy(unsigned long coreIdx, int timeout, unsigned int gdi_busy_flag)
 {
-#if (MMP_OS == MMP_OS_WIN32)
-
-    return 0;
-#else
 	Int64 elapse, cur;
 	struct timeval tv;
 
@@ -1005,7 +1003,7 @@ int vdi_wait_bus_busy(unsigned long coreIdx, int timeout, unsigned int gdi_busy_
 
 		if ((cur - elapse) > timeout)
 		{
-			VLOG(ERR, "[VDI] vdi_wait_vpu_busy timeout, PC=0x%x\n", vdi_read_register(coreIdx, 0x018));
+			VLOG(ERR, "[VDI] vdi_wait_vpu_bus!!_busy timeout, PC=0x%x\n", vdi_read_register(coreIdx, 0x018));
 			return -1;
 		}
 #ifdef	_KERNEL_	//do not use in real system. use SUPPORT_INTERRUPT;
@@ -1016,7 +1014,6 @@ int vdi_wait_bus_busy(unsigned long coreIdx, int timeout, unsigned int gdi_busy_
 	}
 	return 0;
 
-#endif
 }
 
 
@@ -1058,9 +1055,9 @@ int vdi_wait_vpu_busy(unsigned long coreIdx, int timeout, unsigned int addr_bit_
 int vdi_wait_interrupt(unsigned long coreIdx, int timeout, unsigned int addr_bit_int_reason)
 {
 #ifdef SUPPORT_INTERRUPT
-    vdi_info_t *vdi = &s_vdi_info[coreIdx];
+	vdi_info_t *vdi = &s_vdi_info[coreIdx];
 	int ret;
-	ret = vpu_ioctl(vdi->vpu_fd, VDI_IOCTL_WAIT_INTERRUPT, timeout);
+	ret = ioctl(vdi->vpu_fd, VDI_IOCTL_WAIT_INTERRUPT, timeout);
 	if (ret != 0)
 		ret = -1;
 	return ret;	
@@ -1493,6 +1490,3 @@ int swap_endian(unsigned char *data, int len, int endian)
 
 
 #endif	//#if defined(linux) || defined(__linux) || defined(ANDROID)
-
-
-#endif 

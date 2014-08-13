@@ -1,0 +1,31 @@
+
+Run 1. 
+      #mmeplayer [media filename]
+
+Stop 1.            
+        
+        IF background,  #kill -SIGINT [pid]
+        ELSE ,   <CTRL+C>
+
+
+Run 2. 
+
+      #mmeplayer
+
+          Step1. mmeshell>>play 
+          
+          Step2.
+                  1. File1
+                  2. File2
+                  3. File3
+
+                Select Number : <input number>
+
+             Play 
+         
+Step 2. 
+         
+         mmeshell>>stop 
+
+         
+        

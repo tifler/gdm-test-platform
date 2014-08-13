@@ -27,6 +27,14 @@
 #include <linux/fs.h>
 #include <linux/types.h>
 
+#if defined VPU_CONFIG_ION_RESERVED_MEMORY
+// ION Feature
+#include <linux/dma-buf.h>
+#include <linux/memblock.h>
+#include "../../../../../../../linux/drivers/staging/android/ion/ion.h"
+#include "../../../../../../../linux/drivers/staging/android/sw_sync.h"
+
+#endif
 
 #define VDI_IOCTL_MAGIC  'V'
 #define VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY	_IO(VDI_IOCTL_MAGIC, 0)
@@ -42,15 +50,33 @@
 #define VDI_IOCTL_GET_INSTANCE_NUM			_IO(VDI_IOCTL_MAGIC, 11)
 
 
+#if defined VPU_CONFIG_ION_RESERVED_MEMORY
+// ION Feature
+struct vb_dma_buf_data {
+	struct ion_handle *ion_handle;
+	struct dma_buf *dma_buf;
+	struct dma_buf_attachment *attachment;
+	struct sg_table *sg_table;
+	dma_addr_t dma_addr;
+	struct sync_fence *fence;
+};
+
+struct gdm_codec_drv_data {
+    // ION Feature
+    struct ion_client *iclient; /* ION iclient */	 
+    struct vb_dma_buf_data dma_buf_data[16];/* ION dma_buf_data */	
+    struct platform_device *pdev;
+};
+#endif
+
 typedef struct vpudrv_buffer_t {
 	unsigned int size;
 	unsigned int phys_addr;
 	unsigned long base;	     /*kernel logical address in use kernel*/
 	unsigned long virt_addr; /* virtual user space address */
-	
-	unsigned int ion_shared_fd;    // ion fd buffer index value
-	unsigned int dma_buf_data_idx; // ion memory unit index value	
 
+	unsigned int firmware_code_reuse; // vpu_code_write flag		
+	unsigned int ion_shared_fd;    // ion fd buffer index value
 } vpudrv_buffer_t;
 
  

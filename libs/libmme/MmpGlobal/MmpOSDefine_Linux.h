@@ -36,11 +36,11 @@
 #define MMP_ALIGN_8 
 #define MMP_DLL_EXPORT //extern _declspec(dllexport)
 
-#ifdef __OMX_PLATFORM_ANDROID
+#if (MMP_OS_LINUX == MMP_OS_LINUX_ANDROID)
 #include <utils/Log.h>
 #endif
 
-#ifdef __OMX_PLATFORM_ANDROID
+#if (MMP_OS_LINUX == MMP_OS_LINUX_ANDROID)
 #define MMPDEBUGMSG(cond,printf_exp) do { if(cond) ALOGI printf_exp; }while(0);
 #else
 //#define MMPDEBUGMSG(cond,printf_exp) do { if(cond) printf printf_exp; }while(0);

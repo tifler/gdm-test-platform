@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-void mme_shell_main(void);
+void mme_shell_main(int argc_app, char* argv_app[]);
 void mme_shell_deinit(void);
 
 int  mme_console_get_number(void);

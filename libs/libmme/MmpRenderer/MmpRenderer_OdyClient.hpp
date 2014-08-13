@@ -24,29 +24,10 @@
 
 #include "MmpRenderer.hpp"
 
-#if (MMP_OS == MMP_OS_LINUX)
+#if 1//(MMP_OS == MMP_OS_LINUX)
 
-
-#include <time.h>
-#include <inttypes.h>
-#include <linux/fb.h>
-#include <linux/kd.h>
-#include <linux/types.h>
-#include <linux/stat.h>
-#include <ion_api.h>
-#include <fcntl.h>
-
-//#include "define.h"
 #include "gdm_fb.h"
-//#include "ipc_msg.h"
-
-#define FRAMEBUFFER_NAME	"/dev/fb0"
-
-#define VIDEO_WIDTH		1280
-#define VIDEO_HEIGHT		 720
-#define VIDEO_FORMAT		GDM_DSS_PF_YUV420P3
-
-#define FRAMEBUF_MAX_COUNT 2
+#include "gdm-msgio.h"
 
 struct ody_videofile {
 	int fd;		/* file handler */
@@ -56,20 +37,14 @@ struct ody_videofile {
 };
 
 struct ody_videoframe {
-	int shared_fd;
-	unsigned char *address;	/* virtual address */
-	int size;
+	int shared_fd[3];
+	unsigned char *address[3];	/* virtual address */
+	int size[3];
 };
 
-
 struct ody_framebuffer {
-	int fd;
-	struct fb_var_screeninfo vi;
-	struct fb_fix_screeninfo fi;
-
 	struct gdm_dss_overlay request;
-	struct gdm_dss_overlay_data buffer[FRAMEBUF_MAX_COUNT];
-
+	struct gdm_dss_overlay_data buffer[2];
 	int buffer_index;
 };
 
@@ -77,34 +52,27 @@ struct ody_framebuffer {
 struct ody_player {
 	struct ody_framebuffer fb_info;
 	struct ody_videofile video_info;
-	struct ody_videoframe frame[FRAMEBUF_MAX_COUNT];
+	struct ody_videoframe frame[2];
 
+	int release_fd;
 	int buf_index;
-
-	int renderer_stop;
 	int stop;
 };
 
-#define MMPRENDERER_ODYFPGA_DUMP 0
 class CMmpRenderer_OdyClient : public CMmpRenderer
 {
 friend class CMmpRenderer;
 
 private:
-	MMP_S32 m_fd_framebuffer;
-
-	struct ody_player gplayer;
-	int m_buf_ndx;
+    int m_sock_fd;
+    int m_buf_idx;
+    int m_luma_size, m_chroma_size;
     
-	int m_luma_size;
-	int m_chroma_size;
+    struct ody_player m_gplayer;
 
+    struct gdm_dss_overlay m_req;
 	struct gdm_dss_overlay_data m_req_data;
-	struct gdm_dss_overlay m_request;
-	
-    FILE* m_fp_dump;
 
-	int m_sock_fd;
 
 protected:
     CMmpRenderer_OdyClient(CMmpRendererCreateProp* pRendererProp);

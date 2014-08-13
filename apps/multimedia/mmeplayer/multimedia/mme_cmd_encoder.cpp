@@ -110,7 +110,7 @@ int mme_command_player_enc_start(int argc, char* argv[]) {
 
     int file_cnt;
     int i;
-
+	
     int contents_number;
     MMP_BOOL bForceSWDecoder = MMP_TRUE;
     MMP_BOOL bForceSWEncoder = MMP_FALSE;

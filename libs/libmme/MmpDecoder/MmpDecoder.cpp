@@ -35,7 +35,11 @@
 #include "MmpDecoderAudio_Dummy.hpp"
 #include "MmpDecoderVideo_Ffmpeg.hpp"
 #include "MmpDecoderVideo_Dummy.hpp"
+
+#if (MMP_HWCODEC == MMP_HWCODEC_VPU)
 #include "MmpDecoderVideo_Vpu.hpp"
+#endif
+
 #include "MmpUtil.hpp"
 
 //////////////////////////////////////////////////////////////

@@ -281,7 +281,7 @@ Decoder Report Information
 
 
 
-static void SaveUserDataINT(int core_idx, BYTE *userDataBuf, int size, int intIssued, int decIdx, CodStd bitstreamFormat) {
+void SaveUserDataINT(int core_idx, BYTE *userDataBuf, int size, int intIssued, int decIdx, CodStd bitstreamFormat) {
 
     vpu_rpt_info_t *rpt = &s_rpt_info[core_idx];
     int i;
@@ -458,7 +458,7 @@ static void SaveUserDataINT(int core_idx, BYTE *userDataBuf, int size, int intIs
     backupBuf = 0;
 }
 
-static void SaveUserData(int core_idx, BYTE *userDataBuf) 
+void SaveUserData(int core_idx, BYTE *userDataBuf) 
 {
 
     vpu_rpt_info_t *rpt = &s_rpt_info[core_idx];
@@ -506,7 +506,7 @@ static void SaveUserData(int core_idx, BYTE *userDataBuf)
 
 }
 
-static void SaveSeqUserData(int core_idx, BYTE *userDataBuf, CodStd bitstreamFormat) 
+void SaveSeqUserData(int core_idx, BYTE *userDataBuf, CodStd bitstreamFormat) 
 {
     vpu_rpt_info_t *rpt = &s_rpt_info[core_idx];
     int i;

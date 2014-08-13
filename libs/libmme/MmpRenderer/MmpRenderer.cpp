@@ -40,8 +40,8 @@
 #include "MmpRenderer_AndroidTinyAlsa.hpp"
 
 #elif (MMP_OS == MMP_OS_LINUX_ODYSSEUS_FPGA)
-#include "MmpRenderer_OdyFpgaDisplay.hpp"
-//#include "MmpRenderer_OdyClient.hpp"
+//#include "MmpRenderer_OdyFpgaDisplay.hpp"
+#include "MmpRenderer_OdyClient.hpp"
 
 #else
 #error "ERROR : Select OS"
@@ -109,8 +109,8 @@ CMmpRenderer* CMmpRenderer::CreateVideoObject(CMmpRendererCreateProp* pRendererP
                 //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
                 pObj=new CMmpRenderer_FileWriter(pRendererProp);
             #elif (MMP_OS_LINUX == MMP_OS_LINUX_ODYSSEUS_FPGA)
-                pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
-		//		pObj=new CMmpRenderer_OdyClient(pRendererProp);
+                //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
+				pObj=new CMmpRenderer_OdyClient(pRendererProp);
             #else
             #error "ERROR : Select OS"
             #endif

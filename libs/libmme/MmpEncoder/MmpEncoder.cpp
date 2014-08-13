@@ -23,7 +23,11 @@
 
 #include "MmpEncoderVideo_Ffmpeg.hpp"
 #include "MmpEncoderVideo_Mfc.hpp"
+
+#if (MMP_HWCODEC == MMP_HWCODEC_VPU)
 #include "MmpEncoderVideo_Vpu.hpp"
+#endif
+
 #include "MmpUtil.hpp"
 
 //////////////////////////////////////////////////////////////

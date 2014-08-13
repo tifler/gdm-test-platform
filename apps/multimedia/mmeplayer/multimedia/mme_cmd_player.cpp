@@ -106,11 +106,12 @@ int mme_command_player_start(int argc, char* argv[]) {
 
     int file_cnt;
     int i;
+	int iret = 0;
 
     int contents_number;
     MMP_BOOL bForceSWCodec = MMP_FALSE;
 
-    if(argc > 1) {
+    if( (argc > 1) && (argc < 10) ) {
         bForceSWCodec = atoi(argv[1]);
     }
 
@@ -147,37 +148,46 @@ int mme_command_player_start(int argc, char* argv[]) {
                                      ext_array, ext_count, ext_size_max, 
                                      file_array, file_array_max, file_size_max);
 
-    while(1) {
+	if(argc == 0xFFFF) {
+	
+		contents_number = 0;
+		file_name = &file_array[contents_number*file_size_max];
+		strcpy(file_name, argv[0]);
+	}
+	else {
 
-        MMESHELL_PRINT(MMESHELL_INFO, ("********* filecnt : %d ************* \n", file_cnt));
-        for(i = 0; i < file_cnt; i++) {
-            
-            file_name = &file_array[i*file_size_max];
-            MMESHELL_PRINT(MMESHELL_INFO, ("%d. %s \n", i+1, file_name));
-        }
-        MMESHELL_PRINT(MMESHELL_INFO, ("\n\n Select Media Number : "));
+		while(1) {
 
-        file_name = NULL;
-        contents_number = mme_console_get_number() - 1;
+			MMESHELL_PRINT(MMESHELL_INFO, ("********* filecnt : %d ************* \n", file_cnt));
+			for(i = 0; i < file_cnt; i++) {
+	            
+				file_name = &file_array[i*file_size_max];
+				MMESHELL_PRINT(MMESHELL_INFO, ("%d. %s \n", i+1, file_name));
+			}
+			MMESHELL_PRINT(MMESHELL_INFO, ("\n\n Select Media Number : "));
 
-        if(contents_number == -1) {
-        
-            break;
-        }
-        if(contents_number < file_cnt ) {
+			file_name = NULL;
+			contents_number = mme_console_get_number() - 1;
 
-            file_name = &file_array[contents_number*file_size_max];
+			if(contents_number == -1) {
+	        
+				break;
+			}
+			if(contents_number < file_cnt ) {
 
-            MMESHELL_PRINT(MMESHELL_INFO, ("Selected File : \n"));
-            MMESHELL_PRINT(MMESHELL_INFO, ("\t%s \n", file_name ));
+				file_name = &file_array[contents_number*file_size_max];
 
-            break;
-        }
-        else {
-        
-            MMESHELL_PRINT(MMESHELL_INFO, ("Invalid Number \n"));
-        }
-    }
+				MMESHELL_PRINT(MMESHELL_INFO, ("Selected File : \n"));
+				MMESHELL_PRINT(MMESHELL_INFO, ("\t%s \n", file_name ));
+
+				break;
+			}
+			else {
+	        
+				MMESHELL_PRINT(MMESHELL_INFO, ("Invalid Number \n"));
+			}
+		}
+	}
 
     if(file_name != NULL) {
     
@@ -185,7 +195,6 @@ int mme_command_player_start(int argc, char* argv[]) {
         player_create_config.video_config.m_hRenderWnd = NULL;//hwnd;
         player_create_config.video_config.m_hRenderDC = NULL; //hdc;
         player_create_config.bForceSWCodec = bForceSWCodec;
-
         
         s_pMmpPlayer = CMmpPlayer::CreateObject(player_type, &player_create_config);
         //s_pMmpPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_STAGEFRIGHT, &player_create_config);
@@ -196,14 +205,19 @@ int mme_command_player_start(int argc, char* argv[]) {
         if(s_pMmpPlayer != NULL) {
             s_pMmpPlayer->PlayStart();
         }
+		else {
+			iret = -1;
+		}
+		
 #endif
     }
 
     if(file_array) free(file_array);
     if(ext_array) free(ext_array);
 
-    return 0;
+    return iret;
 }
+
 
 int mme_command_player_stop(int argc, char* argv[]) {
 

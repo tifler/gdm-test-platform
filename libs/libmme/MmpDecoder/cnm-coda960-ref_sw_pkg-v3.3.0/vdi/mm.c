@@ -297,7 +297,7 @@ avltree_remove(
     return tree;
 }
 
-static void
+void
 avltree_free(
     avl_node_t* tree
     )

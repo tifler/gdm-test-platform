@@ -23,6 +23,10 @@ struct gdm_msghdr {
 
 /*****************************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * allocate buffers for user data and/or file descriptors.
  * Must be (buflen > 0 || fdcount > 0)
@@ -32,5 +36,10 @@ void gdm_free_msghdr(struct gdm_msghdr *hdr);
 
 ssize_t gdm_sendmsg(int sockfd, struct gdm_msghdr *hdr);
 struct gdm_msghdr *gdm_recvmsg(int sockfd);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /*__GDM_MSGIO_H__*/

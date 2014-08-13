@@ -41,6 +41,56 @@
 #include "../../../vpuapi/vpuconfig.h"
 
 #define LOG_TAG "CNM_VPU_DRV"
+
+
+/* ---------------   ION MEMORY Access Descrption    -----------------------------------
+/* Allocation From reserved region through ICON :  kernel size 256M byte case
+
+// ION Feature
+
+struct vb_dma_buf_data {
+	struct ion_handle *ion_handle;
+	struct dma_buf *dma_buf;
+	struct dma_buf_attachment *attachment;
+	struct sg_table *sg_table;
+	dma_addr_t dma_addr;
+	struct sync_fence *fence;
+};
+
+typedef struct vpudrv_buffer_t {
+	unsigned int size;
+	unsigned int phys_addr;
+	unsigned long base;	           //kernel logical address in use kernel
+	unsigned long virt_addr;           // virtual user space address 
+	
+	unsigned int ion_shared_fd;       // ion fd buffer index value
+	unsigned int dma_buf_data_idx; // ion memory unit index value	
+
+} vpudrv_buffer_t;
+
+extern struct ion_device *ion_gdm; // export ion device 
+
+gdm_codec_drv_data *gcodec_res; // ion codec driver data 
+
+struct gdm_codec_drv_data {
+    struct ion_client *iclient;	                           // client only one per driver         
+    struct vb_dma_buf_data dma_buf_data[32]; // dma buffer unit
+    unsigned int dma_buf_data_idx;                   // global dma buff unit index
+    struct platform_device *pdev;                      // platform device driver
+};
+
+vpudrv_buffer_t vb has new parameter ion_shared_fd, and dma_buf_index.
+each driver buffer control those.
+but dma buffer allocation is managed by gcodec_res.
+
+when vpu_alloc_dma_buffer is called , gcodec_res->dma_buf_index increases one unit(++)
+
+also vpu_free_dma_buffer is called, buffer is free through the vb->dma_buf_data_idx.
+what vpu_free_dma_buffer need is ihandle, that is able to be derivated to vb_dma_buf_data structure.
+-------------------------------------------------------------------------------------*/
+
+#define VPU_CONFIG_ION_RESERVED_MEMORY 
+
 #include "vpu.h"
 
 
@@ -52,7 +102,7 @@
 #define VPU_SUPPORT_ISR
 #ifdef VPU_SUPPORT_ISR
 /* if the driver want to disable and enable IRQ whenever interrupt asserted. */
-//#define VPU_IRQ_CONTROL
+#define VPU_IRQ_CONTROL
 #endif
 
 /* if the platform driver knows the name of this driver */
@@ -61,15 +111,21 @@
 /* #define VPU_SUPPORT_PLATFORM_DRIVER_REGISTER	*/
 
 /* if this driver knows the dedicated video memory address */
+#ifdef VPU_CONFIG_ION_RESERVED_MEMORY
+#define VPU_SUPPORT_PLATFORM_DRIVER_REGISTER // working /arm/march-gdm/board-odyssues_fpga.c
+#else
+#define VPU_SUPPORT_PLATFORM_DRIVER_REGISTER
 #define VPU_SUPPORT_RESERVED_VIDEO_MEMORY
+#endif
 
-#define VPU_PLATFORM_DEVICE_NAME "vdec"
+#define VPU_PLATFORM_DEVICE_NAME "gdm-mvpu"
 #define VPU_CLK_NAME "vcodec"
 #define VPU_DEV_NAME "vpu"
 
 /* if the platform driver knows this driver */
 /* the definition of VPU_REG_BASE_ADDR and VPU_REG_SIZE are not meaningful */
-#define ANA_CODEC_BASE	0xECA10000
+///#define ANA_CODEC_BASE	0xECA10000
+#define ANA_CODEC_BASE	0xED310000 // hw interim version update
 #define VPU_REG_BASE_ADDR ANA_CODEC_BASE
 #define VPU_REG_SIZE (0x4000*MAX_NUM_VPU_CORE)
 
@@ -80,17 +136,15 @@
 /* this definition is only for chipsnmedia FPGA board env */
 /* so for SOC env of customers can be ignored */
 
-#define VPU_PRODUCT_CODE_REGISTER       (VPU_REG_BASE_ADDR + 0x1044)
 
 #ifndef VM_RESERVED	/*for kernel up to 3.7.0 version*/
 # define  VM_RESERVED   (VM_DONTEXPAND | VM_DONTDUMP)
 #endif
 
 
-
-
 typedef struct vpu_drv_context_t {
 	struct fasync_struct *async_queue;
+    u32 open_count;                     /*!<< device reference count. Not instance count */
 } vpu_drv_context_t;
 
 /* To track the allocated memory buffer */
@@ -108,14 +162,16 @@ typedef struct vpudrv_instanace_list_t {
 	struct file *filp;
 } vpudrv_instanace_list_t;
 
-#ifdef VPU_SUPPORT_RESERVED_VIDEO_MEMORY
+#if defined VPU_SUPPORT_RESERVED_VIDEO_MEMORY
 #define VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE (48*1024*1024)
-//#define VPU_DRAM_PHYSICAL_BASE 0x86C00000
-#define VPU_DRAM_PHYSICAL_BASE 0xd8000000 // 0x0400 0000 + 0x0200 0000  (kernel + ramdisk)
+//#define VPU_DRAM_PHYSICAL_BASE 0xd8000000 // 128Mbase
+#define VPU_DRAM_PHYSICAL_BASE 0xdc000000 // kernel 192Mbase ( 128M + reserved region+64)
 #include "vmm.h"
 static video_mm_t s_vmem;
 static vpudrv_buffer_t s_video_memory = {0};
-#else
+#elif defined VPU_CONFIG_ION_RESERVED_MEMORY
+extern struct ion_device *ion_gdm;
+struct gdm_codec_drv_data *gcodec_res;
 #endif /*VPU_SUPPORT_RESERVED_VIDEO_MEMORY*/
 
 typedef struct vpudrv_instance_pool_t {
@@ -124,11 +180,31 @@ typedef struct vpudrv_instance_pool_t {
 } vpudrv_instance_pool_t;
 
 static int vpu_hw_reset(void);
-
 static void vpu_clk_disable(struct clk *clk);
 static int vpu_clk_enable(struct clk *clk);
 static struct clk *vpu_clk_get(struct device *dev);
 static void vpu_clk_put(struct clk *clk);
+
+static int vpu_probe(struct platform_device *pdev);
+static int vpu_remove(struct platform_device *pdev);
+#ifdef CONFIG_PM
+static int vpu_suspend(struct platform_device *pdev, pm_message_t state);
+static int vpu_resume(struct platform_device *pdev);
+#else
+#define	vpu_suspend	NULL
+#define	vpu_resume	NULL
+#endif
+
+static struct platform_driver vpu_driver = {
+	.probe = vpu_probe,
+	.remove = vpu_remove,
+	.suspend = vpu_suspend,
+	.resume = vpu_resume,
+	.driver = {
+        .name = VPU_PLATFORM_DEVICE_NAME,
+        .owner = THIS_MODULE, 		   	
+     },	
+};
 
 
 /* end customer definition */
@@ -174,27 +250,99 @@ static vpu_bit_firmware_info_t s_bit_firmware_info[MAX_NUM_VPU_CORE];
 #define BIT_RUN_COD_STD             (BIT_BASE + 0x16C)
 #define BIT_CUR_PC                  (BIT_BASE + 0x018)
 #define BIT_INT_REASON              (BIT_BASE + 0x174)
+#define VPU_PRODUCT_CODE_REGISTER   (BIT_BASE + 0x1044)
 
 #ifdef CONFIG_PM
 /* implement to power management functions */
 static u32	s_vpu_reg_store[MAX_NUM_VPU_CORE][64];
 #endif
 
-static int vpu_resume(struct platform_device *pdev);
-static int vpu_suspend(struct platform_device *pdev, pm_message_t state);
+//static int vpu_resume(struct platform_device *pdev);
+//static int vpu_suspend(struct platform_device *pdev, pm_message_t state);
 
 #define ReadVpuRegister(addr)		*(volatile unsigned int *)(s_vpu_reg_virt_addr + s_bit_firmware_info[core].reg_base_offset + addr)
 #define WriteVpuRegister(addr, val)	*(volatile unsigned int *)(s_vpu_reg_virt_addr + s_bit_firmware_info[core].reg_base_offset + addr) = (unsigned int)val
 #define WriteVpu(addr, val)			*(volatile unsigned int *)(addr) = (unsigned int)val;	
 
 
+#if defined VPU_CONFIG_ION_RESERVED_MEMORY
+
+
+int vpu_res_init(struct gdm_codec_drv_data *gcdrv)
+{
+	gcdrv->iclient = ion_client_create(ion_gdm, "gdm-vpu");
+	if(IS_ERR_OR_NULL(gcdrv->iclient)) {
+		vpu_loge("ion_client_create() return error, val %p\n", gcdrv->iclient);
+		gcdrv->iclient = NULL;
+	}
+	return 0;
+}
+
+
+size_t vpu_utils_map_ion_handle(struct gdm_codec_drv_data *gcdrv,
+		struct vb_dma_buf_data *dma, struct ion_handle *ion_handle,
+		struct dma_buf *buf)
+{
+	dma->fence = NULL;
+	dma->dma_buf = buf;
+
+	dma->attachment = dma_buf_attach(dma->dma_buf, &gcdrv->pdev->dev);
+	if (IS_ERR_OR_NULL(dma->attachment)) {
+		//dev_err(gfd->dev, "dma_buf_attach() failed: %ld\n",
+		//		PTR_ERR(dma->attachment));
+		vpu_loge("dma_buf_attach() failed: %ld\n",PTR_ERR(dma->attachment)); 
+		goto err_buf_map_attach;
+	}
+
+	if (ion_phys(gcdrv->iclient, ion_handle, (ion_phys_addr_t *)&dma->dma_addr, &dma->dma_buf->size)) 
+	{
+  	    vpu_loge("Failed to get phys. addr of buf\n", PTR_ERR(dma->attachment)); 
+		goto err_buf_map_attachment;
+	}
+
+	//exynos_ion_sync_dmabuf_for_device(sfb->dev, dma->dma_buf,
+	//					dma->dma_buf->size,
+	//					DMA_TO_DEVICE);
+	dma->ion_handle = ion_handle;
+	return dma->dma_buf->size;
+
+err_buf_map_attachment:
+	dma_buf_detach(dma->dma_buf, dma->attachment);
+err_buf_map_attach:
+	return 0;
+}
+
+void vpu_utils_free_dma_buf(struct gdm_codec_drv_data *gcdrv, struct ion_handle *ion_handle,
+		struct vb_dma_buf_data *dma)
+{
+	if (!dma->dma_addr)
+		return;
+
+	if (dma->fence)
+		sync_fence_put(dma->fence);
+
+	dma_buf_detach(dma->dma_buf, dma->attachment);
+	dma_buf_put(dma->dma_buf);
+	ion_free(gcdrv->iclient, ion_handle);
+	memset(dma, 0, sizeof(struct vb_dma_buf_data));
+}
+#endif
 
 static int vpu_alloc_dma_buffer(vpudrv_buffer_t *vb)
 {
+#if defined VPU_CONFIG_ION_RESERVED_MEMORY
+	unsigned int ret;
+	struct ion_handle *buffer_ihandle;
+	struct dma_buf *buf;
+	dma_addr_t map_dma;
+	int ion_shared_fd = -1;
+	int ion_buf_idx = 0;
+#endif		
+
 	if (!vb)
 		return -1;
 
-#ifdef VPU_SUPPORT_RESERVED_VIDEO_MEMORY
+#if defined VPU_SUPPORT_RESERVED_VIDEO_MEMORY
 	vb->phys_addr = (unsigned long)vmem_alloc(&s_vmem, vb->size, 0);
 	if ((unsigned long)vb->phys_addr  == (unsigned long)-1) {
 		vpu_loge("reserved Physical memory allocation error size=%d, base_addr=0x%x, mem_size=%d\n", vb->size, (int)s_vmem.base_addr, (int)s_vmem.mem_size);
@@ -202,6 +350,54 @@ static int vpu_alloc_dma_buffer(vpudrv_buffer_t *vb)
 	}
 
 	vb->base = (unsigned long)(s_video_memory.base + (vb->phys_addr - s_video_memory.phys_addr));
+    //vpu_logd("vpu_alloc- vpu_alloc_dma_buffer ion_shared_fd =%d  size = 0x%lx vb->phys_addr =0x%1x, vb->base = 0x%lx---------\n", vb->ion_shared_fd,vb->size,vb->phys_addr, vb->base);	
+
+#elif defined VPU_CONFIG_ION_RESERVED_MEMORY
+
+    buffer_ihandle = ion_alloc(gcodec_res->iclient,
+    	(size_t)PAGE_ALIGN(vb->size), SZ_4K,
+    	ION_HEAP_CARVEOUT_MASK, 0);
+    
+    if (IS_ERR(buffer_ihandle)) {
+    	vpu_loge("failed to ion_alloc\n");
+    	return -1;
+    }
+
+	ion_shared_fd = ion_share_dma_buf_fd(gcodec_res->iclient, buffer_ihandle);
+	if(ion_shared_fd < 0)
+	{
+    	vpu_loge("failed to ion_shared_fd\n");
+    	return -1;
+	}
+	vb->ion_shared_fd = ion_shared_fd;
+	
+	buf = dma_buf_get(ion_shared_fd);
+    if (IS_ERR_OR_NULL(buf)) {
+    	vpu_loge("ion_share_dma_buf() failed\n");
+    	goto err_share_dma_buf;
+    }		
+
+	ion_buf_idx = (vb->ion_shared_fd%16); 
+    ret = vpu_utils_map_ion_handle(gcodec_res,
+    	&gcodec_res->dma_buf_data[ion_buf_idx], buffer_ihandle, buf);
+    if (!ret)
+    	goto err_map;
+    
+    map_dma = gcodec_res->dma_buf_data[ion_buf_idx].dma_addr;
+    vb->phys_addr = map_dma;
+
+	vpu_logd("vpu_alloc_dma_buffer vb->phys_addr = 0x%lx \n", vb->phys_addr);
+	
+    vb->base = (void*)ion_map_kernel(gcodec_res->iclient,
+    	buffer_ihandle);
+    if (IS_ERR_OR_NULL(vb->base)) {
+    	vpu_loge("ION memory mapping failed - %ld\n", PTR_ERR(vb->base));
+    	ret = PTR_ERR(vb->base);
+    	goto err_map;
+    }
+    memset(vb->base, 0xff, PAGE_ALIGN(vb->size));
+	vpu_logd("---- vpu_alloc_dma_buffer ion_buf_idx =%d  vb->phys_addr =0x%1x, vb->base = 0x%lx vb->size = 0x%lx---------\n", ion_buf_idx, vb->phys_addr, vb->base,vb->size );
+
 #else
 	vb->base = (unsigned long)dma_alloc_coherent(NULL, PAGE_ALIGN(vb->size), (dma_addr_t *) (&vb->phys_addr), GFP_DMA | GFP_KERNEL);
 	if ((void *)(vb->base) == NULL)	{
@@ -212,6 +408,15 @@ static int vpu_alloc_dma_buffer(vpudrv_buffer_t *vb)
 
 
 	return 0;
+
+#if defined VPU_CONFIG_ION_RESERVED_MEMORY
+err_map:
+	dma_buf_put(buf);
+err_share_dma_buf:
+	ion_free(gcodec_res->iclient, buffer_ihandle);
+	return -1;
+#endif	
+
 }
 
 static void vpu_free_dma_buffer(vpudrv_buffer_t *vb)
@@ -219,9 +424,21 @@ static void vpu_free_dma_buffer(vpudrv_buffer_t *vb)
 	if (!vb)
 		return;
 
-#ifdef VPU_SUPPORT_RESERVED_VIDEO_MEMORY
+#if defined VPU_SUPPORT_RESERVED_VIDEO_MEMORY
 	if (vb->base)
 		vmem_free(&s_vmem, vb->phys_addr, 0);
+#elif defined VPU_CONFIG_ION_RESERVED_MEMORY
+    if (vb->base)
+    {
+    	struct ion_handle *free_ion_handle;
+		int ion_buf_idx = 0;
+		
+		ion_buf_idx = (vb->ion_shared_fd%16);
+		
+        vpu_logd("vpu_free_dma_buffer ion_buf_idx =%d --- vb->phys_addr = 0x%lx \n", ion_buf_idx, vb->phys_addr); 
+		free_ion_handle = gcodec_res->dma_buf_data[ion_buf_idx].ion_handle;		
+    	vpu_utils_free_dma_buf(gcodec_res, free_ion_handle, &gcodec_res->dma_buf_data[ion_buf_idx]);
+    }
 #else
 	if (vb->base)
 		dma_free_coherent(0, PAGE_ALIGN(vb->size), (void *)vb->base, vb->phys_addr);
@@ -233,9 +450,9 @@ static int vpu_free_instances(struct file *filp)
 {
 	vpudrv_instanace_list_t *vil, *n;
 	vpudrv_instance_pool_t *vip;
-	void *vip_base;
+	unsigned char *vip_base;
 	int instance_pool_size_per_core;
-	void* vdi_mutexes_base;
+	unsigned char *vdi_mutexes_base;
 	const int PTHREAD_MUTEX_T_DESTROY_VALUE = 0xdead10cc;
 
 	vpu_logd("vpu_free_instances inter. sizeof(vpudrv_instance_pool_t)=%d \n", sizeof(vpudrv_instance_pool_t));
@@ -246,7 +463,7 @@ static int vpu_free_instances(struct file *filp)
 	{
 		if (vil->filp == filp) {
 			s_vpu_open_ref_count--;
-			vip_base = (void *)(s_instance_pool.base + (instance_pool_size_per_core*vil->core_idx));
+			vip_base = (unsigned char *)(s_instance_pool.base + (instance_pool_size_per_core*vil->core_idx));
 			vpu_logd("vpu_free_instances detect instance crash\n");
 			vpu_logd("instIdx=%d, coreIdx=%d, vip_base=%p, instance_pool_size_per_core=%d\n", (int)vil->inst_idx, (int)vil->core_idx, vip_base, (int)instance_pool_size_per_core);
 			vip = (vpudrv_instance_pool_t *)vip_base;
@@ -254,7 +471,7 @@ static int vpu_free_instances(struct file *filp)
 				memset(&vip->codecInstPool[vil->inst_idx], 0x00, 4);	/* only first 4 byte is key point to free the corresponding instance. */
 				vip->vpu_instance_num = s_vpu_open_ref_count;
 #define PTHREAD_MUTEX_T_HANDLE_SIZE 4
-				vdi_mutexes_base = (vip_base + (instance_pool_size_per_core - PTHREAD_MUTEX_T_HANDLE_SIZE*4));
+				vdi_mutexes_base = (unsigned char *)(vip_base + (instance_pool_size_per_core - PTHREAD_MUTEX_T_HANDLE_SIZE*4));
 				vpu_logd("vpu_free_instances : force to destroy vdi_mutexes_base=%p in userspace, vip->vpu_instance_num=%d\n",
 				        vdi_mutexes_base, vip->vpu_instance_num);
 				if (vdi_mutexes_base) {
@@ -333,6 +550,7 @@ static int vpu_open(struct inode *inode, struct file *filp)
 	spin_lock(&s_vpu_lock);
 	vpu_logi("[VPUDRV] vpu_open\n");
 
+    s_vpu_drv_context.open_count++;
 	filp->private_data = (void *)(&s_vpu_drv_context);
 	spin_unlock(&s_vpu_lock);
 
@@ -474,10 +692,12 @@ static long vpu_ioctl(struct file *filp, u_int cmd, u_long arg)
 			down(&s_vpu_sem);
 
 			if (s_instance_pool.base != 0) {
+				vpu_logd("[s_instance_pool.base != 0] VDI_IOCTL_GET_INSTANCE_POOL =0x%lx\n",s_instance_pool.base);
 				ret = copy_to_user((void __user *)arg, &s_instance_pool, sizeof(vpudrv_buffer_t));
 				if (ret != 0)
 					ret = -EFAULT;
 			} else {
+				vpu_logd("[s_instance_pool.base ==0] vpu_alloc_dma_buffer(&s_instance_pool)\n");
 				ret = copy_from_user(&s_instance_pool, (vpudrv_buffer_t *)arg, sizeof(vpudrv_buffer_t));
 				if (ret == 0) {
                     if (vpu_alloc_dma_buffer(&s_instance_pool) != -1)
@@ -500,17 +720,24 @@ static long vpu_ioctl(struct file *filp, u_int cmd, u_long arg)
 		break;
 	case VDI_IOCTL_GET_COMMON_MEMORY:
 		{
+			down(&s_vpu_sem);
+			
 			if (s_common_memory.base != 0) {
+				vpu_logd("[s_common_memory.base != 0] VDI_IOCTL_GET_COMMON_MEMORY =0x%lx\n",s_common_memory.base);		
+				s_common_memory.firmware_code_reuse = 1;
 				ret = copy_to_user((void __user *)arg, &s_common_memory, sizeof(vpudrv_buffer_t));
 				if (ret != 0)
 					ret = -EFAULT;
 			} else {
+				vpu_logd("[s_common_memory.base ==0] vpu_alloc_dma_buffer(&s_common_memory)\n");				
+				s_common_memory.firmware_code_reuse = 0;				
 				ret = copy_from_user(&s_common_memory, (vpudrv_buffer_t *)arg, sizeof(vpudrv_buffer_t));
 				if (ret == 0) {
 					if (vpu_alloc_dma_buffer(&s_common_memory) != -1) {
 						ret = copy_to_user((void __user *)arg, &s_common_memory, sizeof(vpudrv_buffer_t));
 					    if (ret == 0) {
 							/* success to get memory for common memory */
+							up(&s_vpu_sem);
 							break;
 						}
 					}
@@ -518,6 +745,8 @@ static long vpu_ioctl(struct file *filp, u_int cmd, u_long arg)
 
 				ret = -EFAULT;
 			}
+			
+			up(&s_vpu_sem);
 		}
 		break;
 	case VDI_IOCTL_OPEN_INSTANCE:
@@ -529,8 +758,10 @@ static long vpu_ioctl(struct file *filp, u_int cmd, u_long arg)
 			if (!vil)
 				return -ENOMEM;
 
-			if (copy_from_user(&inst_info, (vpudrv_inst_info_t *)arg, sizeof(vpudrv_inst_info_t)))
+			if (copy_from_user(&inst_info, (vpudrv_inst_info_t *)arg, sizeof(vpudrv_inst_info_t))) {
+				kfree(vil);
 				return -EFAULT;
+			}
 
 			vil->inst_idx = inst_info.inst_idx;
 			vil->core_idx = inst_info.core_idx;
@@ -547,8 +778,10 @@ static long vpu_ioctl(struct file *filp, u_int cmd, u_long arg)
 			spin_unlock(&s_vpu_lock);
 			s_vpu_open_ref_count++; /* flag just for that vpu is in opened or closed */
 
-			if (copy_to_user((void __user *)arg, &inst_info, sizeof(vpudrv_inst_info_t)))
+			if (copy_to_user((void __user *)arg, &inst_info, sizeof(vpudrv_inst_info_t))) {
+				kfree(vil);
 				return -EFAULT;
+			}
 
 			vpu_logd("[VPUDRV] VDI_IOCTL_OPEN_INSTANCE core_idx=%d, inst_idx=%d, s_vpu_open_ref_count=%d, inst_open_count=%d\n", (int)inst_info.core_idx, (int)inst_info.inst_idx, s_vpu_open_ref_count, inst_info.inst_open_count);
 		}
@@ -641,7 +874,7 @@ static ssize_t vpu_write(struct file *filp, const char __user *buf, size_t len, 
 	if (len == sizeof(vpu_bit_firmware_info_t))	{
 		vpu_bit_firmware_info_t *bit_firmware_info;
 
-		bit_firmware_info = kmalloc(sizeof(vpu_bit_firmware_info_t), GFP_KERNEL);
+		bit_firmware_info = kzalloc(sizeof(vpu_bit_firmware_info_t), GFP_KERNEL);
 		if (!bit_firmware_info) {
 			vpu_loge("vpu_write  bit_firmware_info allocation error \n");
 			return -EFAULT;
@@ -649,6 +882,7 @@ static ssize_t vpu_write(struct file *filp, const char __user *buf, size_t len, 
 
 		if (copy_from_user(bit_firmware_info, buf, len)) {
 			vpu_loge("vpu_write copy_from_user error for bit_firmware_info\n");
+			kfree(bit_firmware_info);
 			return -EFAULT;
 		}
 
@@ -657,6 +891,7 @@ static ssize_t vpu_write(struct file *filp, const char __user *buf, size_t len, 
 
 			if (bit_firmware_info->core_idx > MAX_NUM_VPU_CORE) {
 				vpu_loge("vpu_write coreIdx[%d] is exceeded than MAX_NUM_VPU_CORE[%d]\n", bit_firmware_info->core_idx, MAX_NUM_VPU_CORE);
+				kfree(bit_firmware_info);
 				return -ENODEV;
 			}
 
@@ -685,19 +920,22 @@ static int vpu_release(struct inode *inode, struct file *filp)
 
 	/* found and free the not closed instance by user applications */
 	vpu_free_instances(filp);
-    if (s_vpu_open_ref_count == 0) {
+	s_vpu_drv_context.open_count--;
+	
+    if (s_vpu_drv_context.open_count == 0) {
         if (s_instance_pool.base) {
             printk(KERN_INFO "[VPUDRV] free instance pool\n");
             vpu_free_dma_buffer(&s_instance_pool);
             s_instance_pool.base = 0;
         }
-
         if (s_common_memory.base) {
             printk(KERN_INFO "[VPUDRV] free common memory\n");
             vpu_free_dma_buffer(&s_common_memory);
             s_common_memory.base = 0;
         }
-    }
+    }	
+	
+	vpu_logi("%s open count: %d\n", __func__, s_vpu_drv_context.open_count);
 
 	spin_unlock(&s_vpu_lock);
 
@@ -720,8 +958,7 @@ static int vpu_map_to_register(struct file *fp, struct vm_area_struct *vm)
 
 	vm->vm_flags |= VM_IO | VM_RESERVED;
 	vm->vm_page_prot = pgprot_noncached(vm->vm_page_prot);
-	pfn = s_vpu_reg_phy_addr >> PAGE_SHIFT;
-
+	pfn = s_vpu_reg_phy_addr >> PAGE_SHIFT;		
 	return remap_pfn_range(vm, vm->vm_start, pfn, vm->vm_end-vm->vm_start, vm->vm_page_prot) ? -EAGAIN : 0;
 }
 
@@ -743,14 +980,19 @@ static int vpu_map_to_instance_pool_memory(struct file *fp, struct vm_area_struc
  */
 static int vpu_mmap(struct file *fp, struct vm_area_struct *vm)
 {
-	if (vm->vm_pgoff) {
-		if (vm->vm_pgoff == (s_instance_pool.phys_addr>>PAGE_SHIFT))
-			return vpu_map_to_instance_pool_memory(fp, vm);
 
-		return vpu_map_to_physical_memory(fp, vm);
-	} else {
-		return vpu_map_to_register(fp, vm);
-	}
+    if (vm->vm_pgoff) 
+    {
+    	if (vm->vm_pgoff == (s_instance_pool.phys_addr>>PAGE_SHIFT))
+    		return vpu_map_to_instance_pool_memory(fp, vm);
+    
+    	return vpu_map_to_physical_memory(fp, vm);
+    } 
+    else 
+    {
+    	return vpu_map_to_register(fp, vm);
+    }
+
 }
 
 struct file_operations vpu_fops = {
@@ -768,18 +1010,35 @@ struct file_operations vpu_fops = {
 	.mmap = vpu_mmap,
 };
 
-
-
-
-
 static int vpu_probe(struct platform_device *pdev)
 {
 	int err = 0;
 	struct resource *res = NULL;
+	
+	#if defined VPU_CONFIG_ION_RESERVED_MEMORY	
+	struct gdm_codec_drv_data *gdata = NULL;
+	if (gcodec_res) {
+		vpu_loge("GDM codec already initialized\n");
+		return -EINVAL;
+	}	
+	#endif
 
 	vpu_logi("[VPUDRV] vpu_probe\n");
+	
 	if (pdev)
+	{
+		#if defined VPU_CONFIG_ION_RESERVED_MEMORY	
+		gdata = devm_kzalloc(&pdev->dev, sizeof(*gdata), GFP_KERNEL);
+		if (gdata == NULL)
+			return -ENOMEM;
+        pdev->id = 0;
+        gdata->pdev = pdev;
+        platform_set_drvdata(pdev, gdata);
+        gcodec_res = gdata;		
+		#endif
+	
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	}
 	if (res) {/* if platform driver is implemented */
 		s_vpu_reg_phy_addr = res->start;
 		s_vpu_reg_virt_addr = ioremap(res->start, res->end - res->start);
@@ -841,7 +1100,7 @@ static int vpu_probe(struct platform_device *pdev)
 #endif
 
 
-#ifdef VPU_SUPPORT_RESERVED_VIDEO_MEMORY
+#if defined VPU_SUPPORT_RESERVED_VIDEO_MEMORY
 	s_video_memory.size = VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE;
 	s_video_memory.phys_addr = VPU_DRAM_PHYSICAL_BASE;
 	s_video_memory.base = (unsigned long)ioremap(s_video_memory.phys_addr, PAGE_ALIGN(s_video_memory.size));
@@ -855,6 +1114,8 @@ static int vpu_probe(struct platform_device *pdev)
 		goto ERROR_PROVE_DEVICE;
 	}
 	vpu_logi("[VPUDRV] success to probe vpu device with reserved video memory phys_addr=0x%x, base = 0x%x\n", (int) s_video_memory.phys_addr, (int)s_video_memory.base);
+#elif defined VPU_CONFIG_ION_RESERVED_MEMORY
+    vpu_res_init(gcodec_res);
 #else
 	vpu_logi("[VPUDRV] success to probe vpu device with non reserved video memory\n");
 #endif
@@ -877,11 +1138,11 @@ ERROR_PROVE_DEVICE:
 static int vpu_remove(struct platform_device *pdev)
 {
 	vpu_logd("vpu_remove\n");
+	
 #ifdef VPU_SUPPORT_PLATFORM_DRIVER_REGISTER
 
-
 	if (s_instance_pool.base) {
-		dma_free_coherent(0, PAGE_ALIGN(s_instance_pool.size), (void *)s_instance_pool.base, s_instance_pool.phys_addr);
+		vpu_free_dma_buffer(&s_instance_pool);
 		s_instance_pool.base = 0;
 	}
 
@@ -909,7 +1170,10 @@ static int vpu_remove(struct platform_device *pdev)
 
 #ifdef VPU_SUPPORT_ISR
 	if (s_vpu_irq)
+	{
 		free_irq(s_vpu_irq, &s_vpu_drv_context);
+//		s_vpu_irq = 0;
+	}
 #endif
 
 	if (s_vpu_reg_virt_addr)
@@ -1014,20 +1278,11 @@ DONE_WAKEUP:
 	return 0;
 }
 #else
-#define	vpu_suspend	NULL
-#define	vpu_resume	NULL
+//#define	vpu_suspend	NULL
+//#define	vpu_resume	NULL
 #endif				/* !CONFIG_PM */
 
 
-static struct platform_driver vpu_driver = {
-	.driver = {
-		   .name = VPU_PLATFORM_DEVICE_NAME,
-		   },
-	.probe = vpu_probe,
-	.remove = vpu_remove,
-	.suspend = vpu_suspend,
-	.resume = vpu_resume,
-};
 
 
 static int __init vpu_init(void)
@@ -1042,8 +1297,12 @@ static int __init vpu_init(void)
 	s_instance_pool.base = 0;
 #ifdef VPU_SUPPORT_PLATFORM_DRIVER_REGISTER
 	res = platform_driver_register(&vpu_driver);
+    if(res)
+    {
+    	vpu_loge("end platform_driver_register=0x%x\n", res);
+    }
 #else
-	res = platform_driver_register(&vpu_driver);
+	//res = platform_driver_register(&vpu_driver);
 	res = vpu_probe(NULL);
 #endif
 
@@ -1059,6 +1318,7 @@ static void __exit vpu_exit(void)
 	platform_driver_unregister(&vpu_driver);
 
 #else
+	vpu_logd("vpu_exit\n");
 
 	vpu_clk_put(s_vpu_clk);
 
@@ -1099,6 +1359,11 @@ static void __exit vpu_exit(void)
 
 #endif
 
+#ifdef VPU_SUPPORT_CLOCK_CONTROL
+#else
+     vpu_clk_disable(s_vpu_clk);
+#endif
+
 	return;
 }
 
@@ -1108,7 +1373,9 @@ MODULE_AUTHOR("A customer using C&M VPU, Inc.");
 MODULE_DESCRIPTION("VPU linux driver");
 MODULE_LICENSE("GPL");
 
+
 module_init(vpu_init);
+
 module_exit(vpu_exit);
 
 int vpu_hw_reset(void)

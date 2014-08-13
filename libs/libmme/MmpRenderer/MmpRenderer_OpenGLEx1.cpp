@@ -60,27 +60,31 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Open()
         return mmpResult;
     }
 
-    m_pMmpGL=new CMmpGL_MovieEx1((HWND)m_pRendererProp->m_hRenderWnd, 
-                                ::GetDC((HWND)m_pRendererProp->m_hRenderWnd), 
-                                m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight);
-    if(m_pMmpGL==NULL)
-    {
-        MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CWndOpenGL::OnCreate] FAIL: CMmpGL::CreateObject \n\r")));
-        return MMP_FAILURE;
-    }
+    if(m_pRendererProp->m_hRenderWnd != NULL) {
 
-    if(m_pMmpGL->Open()!=MMP_SUCCESS)
-    {
-        m_pMmpGL->Close();
-        delete m_pMmpGL;
-        m_pMmpGL=NULL;
-        return MMP_FAILURE;
-    }
+        m_pMmpGL=new CMmpGL_MovieEx1((HWND)m_pRendererProp->m_hRenderWnd, 
+                                    ::GetDC((HWND)m_pRendererProp->m_hRenderWnd), 
+                                    m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight);
+        if(m_pMmpGL==NULL)
+        {
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CWndOpenGL::OnCreate] FAIL: CMmpGL::CreateObject \n\r")));
+            return MMP_FAILURE;
+        }
 
-    RECT rect;
-    ::GetClientRect((HWND)m_pRendererProp->m_hRenderWnd, &rect);
-    //m_pMmpGL->Resize( (rect.right-rect.left)/2, (rect.bottom-rect.top)/2);
-    m_pMmpGL->Resize( (rect.right-rect.left), (rect.bottom-rect.top));
+        if(m_pMmpGL->Open()!=MMP_SUCCESS)
+        {
+            m_pMmpGL->Close();
+            delete m_pMmpGL;
+            m_pMmpGL=NULL;
+            return MMP_FAILURE;
+        }
+
+        RECT rect;
+        ::GetClientRect((HWND)m_pRendererProp->m_hRenderWnd, &rect);
+        //m_pMmpGL->Resize( (rect.right-rect.left)/2, (rect.bottom-rect.top)/2);
+        m_pMmpGL->Resize( (rect.right-rect.left), (rect.bottom-rect.top));
+
+    }
 
     return MMP_SUCCESS;
 }
@@ -113,32 +117,45 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(CMmpMediaSampleDecodeResult* pDecResul
     int lumaSize, y_stride, uv_stride;
     unsigned char* pImageBuffer;
 
-    picWidth=m_pMmpGL->GetPicWidth();
-    picHeight=m_pMmpGL->GetPicHeight();
-    pImageBuffer=m_pMmpGL->GetImageBuffer();
-    lumaSize=picWidth*picHeight;
-    
-    Y=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y];
-    U=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U];
-    V=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V];
+    if(m_pMmpGL != NULL) {
 
-    y_stride = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_Y];
-    uv_stride = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_U];
+        picWidth = m_pMmpGL->GetPicWidth();
+        picHeight = m_pMmpGL->GetPicHeight();
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
+        lumaSize=picWidth*picHeight;
         
-    (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
-				    picWidth*3, //int x_stride,
-					Y, //uint8_t * y_src,
-					V, //uint8_t * v_src,
-					U, //uint8_t * u_src,
-					y_stride,//int y_stride,
-					uv_stride, //int uv_stride,
-					picWidth, //int width,
-					picHeight, //int height,
-					1 //int vflip
-                    );
+        Y=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y];
+        U=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U];
+        V=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V];
+
+        y_stride = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_Y];
+        uv_stride = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_U];
+            
+        (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
+				        picWidth*3, //int x_stride,
+					    Y, //uint8_t * y_src,
+					    V, //uint8_t * v_src,
+					    U, //uint8_t * u_src,
+					    y_stride,//int y_stride,
+					    uv_stride, //int uv_stride,
+					    picWidth, //int width,
+					    picHeight, //int height,
+					    1 //int vflip
+                        );
 
 
-    m_pMmpGL->Draw();
+    
+       m_pMmpGL->Draw();
+    }
+    else {
+        picWidth = this->m_pRendererProp->m_iPicWidth;
+        picHeight = this->m_pRendererProp->m_iPicHeight;
+
+        Y=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y];
+        U=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U];
+        V=(unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V];
+
+    }
 
     m_iRenderCount++;
     this->Dump(Y, U, V, picWidth, picHeight);
@@ -152,26 +169,29 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_
     int lumaSize;
     unsigned char* pImageBuffer;
 
-    picWidth=m_pMmpGL->GetPicWidth();
-    picHeight=m_pMmpGL->GetPicHeight();
-    pImageBuffer=m_pMmpGL->GetImageBuffer();
-    lumaSize=picWidth*picHeight;
-            
-    (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
-				    picWidth*3, //int x_stride,
-					Y, //uint8_t * y_src,
-					V, //uint8_t * v_src,
-					U, //uint8_t * u_src,
-					picWidth, //buffer_width,//int y_stride,
-					picWidth/2, //buffer_width/2, //int uv_stride,
-					picWidth, //int width,
-					picHeight, //int height,
-					1 //int vflip
-                    );
+    if(m_pMmpGL != NULL) {
 
+        picWidth=m_pMmpGL->GetPicWidth();
+        picHeight=m_pMmpGL->GetPicHeight();
+        pImageBuffer=m_pMmpGL->GetImageBuffer();
+        lumaSize=picWidth*picHeight;
+                
+        (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
+				        picWidth*3, //int x_stride,
+					    Y, //uint8_t * y_src,
+					    V, //uint8_t * v_src,
+					    U, //uint8_t * u_src,
+					    picWidth, //buffer_width,//int y_stride,
+					    picWidth/2, //buffer_width/2, //int uv_stride,
+					    picWidth, //int width,
+					    picHeight, //int height,
+					    1 //int vflip
+                        );
 
-    m_pMmpGL->Draw();
-
+    
+        m_pMmpGL->Draw();
+    }
+    
     m_iRenderCount++;
     this->Dump(Y, U, V, buffer_width, buffer_height);
 

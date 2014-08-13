@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 
 	while(!gplayer.stop) {
 
-		sleep(1);
+		sleep(1); 
 
 	}
 

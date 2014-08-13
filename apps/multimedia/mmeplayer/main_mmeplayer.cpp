@@ -42,10 +42,10 @@ int main_mmeplayer(int argc, char* argv[]) {
 #if (MMP_OS == MMP_OS_LINUX)
     signal(SIGINT, mmeplayer_sig_int);	/* register the signal */
 #endif
-
+	
     CMmpOAL::CreateInstance();
 
-    mme_shell_main();
+	mme_shell_main(argc, argv);
 
     CMmpOAL::DestroyInstance();
 

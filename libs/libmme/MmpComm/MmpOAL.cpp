@@ -60,7 +60,7 @@ MMP_RESULT CMmpOAL::CreateInstance()
    }
    
    CMmpOAL::m_nRefCount++;
-   MMPDEBUGMSG( MMPZONE_MONITOR, (TEXT("[CMmpOAL::CreateInstance-CreateObj] RefCount:%d pMmpOAL:0x%08x \n\r"), CMmpOAL::m_nRefCount, CMmpOAL::m_pMmpOAL ));
+   //MMPDEBUGMSG( MMPZONE_MONITOR, (TEXT("[CMmpOAL::CreateInstance-CreateObj] RefCount:%d pMmpOAL:0x%08x \n\r"), CMmpOAL::m_nRefCount, CMmpOAL::m_pMmpOAL ));
 
    return MMP_SUCCESS;
 }
@@ -79,7 +79,7 @@ MMP_RESULT CMmpOAL::DestroyInstance()
        CMmpOAL::m_pMmpOAL=NULL;
     }
 
-    MMPDEBUGMSG( MMPZONE_MONITOR, (TEXT("[CMmpOAL::DestroyInstance] RefCount:%d pMmpOAL:0x%08x \n\r"), CMmpOAL::m_nRefCount, CMmpOAL::m_pMmpOAL ));
+    //MMPDEBUGMSG( MMPZONE_MONITOR, (TEXT("[CMmpOAL::DestroyInstance] RefCount:%d pMmpOAL:0x%08x \n\r"), CMmpOAL::m_nRefCount, CMmpOAL::m_pMmpOAL ));
 
     return MMP_SUCCESS;
 }

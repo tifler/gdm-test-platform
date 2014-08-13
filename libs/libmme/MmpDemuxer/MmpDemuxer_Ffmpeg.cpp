@@ -61,6 +61,8 @@ MMP_RESULT CMmpDemuxer_Ffmpeg::Open()
     AVInputFormat *fmt = NULL;
     const int io_buffer_size = 32768;  /* FIXME */
 
+	MMPDEBUGMSG(1, (TEXT("[CMmpDemuxer_Ffmpeg::Open] Init Demuxer ... Wait for about 5sec")));
+
     m_fp = fopen((const char*)this->m_create_config.filename, "rb");
     if(m_fp == NULL) {
         mmpResult = MMP_FAILURE;
@@ -192,12 +194,9 @@ MMP_RESULT CMmpDemuxer_Ffmpeg::Close()
     }
 
     if(m_pAVIOContext != NULL) {
-		MMPDEBUGMSG(1, (TEXT("[CMmpDemuxer_Ffmpeg::Close] ++++ ln=%d   "), __LINE__));
-
-#if 0 //???? why segment fault??
+#if 0
         avio_close(m_pAVIOContext);
-#endif
-        
+#endif   
         m_pAVIOContext = NULL;
 
         m_Url = NULL;

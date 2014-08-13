@@ -721,6 +721,30 @@ VPU_SEQ_INIT:
 					decParam.iframeSearchEnable = 1;
 				}
 				key = 0;
+                if (decParam.skipframeMode)
+                {
+                    //clear all frame buffer 
+                    frame_queue_dequeue_all(display_queue);
+
+                    for(i=0; i<regFrameBufCount; i++)
+                        VPU_DecClrDispFlag(handle, i);
+
+					//can clear all display buffer before flushing a sync frame if HOST wants clearing all remained frame in buffer.
+                    ret = VPU_DecFrameBufferFlush(handle);
+                    if( ret != RETCODE_SUCCESS )
+                    {
+                        VLOG(ERR, "VPU_DecGetBitstreamBuffer failed Error code is 0x%x \n", ret );
+                        goto ERR_DEC_OPEN;
+                    }
+					
+                    ret = VPU_DecGiveCommand(handle, DEC_DISABLE_SKIP_REORDER, 0);
+                    if( ret != RETCODE_SUCCESS )
+                    {
+                        VLOG(ERR, "VPU_DecGiveCommand(DEC_DISABLE_SKIP_REORDER) failed Error code is 0x%x \n", ret );
+                        goto ERR_DEC_OPEN;
+                    }
+
+                }
 			}
 			else if (key == ' ')
 				break;
@@ -945,6 +969,12 @@ VPU_SEQ_INIT:
 			
 		}
 
+		if( outputInfo.numOfErrMBs ) 
+		{
+			totalNumofErrMbs += outputInfo.numOfErrMBs;
+			VLOG(ERR, "Num of Error Mbs : %d, in Frame : %d \n", outputInfo.numOfErrMBs, frameIdx);
+		}	
+
 		if (!ppuEnable) 
 		{
 			if (decodefinish)
@@ -1077,11 +1107,6 @@ VPU_SEQ_INIT:
 		// save rotated dec width, height to display next decoding time.
 		rcPrevDisp = outputInfo.rcDisplay;
 
-		if( outputInfo.numOfErrMBs ) 
-		{
-			totalNumofErrMbs += outputInfo.numOfErrMBs;
-			VLOG(ERR, "Num of Error Mbs : %d, in Frame : %d \n", outputInfo.numOfErrMBs, frameIdx);
-		}	
 
 		frameIdx++;
 
@@ -1439,6 +1464,7 @@ int FilePlayTest(DecConfigParam *param)
 		if (kbhitRet)
 		{
 			if (kbhitRet == '\r' || kbhitRet == '\n')
+			#if 0	
 			{
 				ret = UI_GetUserCommand(coreIdx, handle, &decParam, &randomAccessPos);
 				kbhitRet = 0;
@@ -1450,6 +1476,43 @@ int FilePlayTest(DecConfigParam *param)
 					decParam.iframeSearchEnable = 1;
 				}
 			}
+			#else
+			{
+				ret = UI_GetUserCommand(coreIdx, handle, &decParam, &randomAccessPos);
+				if (ret == UI_CMD_SKIP_FRAME_LIFECYCLE)
+					continue;
+				else if (ret == UI_CMD_RANDOM_ACCESS)
+				{
+					randomAccess = 1;
+					decParam.iframeSearchEnable = 1;
+				}
+				kbhitRet = 0;
+                if (decParam.skipframeMode)
+                {
+                    //clear all frame buffer 
+                    frame_queue_dequeue_all(display_queue);
+
+                    for(i=0; i<regFrameBufCount; i++)
+                        VPU_DecClrDispFlag(handle, i);
+
+					//can clear all display buffer before flushing a sync frame if HOST wants clearing all remained frame in buffer.
+                    ret = VPU_DecFrameBufferFlush(handle);
+                    if( ret != RETCODE_SUCCESS )
+                    {
+                        VLOG(ERR, "VPU_DecGetBitstreamBuffer failed Error code is 0x%x \n", ret );
+                        goto ERR_DEC_OPEN;
+                    }
+
+                    ret = VPU_DecGiveCommand(handle, DEC_DISABLE_SKIP_REORDER, 0);
+                    if( ret != RETCODE_SUCCESS )
+                    {
+                        VLOG(ERR, "VPU_DecGiveCommand(DEC_DISABLE_SKIP_REORDER) failed Error code is 0x%x \n", ret );
+                        goto ERR_DEC_OPEN;
+                    }
+
+                }
+			}
+			#endif
 			else if (kbhitRet == ' ')
 				break;
 		}
@@ -2139,6 +2202,21 @@ FLUSH_BUFFER:
 		if (outputInfo.indexFrameDisplay == -1)
 			decodefinish = 1;
 
+//#define TEST_RENEW_COMMAND
+#ifdef TEST_RENEW_COMMAND
+		if (decodefinish == 1)
+		{
+			VPU_DecUpdateBitstreamBuffer(handle, -1);
+			decodefinish = 0;
+			frameIdx = 0;
+			decodeIdx = 0;
+			int_reason = 0;
+			clear_VSYNC_flag();
+			frame_queue_dequeue_all(display_queue);
+			av_seek_frame(ic, -1, 0, AVSEEK_FLAG_ANY);
+			continue;
+		}
+#endif
 
 		if (!ppuEnable) 
 		{

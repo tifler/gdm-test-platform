@@ -5,8 +5,11 @@
 #
 #------------------------------------------------------------------------------
 
-BASE_ROOTFS_DIR	?=/home2/tifler/work/ramdisk/vgroup_rootfs
-CROSS_COMPILE   ?=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
+#BASE_ROOTFS_DIR	?=/home2/tifler/work/ramdisk/vgroup_rootfs
+#CROSS_COMPILE   ?=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
+
+CROSS_COMPILE="/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-"
+BASE_ROOTFS_DIR="/home1/hthwang/develop/odysseus/rootfs/vgroup_rootfs"
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

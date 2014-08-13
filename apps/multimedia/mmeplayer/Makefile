@@ -55,7 +55,9 @@ LOCAL_LFLAGS := -lpthread -ldl -lrt -lm -lstdc++
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync
+LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libmsgio -lmsgio
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libmme -lmme
+
 
 
 #------------------------------------------------------------------------------

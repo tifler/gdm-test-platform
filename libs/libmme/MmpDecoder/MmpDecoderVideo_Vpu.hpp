@@ -40,7 +40,7 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
-    virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"Ffmpeg";}
+    virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"VPU";}
 public:
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);

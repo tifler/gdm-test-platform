@@ -33,7 +33,7 @@
 #include "MmpRenderer.hpp"
 
 
-#define MMP_PLAYER_NORMAL       0x100
+#define MMP_PLAYER_DEFAULT      0x100
 #define MMP_PLAYER_VIDEO_ONLY   0x101
 #define MMP_PLAYER_AUDIO_ONLY   0x102
 #define MMP_PLAYER_AUDIO_VIDEO  0x103  

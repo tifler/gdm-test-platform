@@ -535,7 +535,7 @@ MMP_RESULT CMmpDecoderVpu::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize) {
             dsi_stream_size = nStreamSize;
     }
 
-    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpu::DecodeDSI] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, dsi_stream_size,
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpu::DecodeDSI] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, dsi_stream_size,
                    p_dsi_stream[0], p_dsi_stream[1], p_dsi_stream[2], p_dsi_stream[3], 
                    p_dsi_stream[4], p_dsi_stream[5], p_dsi_stream[6], p_dsi_stream[7], 
                    p_dsi_stream[8], p_dsi_stream[9], p_dsi_stream[10], p_dsi_stream[11], 
@@ -644,7 +644,7 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
     pStream = pMediaSample->pAu;
     nStreamSize = pMediaSample->uiAuSize;
 
-    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpu::DecodeAu_PinEnd] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, pMediaSample->uiAuSize,
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpu::DecodeAu_PinEnd] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, pMediaSample->uiAuSize,
                    pMediaSample->pAu[0], pMediaSample->pAu[1], pMediaSample->pAu[2], pMediaSample->pAu[3], 
                    pMediaSample->pAu[4], pMediaSample->pAu[5], pMediaSample->pAu[6], pMediaSample->pAu[7], 
                    pMediaSample->pAu[8], pMediaSample->pAu[9], pMediaSample->pAu[10], pMediaSample->pAu[11], 
@@ -825,7 +825,7 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
 
                 t4 = CMmpUtil::GetTickCount();
 
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpu::DecodeAu_PinEnd] ln=%d dur=(%d %d %d %d) m_output_info.indexFrameDisplay=%d  ion_fd=%d  bufYCbCr(0x%08x 0x%08x 0x%08x, 0x%08x ) "), __LINE__, 
+                MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpu::DecodeAu_PinEnd] ln=%d dur=(%d %d %d %d) m_output_info.indexFrameDisplay=%d  ion_fd=%d  bufYCbCr(0x%08x 0x%08x 0x%08x, 0x%08x ) "), __LINE__, 
                                                             (t1-start_tick),(t2-start_tick),(t3-start_tick),(t4-start_tick), 
                                                             m_output_info.indexFrameDisplay,
                                                             frameBuf.ion_shared_fd,
@@ -838,7 +838,7 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
                 pDecResult->bImage = MMP_TRUE;
                 pDecResult->uiTimeStamp = pMediaSample->uiTimeStamp;
 
-#if 1//(MMP_OS == MMP_OS_WIN32)
+#if (MMP_OS == MMP_OS_WIN32)
                 luma_size = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16) * MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16);
                 chroma_size = luma_size/4;
                 vdi_read_memory(m_codec_idx, frameBuf.bufY, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y],  luma_size, m_decOP.frameEndian);

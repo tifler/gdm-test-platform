@@ -3,7 +3,7 @@
 //
 // Copyright (c) 2006, Chips & Media.  All rights reserved.
 //------------------------------------------------------------------------------
-#if 1//defined(linux) || defined(__linux) || defined(ANDROID)
+#if defined(linux) || defined(__linux) || defined(ANDROID)
 
 #include "vpuconfig.h"
 #include <stdio.h>
@@ -14,11 +14,10 @@
 
 #include <time.h>
 #include <sys/time.h>
-#include "termios.h"
+#include <termios.h>
 #ifndef USE_KERNEL_MODE
 #include <unistd.h>   // for read()
 #endif
-
 static struct termios initial_settings, new_settings;
 static int peek_character = -1;
 
@@ -38,7 +37,7 @@ static FILE *fpLog  = NULL;
 
 
 
-static void term_restore_color(void);
+static void term_restore_color();
 static void term_set_color(int color);
 
 int InitLog() 
@@ -247,7 +246,6 @@ double timer_frequency()
 
 void osal_init_keyboard()
 {
-#if (MMP_OS != MMP_OS_WIN32)
 	tcgetattr(0,&initial_settings);
     new_settings = initial_settings;
     new_settings.c_lflag &= ~ICANON;
@@ -257,19 +255,15 @@ void osal_init_keyboard()
     new_settings.c_cc[VTIME] = 0;
     tcsetattr(0, TCSANOW, &new_settings);
 	peek_character = -1;
-#endif
 }
 
 void osal_close_keyboard()
 {
-#if (MMP_OS != MMP_OS_WIN32)
     tcsetattr(0, TCSANOW, &initial_settings);
-#endif
 }
 
 int osal_kbhit()
 {
-#if (MMP_OS != MMP_OS_WIN32)
 	unsigned char ch;
 	int nread;
 
@@ -285,8 +279,6 @@ int osal_kbhit()
         peek_character = (int)ch;
         return 1;
     }
-#endif
-
     return 0;
 }
 
@@ -375,9 +367,6 @@ int osal_fclose(osal_file_t fp)
 
 int osal_fscanf(osal_file_t fp, const char * _Format, ...)
 {
-#if (MMP_OS == MMP_OS_WIN32)
-    return 0;
-#else
 	int ret;
 
 	va_list arglist;
@@ -388,7 +377,6 @@ int osal_fscanf(osal_file_t fp, const char * _Format, ...)
 	va_end(arglist);
 
 	return ret;
-#endif
 }
 
 int osal_fprintf(osal_file_t fp, const char * _Format, ...)

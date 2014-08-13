@@ -88,58 +88,88 @@ void mme_shell_deinit() {
     //mme_command_ril_deinit(0, NULL);
 }
 
-void mme_shell_main() {
+void mme_shell_main(int argc_app, char* argv_app[]) {
 
     int cmdlp, cmdsz;
     int maxbufsize = 4096;
     char* readbuffer = (char*)malloc(maxbufsize);
     int  argc;
     char *argv[32];
+	FILE* fp;
+	int i;
+	int diriect_file_play_mode = 0;
 
     mme_shell_init();
 
     cmdsz=sizeof(mme_cmds)/sizeof(mme_cmds[0]);
 
     printf("------------------------------------ \n");
-    printf("  mmeshell 2014-05-02 \n");
-    printf("------------------------------------ \n");
+	printf("  App   : mmeplayer  \n");
+    printf("  Build : %s , hthwang@anapass.com \n", __DATE__);
+    printf("  \targc:%d  argv[0]:%s  argv[1]:%s \n", argc_app, argv_app[0], argv_app[1]);
+	printf("------------------------------------ \n");
+	
+	if(argc_app == 2) {
+		fp = fopen(argv_app[1], "rb");
+		if(fp!=NULL) {
+			fseek(fp, 0, SEEK_END);
+			i = ftell(fp);
+			if(i > 1024*100) {
+				diriect_file_play_mode = 1;
+			}
+			fclose(fp);
+		}
+	}
 
-    while(1)
-    {
-        printf("mmeshell>> ");
-        fgets(readbuffer, maxbufsize, stdin); 
-        argc = mme_parse_args(readbuffer, argv);
+	if(diriect_file_play_mode == 1) {
+	
+		argv[0] = argv_app[1];
+		mme_command_player_start(0xFFFF, argv);
+		while(1) {
+			CMmpUtil::Sleep(1000*10);	
+		}
 
-        if(argc >= 1)
-        {
-            cmdlp = 0;
-            while( cmdlp<cmdsz )
-            {
-                if( strcmp( argv[0], mme_cmds[cmdlp].cmdstr ) == 0 )
-                {
-                    if(mme_cmds[cmdlp].func)
-                    {
-                        mme_cmds[cmdlp].func( argc, argv );
-                        printf("\n");
-                        break;
-                    }
-                }
-                cmdlp++;
-            }
-         
-            if(cmdlp==cmdsz) 
-            {
-                if( strcmp(argv[0], "exit") == 0 )
-                {
-                    break;
-                }
-                else
-                {
-                    printf("\tunknown command: %s\n\r", argv[0] );
-                }
-            }
-        }
-    }
+	}
+	else {
+
+		while(1)
+		{
+			printf("mmeshell>> ");
+			fgets(readbuffer, maxbufsize, stdin); 
+			argc = mme_parse_args(readbuffer, argv);
+
+			if(argc >= 1)
+			{
+				cmdlp = 0;
+				while( cmdlp<cmdsz )
+				{
+					if( strcmp( argv[0], mme_cmds[cmdlp].cmdstr ) == 0 )
+					{
+						if(mme_cmds[cmdlp].func)
+						{
+							mme_cmds[cmdlp].func( argc, argv );
+							printf("\n");
+							break;
+						}
+					}
+					cmdlp++;
+				}
+	         
+				if(cmdlp==cmdsz) 
+				{
+					if( strcmp(argv[0], "exit") == 0 )
+					{
+						break;
+					}
+					else
+					{
+						printf("\tunknown command: %s\n\r", argv[0] );
+					}
+				}
+			}
+		}
+
+	}
 
 
     free(readbuffer);

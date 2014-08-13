@@ -54,6 +54,7 @@ CMmpPlayer* CMmpPlayer::CreateObject(MMP_U32 playerID, CMmpPlayerCreateProp* pPl
 
         switch(playerID)
         {
+            case MMP_PLAYER_DEFAULT:
             case MMP_PLAYER_AUDIO_VIDEO:
                 pObj=new CMmpPlayerAVEx2(pPlayerProp);
                 break;
@@ -75,7 +76,6 @@ CMmpPlayer* CMmpPlayer::CreateObject(MMP_U32 playerID, CMmpPlayerCreateProp* pPl
                 pObj=new android::CMmpPlayerStagefright(pPlayerProp);
                 break;
     #endif
-
         }
 
     }
