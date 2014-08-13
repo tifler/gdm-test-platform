@@ -369,18 +369,26 @@ void *commit_thread(void *argp)
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 		/* commit */
 
-#if 0
-		buf_index ^= 1;
+#if 1
+		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, vi) < 0) {
+			printf("failed to get fb0 info");
+		}
+	
 		vi->activate = FB_ACTIVATE_VBL;
-		vi->yoffset = vi->yres * buf_index;
-
+		if(vi->yoffset == 0)
+			vi->yoffset = vi->yres;
+		else
+			vi->yoffset = 0;
+		
 		ret = ioctl(fb_fd, FBIOPUT_VSCREENINFO, vi);
 		if(ret) {
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
 #else
-
+		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, &display_commit.var) < 0) {
+			printf("failed to get fb0 info");
+		}
 		gdss_io_display_commit(fb_fd, &display_commit);
 
 #endif
@@ -432,6 +440,8 @@ static void *client_thread(void *arg)
 		case GDMFB_OVERLAY_PLAY:
 			register_overlay_data(hwc_ctx, disp_message->app_id,
 					cmd_msg);
+			break;
+		case GDMFB_DISPLAY_COMMIT:
 			break;
 		}
 		hwc_ctx->is_update = 1;
@@ -530,13 +540,15 @@ void timer_handler(struct hwc_context_t *hwc_ctx)
 	skip = hwc_ctx->skip;
 	pthread_mutex_unlock(&hwc_ctx->ov_lock);
 
-	if(status && skip >= 5) {
+	if(status) {
 		pthread_cond_signal(&hwc_ctx->commit_cond);
 		hwc_ctx->is_update = 0;
 		hwc_ctx->skip = 0;
 	}
 	else {
 		hwc_ctx->skip ++;
+		if(hwc_ctx->skip >=3)
+			hwc_ctx->is_update = 1;
 	}
 }
 

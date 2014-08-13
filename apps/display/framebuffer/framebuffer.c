@@ -187,7 +187,7 @@ static int readbmp(char *filename, unsigned char *buffer, int stride)
 		exit(-1);
 	}
 
-	printf("sizeof(HEADER): %d\n", sizeof(HEADER));
+	//printf("sizeof(HEADER): %d\n", sizeof(HEADER));
 	/* Read and check the header */
 	fread(&header, 1, sizeof(HEADER), fptr);
 
@@ -397,6 +397,24 @@ static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req)
 	return 0;
 }
 
+
+static int dss_overlay_commit(int sockfd)
+{
+	struct gdm_hwc_msg msg_data;
+	struct gdm_msghdr *msg = NULL;
+	int i = 0;
+	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
+
+	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), 0);
+
+	msg_data.app_id = APP_ID_GPU_RENDERER;
+	msg_data.hwc_cmd = GDMFB_DISPLAY_COMMIT;
+	gdm_sendmsg(sockfd, msg);
+
+	return 0;
+}
+
+
 /* Decoding thread */
 void *framebuffer_renderer(void *arg)
 {
@@ -435,7 +453,9 @@ void *framebuffer_renderer(void *arg)
 #else
 		load_image(fb_ctx, fb_ctx->render_ndx, frame_count);
 #endif
-		fb_ctx->vi.activate = FB_ACTIVATE_VBL;
+
+#if 0
+		fb_ctx->vi.activate = FB_ACTIVATE_TEST;
 		fb_ctx->vi.yoffset = fb_ctx->vi.yres * fb_ctx->render_ndx;
 
 		ret = ioctl(fb_ctx->fb_fd, FBIOPUT_VSCREENINFO, &fb_ctx->vi);
@@ -443,6 +463,10 @@ void *framebuffer_renderer(void *arg)
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
+#endif
+
+		dss_overlay_commit(sockfd);
+
 
 		if(fb_ctx->release_fd != -1) {
 			//printf("wait frame done signal\n");
