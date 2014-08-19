@@ -88,6 +88,7 @@ enum gdm_dss_rotator_dir {
 #define GDM_TRANSP_NOP		0xffffffff
 #define GDM_ALPHA_NOP		0xff
 
+/* flag */
 #define GDM_DSS_FLAG_SCALING		0x00000001
 #define GDM_DSS_FLAG_ROTATION		0x00000002
 #define GDM_DSS_FLAG_ROTATION_90	0x00000004
@@ -106,6 +107,9 @@ enum gdm_dss_rotator_dir {
 #define GDM_BORDERFILL_SUPPORTED	0x00010000
 #define GDM_SECURE_OVERLAY_SESSION      0x00008000
 #define GDM_MEMORY_ID_TYPE_FB		0x00001000
+
+#define GDM_DSS_SECURE_DISPLAY_OVERLAY_SESSION	0x00008000
+#define GDM_DSS_DISPLAY_OVERLAY_ID		0x10000000
 
 
 enum gdm_fb_blending {

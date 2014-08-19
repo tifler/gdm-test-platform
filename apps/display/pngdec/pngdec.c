@@ -54,6 +54,8 @@
 #define MAX_STRING_LEN	256
 
 struct gfx_context_t {
+
+	struct fb_var_screeninfo vi;
 	struct image_desc desc[2];
 	pthread_t renderer_worker;
 
@@ -433,7 +435,7 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 
 }
 
-static void dss_get_fence_fd(int sockfd, int *release_fd)
+static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
 	struct gdm_msghdr *msg = NULL;
 
@@ -442,10 +444,13 @@ static void dss_get_fence_fd(int sockfd, int *release_fd)
 
 	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
+
+		memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
 		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
+
 }
 
 
@@ -544,7 +549,7 @@ void *gfx_renderer(void *arg)
 		(struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT(ret == 0 && "connect() failed");
 
-	dss_get_fence_fd(sockfd, &gfx_ctx->release_fd);
+	dss_get_fence_fd(sockfd, &gfx_ctx->release_fd, &gfx_ctx->vi);
 #if 0
 	read_png_file(gfx_ctx->img_filename[gfx_ctx->cur_ndx], &gfx_ctx->desc[gfx_ctx->render_ndx], &transparent);
 	// step-02: request overlay to display

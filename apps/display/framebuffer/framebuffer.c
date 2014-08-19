@@ -470,7 +470,7 @@ void *framebuffer_renderer(void *arg)
 
 		if(fb_ctx->release_fd != -1) {
 			//printf("wait frame done signal\n");
-			ret = sync_wait(fb_ctx->release_fd, 10000);
+			ret = sync_wait(fb_ctx->release_fd, 1000);
 		}
 
 		fb_ctx->render_ndx ^= 1;

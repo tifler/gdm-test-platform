@@ -226,13 +226,17 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 
 	//printf("[%s]msg->fdcount: %d\n", __FUNCTION__, msg->fdcount);
 
-	for(i = 0; i<msg->fdcount; i++) {
+	for(i = 0; i<req_data->num_plane; i++) {
 		req_data->data[i].memory_id = msg->fds[i];
 	}
 
-	for(i = msg->fdcount; i<3; i++) {
+	for(i = req_data->num_plane; i<3; i++) {
 		req_data->data[i].memory_id = -1;
 	}
+
+	// Test Code for Rotation
+	if(req_data->dst_data.memory_id)
+		req_data->dst_data.memory_id = msg->fds[msg->fdcount - 1];
 
 	cur_ov = find_registered_overlay(hwc_ctx, app_id);
 
@@ -373,13 +377,13 @@ void *commit_thread(void *argp)
 		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, vi) < 0) {
 			printf("failed to get fb0 info");
 		}
-	
+
 		vi->activate = FB_ACTIVATE_VBL;
 		if(vi->yoffset == 0)
 			vi->yoffset = vi->yres;
 		else
 			vi->yoffset = 0;
-		
+
 		ret = ioctl(fb_fd, FBIOPUT_VSCREENINFO, vi);
 		if(ret) {
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
@@ -408,7 +412,9 @@ static void *client_thread(void *arg)
 
 	printf("Client %d launched.\n", getpid());
 
-	resp_msg = gdm_alloc_msghdr(10, 1);
+	resp_msg = gdm_alloc_msghdr(sizeof(struct fb_var_screeninfo), 1);
+
+	memcpy(resp_msg->buf, &hwc_ctx->dpyAttr[0].vi, sizeof(struct fb_var_screeninfo));
 	resp_msg->fds[0] = hwc_ctx->release_fence;
 	gdm_sendmsg(client->sockfd, resp_msg);
 
