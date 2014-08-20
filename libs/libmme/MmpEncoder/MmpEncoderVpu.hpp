@@ -81,6 +81,7 @@ private:
     void make_encOP_MPEG4();
 
     void make_user_frame();
+	
 
 protected:
     virtual MMP_RESULT EncodeDSI();

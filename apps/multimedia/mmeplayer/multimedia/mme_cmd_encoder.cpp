@@ -104,7 +104,8 @@ int mme_command_player_enc_start(int argc, char* argv[]) {
     int ext_count = 0;
     char* ext_array = NULL;
     char*  ext;
-    MMP_U32 encFormat = MMP_FOURCC_VIDEO_MPEG4;
+    //MMP_U32 encFormat = MMP_FOURCC_VIDEO_MPEG4;
+	MMP_U32 encFormat = MMP_FOURCC_VIDEO_H264;
 
     char contents_path[256] = CONTENTS_PATH;
 
@@ -226,7 +227,7 @@ int mme_command_player_enc_start(int argc, char* argv[]) {
         strcpy(player_create_config.video_config.m_VideoEncFileName, "d:\\work\\player_enc.ammf");
 #elif (MMP_OS == MMP_OS_LINUX)
         //strcpy(player_create_config.video_config.m_VideoEncFileName, "/root/player_enc.ammf");
-        sprintf(player_create_config.video_config.m_VideoEncFileName, "/mnt/player_enc%d_%cccc.ammf", 
+        sprintf(player_create_config.video_config.m_VideoEncFileName, "/mnt/player_enc%d_%c%c%c%c.ammf", 
                                              s_player_enc_file_count,
 
                                               MMPGETFOURCC(encFormat, 0), 

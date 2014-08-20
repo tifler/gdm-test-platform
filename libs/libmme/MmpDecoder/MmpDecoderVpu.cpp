@@ -846,10 +846,23 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
                 vdi_read_memory(m_codec_idx, frameBuf.bufCr, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V],  chroma_size, m_decOP.frameEndian);
 #else
                 unsigned int key=0xAAAA9829;
+				unsigned int value, addr;
+
                 memcpy((unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y], &frameBuf, sizeof(frameBuf));
 
                 memcpy((unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U], &key, sizeof(unsigned int));
-                memcpy((unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V], &key, sizeof(unsigned int));
+
+				addr = pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V];
+				value = key; 
+				memcpy((unsigned char*)addr, &value, sizeof(unsigned int));
+				
+				addr += sizeof(unsigned int);
+				value = (unsigned int)this; 
+				memcpy((unsigned char*)addr, &value, sizeof(unsigned int));
+				
+				addr += sizeof(unsigned int);
+				value = (unsigned int)CMmpDecoderVpu::vdi_memcpy_stub; 
+				memcpy((unsigned char*)addr, &value, sizeof(unsigned int));
 #endif
 
                 
@@ -872,6 +885,11 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
         delete [] pRemakeStream;
     }
     return mmpResult;
+}
+
+void CMmpDecoderVpu::vdi_memcpy_stub(void* param, void* dest_vaddr, void* src_paddr, int size) {
+	CMmpDecoderVpu* pMmpDecoderVpu=(CMmpDecoderVpu*)param;
+	vdi_read_memory(pMmpDecoderVpu->m_codec_idx, (PhysicalAddress)src_paddr, (unsigned char*)dest_vaddr, size, pMmpDecoderVpu->m_decOP.frameEndian);
 }
 
 void CMmpDecoderVpu::make_decOP_Common() {

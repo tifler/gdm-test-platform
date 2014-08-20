@@ -255,7 +255,7 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeAu(CMmpMediaSample* pMediaSample, CMmp
         pDecResult->uiAuUsedByte = pMediaSample->uiAuSize;
     }
 
-    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVideo_Ffmpeg::DecodeAu] au(%02x %02x %02x %02x %02x %02x %02x %02x ) usedbyte=%d  ausz=%d pts=%d codec_width=%d codec_height=%d framefinished=%d "),
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVideo_Ffmpeg::DecodeAu] au(%02x %02x %02x %02x %02x %02x %02x %02x ) usedbyte=%d  ausz=%d pts=%d codec_width=%d codec_height=%d framefinished=%d "),
                        avpkt.data[0], avpkt.data[1], avpkt.data[2], avpkt.data[3],
                        avpkt.data[4], avpkt.data[5], avpkt.data[6], avpkt.data[7],
                        usebyte,

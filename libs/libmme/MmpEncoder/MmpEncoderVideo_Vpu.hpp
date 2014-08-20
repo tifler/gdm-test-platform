@@ -42,6 +42,9 @@ protected:
     virtual MMP_RESULT Close();
 
     virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"Vpu";}
+
+	
+
 public:
     virtual MMP_RESULT EncodeAu(CMmpMediaSampleEncode* pMediaSample, CMmpMediaSampleEncodeResult* pEncResult);
     

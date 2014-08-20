@@ -81,6 +81,8 @@ private:
 
     void make_user_frame();
 
+	static void vdi_memcpy_stub(void* param, void* dest_vaddr, void* src_paddr, int size);
+
 private:
     MMP_RESULT DecodeDSI_CheckStream_Mpeg4(MMP_U8* pStream, MMP_U32 nStreamSize);
 

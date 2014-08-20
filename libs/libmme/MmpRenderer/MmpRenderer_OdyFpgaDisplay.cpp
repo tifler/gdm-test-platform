@@ -368,7 +368,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U,
     MMP_RESULT mmpResult;
     unsigned int key=0xAAAA9829;
     unsigned int key1, key2;
-
+	
     key1 = *((unsigned int*)U);
     key2 = *((unsigned int*)V);
     if( (key1 == key) && (key2 == key) ) {
@@ -378,7 +378,8 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U,
         mmpResult = this->RenderYUV420Planar_Memory(Y, U, V, buffer_width, buffer_height);
     }
 
-    CMmpRenderer::EncodeAndMux(Y, U, V, buffer_width, buffer_height);
+    
+	
 
     return mmpResult;
 }
@@ -418,6 +419,8 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_Memory(MMP_U8* Y, MMP
 
 	m_buf_ndx ^= 1;
 
+	CMmpRenderer::EncodeAndMux(Y, U, V, buffer_width, buffer_height);
+
 	return MMP_SUCCESS;
 }
 
@@ -437,6 +440,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8
 
     
     FrameBuffer* pVPU_FrameBuffer;
+	unsigned char *dest_y, *dest_u, *dest_v;
 
     pVPU_FrameBuffer = (FrameBuffer*)Y;
 	
@@ -453,6 +457,20 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8
 	
     
     dss_overlay_commit(gplayer.fb_info.fd);
+
+#if 0	
+	if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
+
+		dest_y = gplayer.frame[m_buf_ndx].address;
+		dest_u = dest_y + m_luma_size;
+		dest_v = dest_u + m_chroma_size;
+
+		vdi_read_memory(m_codec_idx, frameBuf.bufY, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y],  luma_size, m_decOP.frameEndian);
+
+		CMmpRenderer::EncodeAndMux(pVPU_FrameBuffer->bufY, pVPU_FrameBuffer->bufCb, pVPU_FrameBuffer->bufCr, buffer_width, buffer_height);
+
+	}
+#endif
 
 	m_buf_ndx ^= 1;
 

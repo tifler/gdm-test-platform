@@ -229,30 +229,25 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_
     unsigned int key=0xAAAA9829;
     unsigned int key1, key2;
 
-	//MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] ln=%d "), __LINE__));
-
-    key1 = *((unsigned int*)U);
+	key1 = *((unsigned int*)U);
     key2 = *((unsigned int*)V);
 
-	//MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] ln=%d key1=0x%08x key2=0x%08x"), __LINE__, key1, key2));
-
-    if( (key1 == key) && (key2 == key) ) {
-		//MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] ln=%d "), __LINE__));
-        mmpResult = this->RenderYUV420Planar_Ion(Y, U, V, buffer_width, buffer_height);
+	if( (key1 == key) && (key2 == key) ) {
+	    mmpResult = this->RenderYUV420Planar_Ion(Y, U, V, buffer_width, buffer_height);
     }
     else {
-		//MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] ln=%d "), __LINE__));
-        mmpResult = this->RenderYUV420Planar_Memory(Y, U, V, buffer_width, buffer_height);
+	    mmpResult = this->RenderYUV420Planar_Memory(Y, U, V, buffer_width, buffer_height);
     }
 
-	//MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] ln=%d "), __LINE__));
-    CMmpRenderer::EncodeAndMux(Y, U, V, buffer_width, buffer_height);
+	
 
-	//MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] ln=%d "), __LINE__));
-    return mmpResult;
+	return mmpResult;
 }
 
 #include "vpuapi.h"
+
+typedef void (*vdi_memcpy_func)(void* param, void* dest_vaddr, void* src_paddr, int size);
+
 MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     
@@ -279,7 +274,37 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, 
 		iret = sync_wait(m_gplayer.release_fd, 1000);
 	}
 
-	
+	if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
+
+		void* param;
+		vdi_memcpy_func vdi_memcpy;
+		unsigned int addr, value;
+		unsigned char *dest_y, *dest_u, *dest_v;
+
+		dest_y = m_gplayer.frame[m_buf_idx].address[0];
+		dest_u = m_gplayer.frame[m_buf_idx].address[1];
+		dest_v = m_gplayer.frame[m_buf_idx].address[2];
+
+
+		addr = (unsigned int)V;
+
+		addr+=sizeof(unsigned int);
+		memcpy(&value, (void*)addr, sizeof(unsigned int));
+		param = (void*)value;
+
+		addr+=sizeof(unsigned int);
+		memcpy(&value, (void*)addr, sizeof(unsigned int));
+		vdi_memcpy = (vdi_memcpy_func)value;
+
+		(*vdi_memcpy)(param, dest_y, (void*)pVPU_FrameBuffer->bufY, m_luma_size);
+		(*vdi_memcpy)(param, dest_u, (void*)pVPU_FrameBuffer->bufCb, m_chroma_size);
+		(*vdi_memcpy)(param, dest_v, (void*)pVPU_FrameBuffer->bufCr, m_chroma_size);
+
+		CMmpRenderer::EncodeAndMux(dest_y, dest_u, dest_v, buffer_width, buffer_height);
+	}
+
+	m_buf_idx ^= 1;
+
 	return MMP_SUCCESS;
 }
 
@@ -345,6 +370,8 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* 
 
 
 	m_buf_idx ^= 1;
+
+	CMmpRenderer::EncodeAndMux(Y, U, V, buffer_width, buffer_height);
 
 	return MMP_SUCCESS;
 }
