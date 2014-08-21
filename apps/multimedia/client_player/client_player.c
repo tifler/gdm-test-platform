@@ -73,6 +73,7 @@ struct ody_framebuffer {
 
 
 struct ody_player {
+	struct fb_var_screeninfo vi;
 	struct ody_framebuffer fb_info;
 	struct ody_videofile video_info;
 	struct ody_videoframe frame[2];
@@ -166,8 +167,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->src_rect.h = req->src.height;
 
 	req->dst_rect.x = req->dst_rect.y = 0;
-	req->dst_rect.w = 800;
-	req->dst_rect.h = 480;
+	req->dst_rect.w = gplayer->vi.xres;
+	req->dst_rect.h = gplayer->vi.yres;
 
 	req->transp_mask = 0;
 	req->flags = GDM_DSS_FLAG_SCALING;
@@ -175,7 +176,7 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 
 }
 
-static void dss_get_fence_fd(int sockfd, int *release_fd)
+static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
 	struct gdm_msghdr *msg = NULL;
 
@@ -184,6 +185,8 @@ static void dss_get_fence_fd(int sockfd, int *release_fd)
 
 	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
+
+		memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
 		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
@@ -283,7 +286,7 @@ void *decoding_thread(void *arg)
 		(struct sockaddr *)&server_addr, sizeof(server_addr));
 	ASSERT(ret == 0 && "connect() failed");
 
-	dss_get_fence_fd(sockfd, &gplayer->release_fd);
+	dss_get_fence_fd(sockfd, &gplayer->release_fd, &gplayer->vi);
 
 
 	// step-02: request overlay to display
@@ -381,7 +384,7 @@ int main(int argc, char **argv)
 
 	while(!gplayer.stop) {
 
-		sleep(1); 
+		sleep(1);
 
 	}
 
