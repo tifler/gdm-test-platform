@@ -162,7 +162,9 @@ void CMmpPlayerTONE::Service()
     MMP_S32 pcm_size=(PCM_32BIT_COUNT<<2)*100, pcm_index = 0;
 
     while(m_bServiceRun == MMP_TRUE) {
-    
+
+        //memset(m_pcm_buffer, 0xFF, pcm_size/2);
+        //memset(&m_pcm_buffer[pcm_size/2], 0xFF, pcm_size/2);
         pRendererAudio->RenderPCM(m_pcm_buffer, pcm_size);
         pcm_index += pcm_size;
 

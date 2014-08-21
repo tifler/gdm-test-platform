@@ -72,6 +72,7 @@ class CMmpAudioTool
 {
 public:
     static MMP_RESULT Ac3ParseHeader(unsigned char* buf, int bufSize, MmpAC3HeaderInfo *hdr);
+    static MMP_RESULT Convert48kPCM_To_8kPCM();
 };
 
 #endif

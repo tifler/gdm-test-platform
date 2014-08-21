@@ -109,6 +109,10 @@ MMP_RESULT CMmpPlayer::DestroyObject(CMmpPlayer* pObj)
 CMmpPlayer::CMmpPlayer(CMmpPlayerCreateProp* pPlayerProp) :
 
 m_create_config(*pPlayerProp)
+
+#if (MMPPLAYER_DUMP_PCM == 1)
+,m_fp_dump_pcm(NULL)
+#endif
 {
     
 
@@ -124,6 +128,10 @@ MMP_RESULT CMmpPlayer::Open()
 
     CMmpPlayerService::Open();
     
+#if (MMPPLAYER_DUMP_PCM == 1)
+    m_fp_dump_pcm = fopen(MMPPLAYER_DUMP_PCM_FILENAME, "wb");
+#endif
+
     return MMP_SUCCESS;
 }
 
@@ -134,6 +142,12 @@ MMP_RESULT CMmpPlayer::Close()
 
     this->PlayStop();
     
+#if (MMPPLAYER_DUMP_PCM == 1)
+    if(m_fp_dump_pcm != NULL) {
+        fclose(m_fp_dump_pcm);
+        m_fp_dump_pcm = NULL;
+    }
+#endif
     
     return MMP_SUCCESS;
 }
@@ -317,3 +331,13 @@ MMP_RESULT CMmpPlayer::DecodeMediaExtraData(MMP_U32 mediatype,
 
     return mmpResult;
 }
+
+
+#if (MMPPLAYER_DUMP_PCM == 1)
+void CMmpPlayer::DumpPCM_Write(MMP_U8* pcmdata, MMP_S32 pcmbytesize) {
+
+    if(m_fp_dump_pcm != NULL) {
+        fwrite(pcmdata, 1, pcmbytesize, m_fp_dump_pcm);
+    }
+}
+#endif

@@ -140,3 +140,97 @@ MMP_RESULT CMmpAudioTool::Ac3ParseHeader(unsigned char* buf, int bufSize, MmpAC3
     return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpAudioTool::Convert48kPCM_To_8kPCM() {
+
+#define SOURCE_PCM_FILE "C:\\work\\nemo_48000.pcm"
+#define DEST_PCM_FILE "C:\\work\\nemo_8000.pcm"
+
+    FILE* fp_src, *fp_dst;
+    MMP_S16* src_pcm = NULL;
+    MMP_S16* dest_pcm = NULL;
+    MMP_S16* src_pcm_L = NULL;
+    MMP_S16* src_pcm_R = NULL;
+    int err_cnt = 0;
+    int i,j,k, m;
+    MMP_U16 u16;
+    MMP_S32 src_pcmsize;
+    MMP_S32 avg_L, avg_R;
+
+    /* file open*/
+    fp_src = fopen(SOURCE_PCM_FILE, "rb");
+    if(fp_src == NULL) {
+        err_cnt++;
+    }
+    else {
+        fseek(fp_src, 0, SEEK_END);
+        src_pcmsize = ftell(fp_src);
+        fseek(fp_src, 0, SEEK_SET);
+        
+        src_pcm = new MMP_S16[src_pcmsize/2];
+        src_pcm_L = new MMP_S16[src_pcmsize/2];
+        src_pcm_R = new MMP_S16[src_pcmsize/2];
+        dest_pcm = new MMP_S16[src_pcmsize/2];
+        
+        fread(src_pcm, 1, src_pcmsize, fp_src);
+
+        for(i = 0, j = 0; i < src_pcmsize/2; i+=2, j++) {
+        
+            src_pcm_L[j] = src_pcm[i];
+            src_pcm_R[j] = src_pcm[i+1];
+        }
+
+        avg_L = 0;
+        avg_R = 0;
+        k = 1;
+        m = 0;
+        for(i = 0; i < j; i++) {
+        
+            //avg_L = ((k-1)*avg_L + src_pcm_L[i])/k;
+            //avg_R = ((k-1)*avg_R + src_pcm_R[i])/k;
+            avg_L += (MMP_S32)src_pcm_L[i];
+            avg_R += (MMP_S32)src_pcm_L[i];
+            
+            if( (k%6) == 0) {
+
+                dest_pcm[m] = avg_L/6;
+                dest_pcm[m+1] = avg_R/6;
+
+                u16 = (MMP_U16)dest_pcm[m];
+                dest_pcm[m] = MMP_SWAP_U16(u16);
+
+                u16 = (MMP_U16)dest_pcm[m+1];
+                dest_pcm[m+1] = MMP_SWAP_U16(u16);
+
+                m+=2;
+
+                k = 1;
+                avg_L = 0;
+                avg_R = 0;
+            }
+            else {
+                k++;
+            }
+        }
+
+    }
+
+    fp_dst = fopen(DEST_PCM_FILE, "wb");
+    if(fp_dst == NULL) {
+        err_cnt++;
+    }
+    else {
+        fwrite(dest_pcm, 1, m*2, fp_dst);
+    }
+
+    
+    if(fp_src != NULL) fclose(fp_src);
+    if(fp_dst != NULL) fclose(fp_dst);
+
+    if(src_pcm != NULL) delete [] src_pcm;
+    if(src_pcm_L != NULL) delete [] src_pcm_L;
+    if(src_pcm_R != NULL) delete [] src_pcm_R;
+    if(dest_pcm != NULL) delete [] dest_pcm;
+
+    return MMP_SUCCESS;
+}
+

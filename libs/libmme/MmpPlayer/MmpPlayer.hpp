@@ -41,6 +41,15 @@
 #define MMP_PLAYER_TONEPLAYER   0x105  
 
 
+#if (MMP_OS == MMP_OS_WIN32)
+#define MMPPLAYER_DUMP_PCM  1
+#endif
+
+#if (MMPPLAYER_DUMP_PCM == 1)
+#define MMPPLAYER_DUMP_PCM_SAMPLE_RATE  8000
+#define MMPPLAYER_DUMP_PCM_FILENAME "d:\\work\\dump8000.pcm"
+#endif
+
 class CMmpPlayer : public CMmpPlayerService
 {
 public:
@@ -50,6 +59,9 @@ public:
 protected:
     CMmpPlayerCreateProp m_create_config;
     
+#if (MMPPLAYER_DUMP_PCM == 1)
+    FILE* m_fp_dump_pcm;
+#endif
 
 protected:
     CMmpPlayer(CMmpPlayerCreateProp* pPlayerProp);
@@ -70,6 +82,10 @@ protected:
                                     CMmpDemuxer* pDemuxer, CMmpDecoder* pDecoder);
 
     
+#if (MMPPLAYER_DUMP_PCM == 1)
+    void DumpPCM_Write(MMP_U8* pcmdata, MMP_S32 pcmbytesize);
+#endif
+
 };
 
 #endif

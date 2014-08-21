@@ -101,7 +101,7 @@ MMP_RESULT CMmpPlayerPCM::Close()
         CMmpRenderer::DestroyObject(m_pRendererAudio);  
         m_pRendererAudio = NULL;
 
-        CMmpUtil::Sleep(3000);
+        CMmpUtil::Sleep(1000);
     }
     
     if(m_pcm_buffer!=NULL) 
@@ -125,6 +125,8 @@ void CMmpPlayerPCM::Service()
     
     CMmpRenderer* pRendererAudio = m_pRendererAudio;
         
+    float fv;
+    float* p_pcm_float;
     MMP_S32 i, j;
     MMP_U16 *p_pcm_16bit, u16, u16_1;
     MMP_S32 pcm_size;
@@ -146,13 +148,50 @@ void CMmpPlayerPCM::Service()
             memset(&m_pcm_buffer[pcm_size], 0xFF, 1024*400);
 
             p_pcm_16bit = (MMP_U16*)m_pcm_buffer;
+            p_pcm_float = (float*)m_pcm_buffer;
+
+#if 0
+            for(i = 0; i < pcm_size/4; i++) {
+
+                fv = p_pcm_float[i];
+                fv*=32768.0f;
+                
+                //p_pcm_float[i] = fv;
+            }
+#endif
+
+
+#if 1
             for(i = 0; i < pcm_size/2; i++) {
                 u16 = p_pcm_16bit[i];
                 
-                u16 = MMP_SWAP_U16(u16);
+                
+                
                 //u16 += (65536/2);
-                p_pcm_16bit[i] = u16;
+#if 0
+                //for(j = 0, u16_1=0; j < 16; j++) {
+                //    u16_1 |= ((u16>>j)&0x01)<<(15-j);
+                //}
+                u16_1 = u16;
+                //u16_1<<=8;//&=0xFFF0;
+#else
+                u16_1 = MMP_SWAP_U16(u16);
+                //u16_1<<=12;//&=0xFFF0;
+
+                //u16_1 = u16;
+                //memcpy(&fv, 
+#endif
+                
+
+                //if(u16_1 == 0x0002) {
+                //    u16_1 = 0x0000;
+               // }
+                //u16_1+=0x7FFF;
+                //u16_1>>=1;
+
+                p_pcm_16bit[i] = u16_1;
             }
+#endif
 
             pRendererAudio->RenderPCM(m_pcm_buffer, pcm_size);
 

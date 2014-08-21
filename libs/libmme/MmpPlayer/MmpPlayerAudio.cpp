@@ -52,6 +52,8 @@ MMP_RESULT CMmpPlayerAudio::Open()
     CMmpRendererCreateProp RendererProp;
     CMmpRendererCreateProp* pRendererProp=&RendererProp; 
 
+    CMmpPlayer::Open();
+
     /* create stream buffer */
     if(mmpResult == MMP_SUCCESS ) {
         
@@ -228,6 +230,9 @@ void CMmpPlayerAudio::Service()
                     if(pRendererAudio != NULL) {
 
                         pRendererAudio->RenderPCM(pcm_buf, pDecResult->uiDecodedSize);
+#if (MMPPLAYER_DUMP_PCM == 1)
+                        this->DumpPCM_Write(pcm_buf, pDecResult->uiDecodedSize);
+#endif
                     }
 
                     frame_count++;
