@@ -13,8 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "isp.h"
-#include "ioctl.h"
+#include "isp-io.h"
 #include "debug.h"
 
 /*****************************************************************************/

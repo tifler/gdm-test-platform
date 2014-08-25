@@ -177,7 +177,6 @@ int main(int argc, char **argv)
             getReg(mem, addr + i * 4, &data, sizeof(data));
             printf("0x%08x: 0x%08x\n", addr + i * 4, data);
         }
-        while(1) sleep(1);
         closeMemory(mem);
     }
     else {
