@@ -14,7 +14,7 @@ void REG_CHECK(uint32_t addr, uint32_t val)
         if (val == DXO_READ(addr))
             return;
     }
-    ISP_PRINTF("check error 0x%x\n", addr);
+    ISP_PRINTF("check error 0x%x, val = 0x%x, read = 0x%x\n", addr, val, DXO_READ(addr));
 #endif
 }
 

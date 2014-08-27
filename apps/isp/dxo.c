@@ -85,7 +85,7 @@ fvtsBench_setupOutput
 		
 		//ISP_WRITE( 0x3300, 0x0f01);      //ISP_VD_DP_CONTROL	
 //[[tifler:comment out]]
-#if 0
+#if 1
 		ISP_WRITE( 0x3300, 0x0f10);      //ISP_VD_DP_CONTROL	
 		ISP_WRITE( 0x3300, 0x0f11);      //ISP_VD_DP_CONTROL	
 #endif  /*0*/
@@ -104,7 +104,7 @@ fvtsBench_setupOutput
 		ISP_WRITE( 0x3204, unImgFormat); //ISP_VD_DP_IMG_TYPE
 
 //[[tifler:comment out]]
-#if 0
+#if 1
 		ISP_WRITE( 0x3200, 0x0f10);      //ISP_VD_DP_CONTROL	
 		ISP_WRITE( 0x3200, 0x0f11);      //ISP_VD_DP_CONTROL	
 #endif  /*0*/
@@ -224,7 +224,8 @@ int shell_isp_init(char *data)
 	SIF_WRITE(0x310, 0x0);
 	SIF_WRITE(0x314, 0x0);
 #endif
-	fvtsBench_setupOutput(0, IMAGE_WIDTH, IMAGE_HEIGHT);
+    //[[tifler:driver에서 처리하도록 여기서는 막음]]
+	//fvtsBench_setupOutput(0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
 
 #if 0
@@ -337,7 +338,9 @@ int shell_isp_init(char *data)
 	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_FD].usSizeX             = IMAGE_WIDTH;//1920;//640 ;
 	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_FD].usSizeY             = IMAGE_HEIGHT;//1080;//480 ;
 
-	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_VIDEO  ].isEnabled           = 1;
+    //[[tifler]]
+	//stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_VIDEO  ].isEnabled           = 1;
+	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_VIDEO  ].isEnabled           = 0;
 	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_VIDEO].eFormat             = DxOISP_FORMAT_YUV422 ;
 	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_VIDEO].eEncoding           = DxOISP_ENCODING_YUV_601FU ;
 	stIspCmd.stSync.stControl.stOutput[DxOISP_OUTPUT_VIDEO].eOrder              = DxOISP_YUV422ORDER_YUYV ;

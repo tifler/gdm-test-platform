@@ -57,6 +57,10 @@
     do { fprintf(stderr, \
             "[%s:%d] " fmt "\n", __func__, __LINE__, ## __VA_ARGS__); } while(0)
 
+#define __dbg_output_nonl(fmt, ...)  \
+    do { fprintf(stderr, \
+            "[%s:%d] " fmt,  __func__, __LINE__, ## __VA_ARGS__); } while(0)
+
 #define DIE(fmt, ...)       \
     do { __dbg_output(fmt, ## __VA_ARGS__); assert(0); } while(0)
 
@@ -103,6 +107,6 @@
 #define __CHECK_LINE__          TRACE_LINE
 #define __CHECK_FUNC__          TRACE_FUNC
 
-#define ISP_PRINTF              DBG
+#define ISP_PRINTF              __dbg_output_nonl
 
 #endif  /*__DEBUG_H__*/

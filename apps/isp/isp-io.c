@@ -119,9 +119,11 @@ void exitISPIO(void)
     for (i = 0; i < IODEV_COUNT; i++)
         closeISPIODevice(ioDev[i]);
 
+#ifndef __USE_IOCTL_IO
     ISPBase = (unsigned char *)NULL;
     SIFBase = (unsigned char *)NULL;
     DXOBase = (unsigned char *)NULL;
+#endif  /*__USE_IOCTL_IO*/
 }
 
 uint32_t writeCommand(uint32_t cmd, uint32_t value)

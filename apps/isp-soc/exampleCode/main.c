@@ -85,7 +85,7 @@ void *WaitInterrupthread(void *data)
 		//intmask = DRIVER_INT_WAIT;
 		//intmask = ioctl(gIspDev, ISP_IOCTL_WAITINT, NULL);
 		intmask = DRIVER_INT_WAIT;
-		//ISP_PRINTF("Int Pending Reg 0x%x\n", intmask);
+		ISP_PRINTF("Int Pending Reg 0x%x\n", intmask);
 
 		if(intmask&0x800000)
 		{

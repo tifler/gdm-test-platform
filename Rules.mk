@@ -5,11 +5,13 @@
 #
 #------------------------------------------------------------------------------
 
-#BASE_ROOTFS_DIR	?=/home2/tifler/work/ramdisk/vgroup_rootfs
-#CROSS_COMPILE   ?=$(BASE_ROOTFS_DIR)/output/host/opt/ext-toolchain/bin/arm-none-linux-gnueabi-
+ifndef	CROSS_COMPILE
+$(error "YOU MUST DO 'export CROSS_COMPILE=...'.")
+endif
 
-CROSS_COMPILE=/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-
-BASE_ROOTFS_DIR=/home1/hthwang/develop/odysseus/rootfs/vgroup_rootfs
+ifndef	BASE_ROOTFS_DIR
+$(error "YOU MUST DO 'export BASE_ROOTFS_DIR=/path/to/your/rootfs/dir/'.")
+endif
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

@@ -255,10 +255,12 @@ int shell_isp_init(char *data)
 	// DxO Part
 	DxOISP_Init(uiFreq);
 
-	DRIVER_SET_INTMASK((0xff7e<<16)|0xffff);
+	//DRIVER_SET_INTMASK((0xff7e<<16)|0xffff);
+	DRIVER_SET_INTMASK((0xff7e<<16)|0xfffb);
 
 	ISP_WRITE(0x108, 0xff7e);	// int enable dxo only
-	ISP_WRITE(0x118, 0xffff);
+	//ISP_WRITE(0x118, 0xffff);
+	ISP_WRITE(0x118, 0xfffb);
 
 
 	ISP_PRINTF("isp Init done\n");
