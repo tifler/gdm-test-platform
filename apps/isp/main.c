@@ -27,6 +27,8 @@
 #define GISP_DEFAULT_WIDTH          (640)
 #define GISP_DEFAULT_HEIGHT         (480)
 
+#define DISPLAY_SOCK_PATH           "/tmp/sock_msgio"
+
 /*****************************************************************************/
 
 enum {
@@ -77,8 +79,6 @@ static struct GISPContext *GISPOpen(int display)
         gisp->port[i].fd = open(path, O_RDWR);
         ASSERT(gisp->port[i].fd > 0);
     }
-
-#define DISPLAY_SOCK_PATH           "/tmp/sock_msgio"
 
     if (display) {
         gisp->display = GDispOpen(DISPLAY_SOCK_PATH, 0);

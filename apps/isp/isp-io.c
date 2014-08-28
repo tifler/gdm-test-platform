@@ -95,19 +95,16 @@ void initISPIO(void)
 {
     ioDev[IODEV_ISP] = openISPIODevice(IODEV_ISP);
     ASSERT(ioDev[IODEV_ISP]);
-#ifndef __USE_IOCTL_IO
-    ISPBase = (unsigned char *)ioDev[IODEV_ISP]->base;
-#endif
 
     ioDev[IODEV_SIF] = openISPIODevice(IODEV_SIF);
     ASSERT(ioDev[IODEV_SIF]);
-#ifndef __USE_IOCTL_IO
-    SIFBase = (unsigned char *)ioDev[IODEV_SIF]->base;
-#endif
 
     ioDev[IODEV_DXO] = openISPIODevice(IODEV_DXO);
     ASSERT(ioDev[IODEV_DXO]);
+
 #ifndef __USE_IOCTL_IO
+    ISPBase = (unsigned char *)ioDev[IODEV_ISP]->base;
+    SIFBase = (unsigned char *)ioDev[IODEV_SIF]->base;
     DXOBase = (unsigned char *)ioDev[IODEV_DXO]->base;
 #endif
 }

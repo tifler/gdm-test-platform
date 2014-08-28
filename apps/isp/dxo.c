@@ -45,6 +45,8 @@ void DxOISP_PixelStuckHandler(void) {
 	DxOISP_DumpStatus();
 }
 
+//[[tifler: 사용하지 않음
+#if 0
 void
 fvtsBench_setupOutput
 (	uint32_t        outputId
@@ -177,6 +179,8 @@ fvtsBench_setupOutput
 	}	
 #endif
 }
+#endif  //0
+//]]tifler
 
 int shell_isp_init(char *data)
 {

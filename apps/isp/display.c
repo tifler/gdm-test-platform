@@ -1,45 +1,8 @@
-/*
- * Copyright 2002-2010 Guillaume Cottenceau.
- *
- * This software may be freely redistributed under the terms
- * of the X11 license.
- *
- */
-
-#if 0
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <pthread.h> // for POSIX threads
-#include <ctype.h>
-
-#include <fcntl.h>
-#include <limits.h>
-#include <time.h>
-
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/un.h>
-#include <sys/select.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <linux/kd.h>
-#include <linux/types.h>
-#include <linux/stat.h>
-#endif  /*0*/
 #include <linux/videodev2.h>
 
-#include "sync.h"
-#include <ion_api.h>
 #include "display.h"
+#include "sync.h"
+#include "ion_api.h"
 #include "gdm_fb.h"
 #include "gdm-msgio.h"
 #include "gdm-buffer.h"
@@ -85,7 +48,6 @@ enum {
 /*****************************************************************************/
 
 static struct GDispPixelFormat pixelFormats[] = {
-#if 1
     // 422_1P
     {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_UYVY),
@@ -213,7 +175,6 @@ static struct GDispPixelFormat pixelFormats[] = {
         .bitperpixel = { 16 },
         .dss_format = GDM_DSS_PF_RGB565,
     },
-#endif  /*0*/
 };
 
 /*****************************************************************************/
