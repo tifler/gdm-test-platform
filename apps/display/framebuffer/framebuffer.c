@@ -337,12 +337,8 @@ static void dss_get_fence_fd(int sockfd, int *release_fd)
 {
 	struct gdm_msghdr *msg = NULL;
 
-	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
-
-	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
-		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
@@ -402,13 +398,12 @@ static int dss_overlay_commit(int sockfd)
 {
 	struct gdm_hwc_msg msg_data;
 	struct gdm_msghdr *msg = NULL;
-	int i = 0;
+
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
-
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), 0);
-
 	msg_data.app_id = APP_ID_GPU_RENDERER;
 	msg_data.hwc_cmd = GDMFB_DISPLAY_COMMIT;
+	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
 	gdm_sendmsg(sockfd, msg);
 
 	return 0;
@@ -445,32 +440,19 @@ void *framebuffer_renderer(void *arg)
 	dss_get_fence_fd(sockfd, &fb_ctx->release_fd);
 	//dss_overlay_default_fb_config(&req, gfx_ctx);
 
-
 	while(!fb_ctx->bstop) {
 
-#if 0
-		load_image(fb_ctx, fb_ctx->render_ndx);
-#else
 		load_image(fb_ctx, fb_ctx->render_ndx, frame_count);
-#endif
-
-#if 0
-		fb_ctx->vi.activate = FB_ACTIVATE_TEST;
-		fb_ctx->vi.yoffset = fb_ctx->vi.yres * fb_ctx->render_ndx;
-
-		ret = ioctl(fb_ctx->fb_fd, FBIOPUT_VSCREENINFO, &fb_ctx->vi);
-		if(ret) {
-			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
-
-		}
-#endif
 
 		dss_overlay_commit(sockfd);
-
+		dss_get_fence_fd(sockfd, &fb_ctx->release_fd);
 
 		if(fb_ctx->release_fd != -1) {
 			//printf("wait frame done signal\n");
+
 			ret = sync_wait(fb_ctx->release_fd, 1000);
+			close(fb_ctx->release_fd);
+			fb_ctx->release_fd = -1;
 		}
 
 		fb_ctx->render_ndx ^= 1;

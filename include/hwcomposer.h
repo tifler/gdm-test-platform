@@ -24,7 +24,7 @@
 #define APP_ID_CAMERA_PREVIEW		0x00004000
 #define APP_ID_GPU_RENDERER		0x00008000
 #define APP_ID_ROT_SAMPLE_PLAYER	0x00010000
-
+#define APP_ID_MULTI_SAMPLE_PLAYER2	0x00020000
 
 /*****************************************************************************/
 

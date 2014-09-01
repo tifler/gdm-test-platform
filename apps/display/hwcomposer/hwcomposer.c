@@ -389,6 +389,14 @@ void *commit_thread(void *argp)
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
+
+		buf_sync.acq_fen_fd_cnt = 0;
+		if(hwc_ctx->release_fence > 0)
+			close(hwc_ctx->release_fence);
+
+		hwc_ctx->release_fence = -1;
+		buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
+		gdss_io_buffer_sync(fb_fd, &buf_sync);
 #else
 		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, &display_commit.var) < 0) {
 			printf("failed to get fb0 info");
@@ -413,7 +421,6 @@ static void *client_thread(void *arg)
 	printf("Client %d launched.\n", getpid());
 
 	resp_msg = gdm_alloc_msghdr(sizeof(struct fb_var_screeninfo), 1);
-
 	memcpy(resp_msg->buf, &hwc_ctx->dpyAttr[0].vi, sizeof(struct fb_var_screeninfo));
 	resp_msg->fds[0] = hwc_ctx->release_fence;
 	gdm_sendmsg(client->sockfd, resp_msg);
@@ -446,8 +453,15 @@ static void *client_thread(void *arg)
 		case GDMFB_OVERLAY_PLAY:
 			register_overlay_data(hwc_ctx, disp_message->app_id,
 					cmd_msg);
+
+			resp_msg = gdm_alloc_msghdr(10, 1);
+			resp_msg->fds[0] = hwc_ctx->release_fence;
+			gdm_sendmsg(client->sockfd, resp_msg);
 			break;
 		case GDMFB_DISPLAY_COMMIT:
+			resp_msg = gdm_alloc_msghdr(10, 1);
+			resp_msg->fds[0] = hwc_ctx->release_fence;
+			gdm_sendmsg(client->sockfd, resp_msg);
 			break;
 		}
 		hwc_ctx->is_update = 1;
@@ -583,7 +597,7 @@ int main(int argc, char **argv)
 
 
 	while(!hwc_ctx->bstop){
-		usleep(30*1000);
+		usleep(10*1000);
 		timer_handler(hwc_ctx);
 	}
 

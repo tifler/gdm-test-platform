@@ -439,14 +439,14 @@ static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screenin
 {
 	struct gdm_msghdr *msg = NULL;
 
-	printf("dss_get_fence_fd - start\n");
+//	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-	printf("received msg: %0x\n", (unsigned int)msg);
+//	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
 
 		memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
-		printf("msg->fds[0]: %d\n", msg->fds[0]);
+//		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
@@ -585,10 +585,12 @@ void *gfx_renderer(void *arg)
 		dss_overlay_default_gfx_config(&req, gfx_ctx);
 		dss_overlay_set(sockfd, &req);
 		dss_overlay_queue(sockfd, &req_data);
+		dss_get_fence_fd(sockfd, &gfx_ctx->release_fd, NULL);
 
 		if(gfx_ctx->release_fd != -1) {
 			//printf("wait frame done signal\n");
 			ret = sync_wait(gfx_ctx->release_fd, 10000);
+			close(gfx_ctx->release_fd);
 		}
 
 		gfx_ctx->render_ndx ^= 1;
@@ -607,7 +609,7 @@ void *gfx_renderer(void *arg)
 
 		cnt_loop ++;
 
-		usleep(1000*1000);
+		usleep(200*1000);
 		if(cnt_loop == 1000)
 			gfx_ctx->bstop = 1;
 
@@ -619,6 +621,7 @@ void *gfx_renderer(void *arg)
 	if(gfx_ctx->release_fd != -1) {
 		//printf("wait frame done signal\n");
 		ret = sync_wait(gfx_ctx->release_fd, 10000);
+		close(gfx_ctx->release_fd);
 	}
 
 	if(gfx_ctx->release_fd != -1)

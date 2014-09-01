@@ -14,6 +14,7 @@
 #include <string.h>
 #include <pthread.h> // for POSIX threads
 #include <ctype.h>
+#include <getopt.h>
 
 #include <fcntl.h>
 #include <limits.h>
@@ -57,6 +58,12 @@ struct ody_videofile {
 	int width;
 	int height;
 	int format;
+	int interlace;
+
+	int out_x, out_y;
+	int out_w, out_h;
+
+	int rotation;
 };
 
 struct ody_videoframe {
@@ -86,16 +93,13 @@ struct ody_player {
 
 static pthread_t decoding_worker;
 
-static int open_video(char *file_name, struct ody_videofile *pvideo)
+
+static int open_video(char *file_name,  struct ody_videofile *pvideo)
 {
 	int fd;
 
 	if( 0 < (fd = open(file_name, O_RDONLY))) {
 		pvideo->fd = fd;
-		pvideo->width = VIDEO_WIDTH;
-		pvideo->height = VIDEO_HEIGHT;
-		pvideo->format = VIDEO_FORMAT;
-
 		return fd;
 	}
 
@@ -135,6 +139,20 @@ cleanup:
 
 }
 
+
+static int dealloc_video_memory(struct ody_videoframe *pframe)
+{
+	int i = 0;
+
+	for(i=0 ;i<3; i++) {
+		if(pframe->shared_fd[i] > 0) {
+			munmap(pframe->address[i], pframe->size[i]);
+			close(pframe->shared_fd[i]);
+		}
+	}
+
+	return 0;
+}
 static int get_video_frame(int fd, unsigned char *pdata, int size)
 {
 	int nread = 0;
@@ -166,13 +184,69 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->src_rect.w = req->src.width;
 	req->src_rect.h = req->src.height;
 
-	req->dst_rect.x = req->dst_rect.y = 0;
-	req->dst_rect.w = gplayer->vi.xres;
-	req->dst_rect.h = gplayer->vi.yres;
+
+	//	req->dst_rect.w = gplayer->vi.xres;
+	//	req->dst_rect.h = gplayer->vi.yres;
+
+	if(gplayer->video_info.out_x != -1)
+		req->dst_rect.x = gplayer->video_info.out_x;
+	else
+		req->dst_rect.x = 0;
+
+	if(gplayer->video_info.out_y != -1)
+		req->dst_rect.y = gplayer->video_info.out_y;
+	else
+		req->dst_rect.y = 0;
+
+	if(gplayer->video_info.out_w != -1)
+		req->dst_rect.w = gplayer->video_info.out_w;
+	else
+		req->dst_rect.w = gplayer->vi.xres;
+
+	if(gplayer->video_info.out_h != -1)
+		req->dst_rect.h = gplayer->video_info.out_h;
+	else
+		req->dst_rect.h = gplayer->vi.yres;
+
 
 	req->transp_mask = 0;
 	req->flags = GDM_DSS_FLAG_SCALING;
-	req->id = GDMFB_NEW_REQUEST;
+
+	if(gplayer->video_info.rotation) {
+		switch(gplayer->video_info.rotation) {
+		case GDM_DSS_ROTATOR_HOR_FLIP:
+			req->flags |= GDM_DSS_FLAG_ROTATION_HFLIP;
+			break;
+		case GDM_DSS_ROTATOR_VER_FLIP:
+			req->flags |= GDM_DSS_FLAG_ROTATION_VFLIP;
+			break;
+		case GDM_DSS_ROTATOR_180:
+			req->flags |= GDM_DSS_FLAG_ROTATION_180;
+			break;
+		case GDM_DSS_ROTATOR_270_HOR_FLIP:
+			req->flags |= (GDM_DSS_FLAG_ROTATION_HFLIP
+				| GDM_DSS_FLAG_ROTATION_270);
+			break;
+		case GDM_DSS_ROTATOR_90:
+			req->flags |= (GDM_DSS_FLAG_ROTATION_90);
+			break;
+		case GDM_DSS_ROTATOR_270:
+			req->flags |= (GDM_DSS_FLAG_ROTATION_270);
+			break;
+		case GDM_DSS_ROTATOR_90_HOR_FLIP:
+			req->flags |= (GDM_DSS_FLAG_ROTATION_90
+				| GDM_DSS_FLAG_ROTATION_HFLIP);
+		}
+
+	}
+
+	if(gplayer->video_info.interlace) {
+		req->flags |= GDM_DSS_FLAG_IPC;
+		//req->src.width = gplayer->video_info.width * 2;
+		//req->src.height = gplayer->video_info.height / 2;
+	}
+
+	req->id |= GDMFB_NEW_REQUEST;
 
 }
 
@@ -180,18 +254,18 @@ static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screenin
 {
 	struct gdm_msghdr *msg = NULL;
 
-	printf("dss_get_fence_fd - start\n");
+//	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-	printf("received msg: %0x\n", (unsigned int)msg);
+//	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
-
-		memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
-		printf("msg->fds[0]: %d\n", msg->fds[0]);
+		if(vi) {
+			memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
+		}
+//		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
-
 }
 
 
@@ -323,14 +397,17 @@ void *decoding_thread(void *arg)
 		req_data.data[2].offset = 0;
 
 		dss_overlay_queue(sockfd, &req_data);
+		dss_get_fence_fd(sockfd, &gplayer->release_fd, NULL);
 
 		if(gplayer->release_fd != -1) {
-			//printf("wait frame done signal\n");
+		//	printf("sync_wait - in \n");
 			ret = sync_wait(gplayer->release_fd, 1000);
+			close(gplayer->release_fd);
+		//	printf("sync_wait - out\n");
 		}
 		buf_ndx ^= 1;
 
-		usleep(50*1000);
+//		usleep(50*1000);
 	}
 
 	// unset
@@ -344,17 +421,139 @@ void *decoding_thread(void *arg)
 	return NULL;
 }
 
+static void help(char *progname)
+{
+    fprintf(stderr, "-----------------------------------------------------------------------\n");
+    fprintf(stderr, "Usage: %s\n" \
+            "  -iw width of contents [paramters]\n" \
+            "  -ih height of contents [parameters]\n" \
+            "  -if pixel format of contents [parameters]\n" \
+            		"\t\t 8: GDM_DSS_PF_YUV422I \n" \
+            		"\t\t 10: GDM_DSS_PF_YUV420P2 \n" \
+			"\t\t 11: GDM_DSS_PF_YUV422P2 \n" \
+			"\t\t 12: GDM_DSS_PF_YUV422P3 \n" \
+			"\t\t 14: GDM_DSS_PF_YUV420P3 \n" \
+            "  -ii interlace \n" \
+            "  -iname [filename] \n" \
+            "  -ow width of output \n" \
+            "  -oh height of output \n" \
+            "  -or rotation \n", progname);
+
+    fprintf(stderr, "-----------------------------------------------------------------------\n");
+    fprintf(stderr, "Example:\n" \
+            "  %s -w 1280 -h 720 -i test.yuv\n", progname);
+    fprintf(stderr, "-----------------------------------------------------------------------\n");
+}
 
 int main(int argc, char **argv)
 {
+	int i;
+
+	//int i_w, i_h, i_f, i_i;
+	//int o_x, o_y, o_w, o_h, o_r;
 	struct ody_player gplayer;
 	struct ody_videofile *pvideo;
+	char *filename = NULL;
 	memset(&gplayer, 0x00, sizeof(struct ody_player));
 	//pfb = &gplayer.fb_info;
 	pvideo = &gplayer.video_info;
 	/* initialize */
 
-	if(open_video(argv[1], pvideo) == -1) {
+
+	pvideo->width = VIDEO_WIDTH;
+	pvideo->height = VIDEO_HEIGHT;
+	pvideo->format = VIDEO_FORMAT;
+	pvideo->interlace = 0;
+	pvideo->out_x = pvideo->out_y = 0;
+	pvideo->out_w = pvideo->out_h = -1;
+	pvideo->rotation = 0;
+
+	/* parameter parsing */
+	while(1) {
+		int option_index = 0, c = 0;
+		static struct option long_options[] = {
+				{"h",	no_argument, 0, 0},
+				{"help", no_argument, 0, 0},
+				{"iw", required_argument, 0, 0},	//
+				{"ih", required_argument, 0, 0},
+				{"if", required_argument, 0, 0},
+				{"ii", required_argument, 0, 0},
+				{"iname", required_argument, 0, 0},
+				{"ox", required_argument, 0, 0},
+				{"oy", required_argument, 0, 0},
+				{"ow", required_argument, 0, 0},
+				{"oh", required_argument, 0, 0},
+				{"or", required_argument, 0, 0},
+				{0, 0, 0, 0}
+			};
+
+        	c = getopt_long_only(argc, argv, "", long_options, &option_index);
+
+		if(c == -1) break;
+
+		if(c == '?') {
+			help(argv[0]);
+			return;
+		}
+		switch(option_index) {
+		/* h, help */
+		case 0:
+		case 1:
+			help(argv[0]);
+			return 0;
+			break;
+
+		/* width */
+		case 2:
+			pvideo->width = atoi(optarg);
+			break;
+		/* height */
+		case 3:
+			pvideo->height = atoi(optarg);
+			break;
+		/* format */
+		case 4:
+			pvideo->format = atoi(optarg);
+			break;
+		case 5:
+			pvideo->interlace = atoi(optarg);
+			break;
+		/* input filename */
+		case 6:
+			filename = strdup(optarg);
+		    	break;
+		/* output x-pos */
+		case 7:
+			pvideo->out_x = atoi(optarg);
+			break;
+		/* output y-pos */
+		case 8:
+			pvideo->out_y = atoi(optarg);
+			break;
+		/* output width */
+		case 9:
+			pvideo->out_w = atoi(optarg);
+			break;
+		/* output height */
+		case 10:
+			pvideo->out_h = atoi(optarg);
+			break;
+		/* rotation */
+		case 11:
+			pvideo->rotation = atoi(optarg);
+			break;
+		default:
+			help(argv[0]);
+			return 0;
+		}
+
+	}
+
+	if(filename == NULL)
+		return -1;
+
+
+	if(open_video(filename, pvideo) == -1) {
 		close(pvideo->fd);
 		return -1;
 	}
@@ -368,13 +567,12 @@ int main(int argc, char **argv)
 
 	printf("frame size: %d %d\n", gplayer.frame[0].size[0], gplayer.frame[1].size[0]);
 
-	if(alloc_video_memory(&gplayer.frame[0]) != 0) {/* front buffer */
-		goto exit;
 
-	}
-	if(alloc_video_memory(&gplayer.frame[1]) != 0) { /* back buffer */
-		goto exit;
+	for(i=0; i< 2; i++) {
+		if(alloc_video_memory(&gplayer.frame[i]) != 0) {/* front buffer */
+			goto exit;
 
+		}
 	}
 
 	if(pthread_create(&decoding_worker, NULL, decoding_thread, &gplayer) != 0)
@@ -389,6 +587,8 @@ int main(int argc, char **argv)
 	}
 
 exit:
+	for(i=0; i< 2; i++)
+		dealloc_video_memory(&gplayer.frame[i]);
 
 	pthread_cancel(decoding_worker);
 
