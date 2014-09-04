@@ -48,6 +48,7 @@ public:
     MMP_U8* get_buf_vir_addr_y() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_Y); }
     MMP_U8* get_buf_vir_addr_cb() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_CB); } 
     MMP_U8* get_buf_vir_addr_cr() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_CR); }
+    MMP_S32 get_buf_shared_fd(MMP_S32 frame_id);
 
     inline MMP_S32 get_stride_luma() { return m_pic_width; }
     inline MMP_S32 get_stride_chroma() { return m_pic_width>>1; }

@@ -17,7 +17,7 @@ FFMPEG_SRCS += $(FFMPEG_SRC_LIBAVRESAMPLE)
 CFLAGS_FFMPEG = -DFF_API_ALLOC_CONTEXT=1 -DFF_API_AVCODEC_OPEN=1
 CFLAGS_FFMPEG += -I$(FFMPEG_TOP) 
 CFLAGS_FFMPEG += -D_ISOC99_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Dstrtod=avpriv_strtod -DPIC                                  \
-                -D_DECLARE_C99_LDBL_MATH=1 -std=c99 -fomit-frame-pointer -fPIC -marm -g -Wdeclaration-after-statement        \
+                -D_DECLARE_C99_LDBL_MATH=1 -std=c99 -fomit-frame-pointer -fPIC -marm -Wdeclaration-after-statement        \
                 -Wall -Wno-parentheses -Wno-switch -Wno-format-zero-length -Wdisabled-optimization -Wpointer-arith -Wredundant-decls      \
                 -Wno-unused-parameter -Wno-sign-compare \
                 -Wno-pointer-sign -Wwrite-strings -Wtype-limits -Wundef -Wmissing-prototypes -Wno-pointer-to-int-cast -Wstrict-prototypes -O3 \

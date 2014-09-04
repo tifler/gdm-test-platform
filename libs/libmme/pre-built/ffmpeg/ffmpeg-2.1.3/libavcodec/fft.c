@@ -38,7 +38,6 @@
 
 /* cos(2*pi*x/n) for 0<=x<=n/4, followed by its reverse */
 #if !CONFIG_HARDCODED_TABLES
-
 COSTABLE(16);
 COSTABLE(32);
 COSTABLE(64);
@@ -54,7 +53,6 @@ COSTABLE(32768);
 COSTABLE(65536);
 #endif
 COSTABLE_CONST FFTSample * const FFT_NAME(ff_cos_tabs)[] = {
-
     NULL, NULL, NULL, NULL,
     FFT_NAME(ff_cos_16),
     FFT_NAME(ff_cos_32),
@@ -171,8 +169,6 @@ av_cold int ff_fft_init(FFTContext *s, int nbits, int inverse)
         ff_fft_lut_init(fft_offsets_lut, 0, 1 << 16, &n);
     }
 #else /* CONFIG_FFT_FIXED_32 */
-
-#if (HAVE_NEON==1)
 #if CONFIG_FFT_FLOAT
     if (ARCH_ARM)     ff_fft_init_arm(s);
     if (ARCH_PPC)     ff_fft_init_ppc(s);
@@ -183,9 +179,6 @@ av_cold int ff_fft_init(FFTContext *s, int nbits, int inverse)
     if (CONFIG_MDCT)  s->mdct_calcw = ff_mdct_calcw_c;
     if (ARCH_ARM)     ff_fft_fixed_init_arm(s);
 #endif
-#endif
-
-
     for(j=4; j<=nbits; j++) {
         ff_init_ff_cos_tabs(j);
     }

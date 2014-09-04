@@ -155,7 +155,7 @@ LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) 
             -I$(MME_TOP)/MmpBuffer \
             
 LOCAL_CXXFLAGS := $(LOCAL_CFLAGS) -D__STDC_CONSTANT_MACROS
-LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody
+LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync

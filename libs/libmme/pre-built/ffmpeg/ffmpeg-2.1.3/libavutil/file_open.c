@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#include "config.h"
-#include "ffmpeg_build_options.h"
+#include "config.h"
 #include "internal.h"
 #include "mem.h"
 #include <stdarg.h>

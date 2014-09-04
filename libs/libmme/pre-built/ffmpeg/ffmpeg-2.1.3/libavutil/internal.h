@@ -211,16 +211,14 @@ void avpriv_report_missing_feature(void *avc,
 void avpriv_request_sample(void *avc,
                            const char *msg, ...) av_printf_format(2, 3);
 
-#if 0
 #if HAVE_MSVCRT
 #define avpriv_open ff_open
-#endif
 #endif
 
 /**
  * A wrapper for open() setting O_CLOEXEC.
  */
-extern int avpriv_open(const char *filename, int flags, ...);
+int avpriv_open(const char *filename, int flags, ...);
 
 #if FF_API_GET_CHANNEL_LAYOUT_COMPAT
 uint64_t ff_get_channel_layout(const char *name, int compat);

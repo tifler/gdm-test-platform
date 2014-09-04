@@ -11,14 +11,16 @@ LD				:=$(CROSS_COMPILE)ld
 
 include $(FFMPEG_TOP)/ffmpeg2.1.3.mk
 
-LIBNAME = libffmpeg_2.1.3_odyfpga.a
+LIBNAME = libffmpeg_2.1.3_ody_vfp.a
 
 SRCS = $(FFMPEG_SRCS)
 OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
-CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D__PLATFORM_ODY_FPGA -march=armv6
+#CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D__PLATFORM_ODY_FPGA -march=armv6
+CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D__PLATFORM_ODY_FPGA -march=armv7-a  
 CFLAGS += $(CFLAGS_FFMPEG)
-ASFLAGS += $(CFLAGS_FFMPEG) -march=armv6  
+$ASFLAGS += $(CFLAGS_FFMPEG) -march=armv6  
+ASFLAGS += $(CFLAGS_FFMPEG) -march=armv7-a  
 
 $(LIBNAME):   $(OBJS)
 $(LIBNAME):

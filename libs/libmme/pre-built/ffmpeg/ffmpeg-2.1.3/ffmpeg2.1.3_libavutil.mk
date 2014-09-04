@@ -1,7 +1,13 @@
 FFMPEG_SRC_LIBAVUTIL_ARM=\
 		   $(FFMPEG_LIBAVUTIL_TOP)/arm/cpu.c \
            $(FFMPEG_LIBAVUTIL_TOP)/arm/float_dsp_init_arm.c \
+           $(FFMPEG_LIBAVUTIL_TOP)/arm/float_dsp_init_vfp.c \
+           $(FFMPEG_LIBAVUTIL_TOP)/arm/float_dsp_vfp.S
            
+FFMPEG_SRC_LIBAVUTIL_ARM_NEON=\
+          $(FFMPEG_LIBAVUTIL_TOP)/arm/float_dsp_init_neon.c \
+          $(FFMPEG_LIBAVUTIL_TOP)/arm/float_dsp_neon.S \
+                   
 FFMPEG_SRC_LIBAVUTIL=\
 	   $(FFMPEG_LIBAVUTIL_TOP)/adler32.c\
        $(FFMPEG_LIBAVUTIL_TOP)/aes.c                                                            \

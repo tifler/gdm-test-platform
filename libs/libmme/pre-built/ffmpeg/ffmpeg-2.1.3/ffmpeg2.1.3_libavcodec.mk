@@ -1,10 +1,13 @@
 
 FFMPEG_SRC_LIBAVCODEC_ARM=\
-		           $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_init_arm.c     \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/dcadsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_init_arm.c     \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_init_armv5te.c     \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_init_armv6.c     \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_arm.S          \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_armv6.S          \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_init_neon.c     \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/int_neon.S     \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/jrevdct_arm.S          \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/simple_idct_arm.S      \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/simple_idct_armv5te.S      \
@@ -14,6 +17,7 @@ FFMPEG_SRC_LIBAVCODEC_ARM=\
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/videodsp_armv5te.S    \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/hpeldsp_init_arm.c     \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/hpeldsp_init_armv6.c     \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/hpeldsp_init_neon.c     \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/hpeldsp_arm.S          \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/hpeldsp_armv6.S          \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/h264chroma_init_arm.c  \
@@ -26,16 +30,60 @@ FFMPEG_SRC_LIBAVCODEC_ARM=\
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/mpegvideo_armv5te_s.S \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/mpegaudiodsp_init_arm.c\
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/fft_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/mpegaudiodsp_fixed_armv6.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/mdct_vfp.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fft_vfp.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fft_fixed_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fmtconvert_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fmtconvert_vfp.S $(FFMPEG_LIBAVCODEC_TOP)/arm/fmtconvert_vfp_armv6.S \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/mpegaudiodsp_fixed_armv6.S  \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fmtconvert_init_arm.c   \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/mpegaudiodsp_fixed_armv6.S  \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/aacpsdsp_init_arm.c $(FFMPEG_LIBAVCODEC_TOP)/arm/sbrdsp_init_arm.c  \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/flacdsp_arm.S $(FFMPEG_LIBAVCODEC_TOP)/arm/flacdsp_init_arm.c\
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp3dsp_init_arm.c  $(FFMPEG_LIBAVCODEC_TOP)/arm/vp6dsp_init_arm.c  \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8_armv6.S $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_armv6.S $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_init_arm.c $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_init_armv6.c \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/rv34dsp_init_arm.c $(FFMPEG_LIBAVCODEC_TOP)/arm/rv40dsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/ac3dsp_arm.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/ac3dsp_armv6.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/ac3dsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/aacpsdsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/sbrdsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/flacdsp_arm.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/flacdsp_init_arm.c\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp3dsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp6dsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8_armv6.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_armv6.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_init_armv6.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_init_neon.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/rv34dsp_init_arm.c \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/rv40dsp_init_arm.c \
                    $(FFMPEG_LIBAVCODEC_TOP)/arm/vorbisdsp_init_arm.c \
-                   $(FFMPEG_LIBAVCODEC_TOP)/arm/dcadsp_init_arm.c \
+                   
+                   
+FFMPEG_SRC_LIBAVCODEC_ARM_NEON=\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/dsputil_neon.S     \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/simple_idct_neon.S      \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/hpeldsp_neon.S         \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264qpel_neon.S         \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264dsp_neon.S     \
+				   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264cmc_neon.S  \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264idct_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264pred_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264qpel_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/h264qpel_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/mpegvideo_neon.S      \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fft_neon.S\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fft_fixed_neon.S\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/ac3dsp_neon.S\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/sbrdsp_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp3dsp_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/fmtconvert_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp6dsp_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vp8dsp_neon.S\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/rv40dsp_neon.S\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/rdft_neon.S\
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/mdct_fixed_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/mdct_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/aacpsdsp_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/rv34dsp_neon.S \
+                   $(FFMPEG_LIBAVCODEC_TOP)/arm/vorbisdsp_neon.S
+                   
                    
                    
 
@@ -69,6 +117,7 @@ FFMPEG_SRC_LIBAVCODEC=\
         $(FFMPEG_LIBAVCODEC_TOP)/dsputil.c \
         $(FFMPEG_LIBAVCODEC_TOP)/dv_profile.c \
         $(FFMPEG_LIBAVCODEC_TOP)/eac3_data.c \
+        $(FFMPEG_LIBAVCODEC_TOP)/eac3dec.c \
         $(FFMPEG_LIBAVCODEC_TOP)/error_resilience.c \
         $(FFMPEG_LIBAVCODEC_TOP)/faandct.c \
         $(FFMPEG_LIBAVCODEC_TOP)/faanidct.c \

@@ -65,3 +65,14 @@ MMP_U8* mmp_buffer_videoframe::get_buf_vir_addr(MMP_S32 frame_id) {
     
     return p_addr;
 }
+
+MMP_S32 mmp_buffer_videoframe::get_buf_shared_fd(MMP_S32 frame_id) {
+
+    MMP_S32 shared_fd = -1;
+
+    if( (frame_id >= 0) && (frame_id < m_plane_count) ) {
+        shared_fd = this->m_p_mmp_buffer[frame_id]->get_buf_shared_fd();
+    }
+    
+    return shared_fd;
+}

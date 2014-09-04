@@ -115,30 +115,167 @@ void avcodec_register_all(void)
         Audio
     */
     REGISTER_DECODER(AAC, aac); /* Non-Check */
-    REGISTER_DECODER(MP3, mp3); /* Non-Check */
-    REGISTER_DECODER(WMAV1,             wmav1);
-    REGISTER_DECODER(WMAV2,             wmav2);
-    REGISTER_DECODER(COOK,              cook);
+    REGISTER_DECODER(AAC_LATM,          aac_latm);
+    REGISTER_DECODER (MP3, mp3); /* Non-Check */
+    REGISTER_DECODER (MP2, mp2); /* Non-Check */
+    REGISTER_DECODER (MP1, mp1); /* Non-Check */
+    REGISTER_DECODER(VORBIS,            vorbis);
+
+
+    REGISTER_DECODER (WMALOSSLESS, wmalossless); /* Non-Check */
+    REGISTER_DECODER (WMAPRO, wmapro); /* Non-Check */
+    REGISTER_DECODER (WMAV1, wmav1);   /* Non-Check */
+    REGISTER_DECODER (WMAV2, wmav2);   /* Non-Check */
+    REGISTER_DECODER (WMAVOICE,          wmavoice);
     
+
+    REGISTER_DECODER(AC3, ac3);  /* Non-Check */
+    //REGISTER_DECODER(AC3_FIXED, ac3_fixed);
+
+    REGISTER_DECODER(EVRC,              evrc);
+    REGISTER_DECODER(QCELP, qcelp);  /* Non-Check */
+    REGISTER_DECODER(RA_144, ra_144); /* Non-Check */
+    REGISTER_DECODER(RA_288, ra_288); /* Non-Check */
+    REGISTER_DECODER(COOK, cook);     /* Non-Check */
+    REGISTER_DECODER(SIPR,              sipr);
+    REGISTER_DECODER(ATRAC1,            atrac1);
+    REGISTER_DECODER(ATRAC3,            atrac3);
+
+    REGISTER_DECODER(FLAC,              flac);
+
+    //REGISTER_DECODER(G723_1,            g723_1);
+    //REGISTER_DECODER(G729,              g729);
+    REGISTER_DECODER(GSM,               gsm);
+    REGISTER_DECODER(GSM_MS,            gsm_ms);
+
+    //REGISTER_DECODER(AMRNB,             amrnb);
+   // REGISTER_DECODER(AMRWB,             amrwb);
+    REGISTER_DECODER(APE,               ape);
+    
+    /* PCM codecs */
+    REGISTER_DECODER(PCM_ALAW,          pcm_alaw);
+    REGISTER_DECODER(PCM_BLURAY,        pcm_bluray);
+    REGISTER_DECODER(PCM_DVD,           pcm_dvd);
+    REGISTER_DECODER(PCM_F32BE,         pcm_f32be);
+    REGISTER_DECODER(PCM_F32LE,         pcm_f32le);
+    REGISTER_DECODER(PCM_F64BE,         pcm_f64be);
+    REGISTER_DECODER(PCM_F64LE,         pcm_f64le);
+    REGISTER_DECODER(PCM_LXF,           pcm_lxf);
+    REGISTER_DECODER(PCM_MULAW,         pcm_mulaw);
+    REGISTER_DECODER(PCM_S8,            pcm_s8);
+    REGISTER_DECODER(PCM_S8_PLANAR,     pcm_s8_planar);
+    REGISTER_DECODER(PCM_S16BE,         pcm_s16be);
+    REGISTER_DECODER(PCM_S16BE_PLANAR,  pcm_s16be_planar);
+    REGISTER_DECODER(PCM_S16LE,         pcm_s16le);
+    REGISTER_DECODER(PCM_S16LE_PLANAR,  pcm_s16le_planar);
+    REGISTER_DECODER(PCM_S24BE,         pcm_s24be);
+    REGISTER_DECODER(PCM_S24DAUD,       pcm_s24daud);
+    REGISTER_DECODER(PCM_S24LE,         pcm_s24le);
+    REGISTER_DECODER(PCM_S24LE_PLANAR,  pcm_s24le_planar);
+    REGISTER_DECODER(PCM_S32BE,         pcm_s32be);
+    REGISTER_DECODER(PCM_S32LE,         pcm_s32le);
+    REGISTER_DECODER(PCM_S32LE_PLANAR,  pcm_s32le_planar);
+    REGISTER_DECODER(PCM_U8,            pcm_u8);
+    REGISTER_DECODER(PCM_U16BE,         pcm_u16be);
+    REGISTER_DECODER(PCM_U16LE,         pcm_u16le);
+    REGISTER_DECODER(PCM_U24BE,         pcm_u24be);
+    REGISTER_DECODER(PCM_U24LE,         pcm_u24le);
+    REGISTER_DECODER(PCM_U32BE,         pcm_u32be);
+    REGISTER_DECODER(PCM_U32LE,         pcm_u32le);
+    REGISTER_DECODER(PCM_ZORK,          pcm_zork);
+
+    /* ADPCM codecs */
+    REGISTER_DECODER(ADPCM_4XM,         adpcm_4xm);
+    REGISTER_DECODER (ADPCM_ADX,         adpcm_adx);
+    REGISTER_DECODER(ADPCM_AFC,         adpcm_afc);
+    REGISTER_DECODER(ADPCM_CT,          adpcm_ct);
+    REGISTER_DECODER(ADPCM_DTK,         adpcm_dtk);
+    REGISTER_DECODER(ADPCM_EA,          adpcm_ea);
+    REGISTER_DECODER(ADPCM_EA_MAXIS_XA, adpcm_ea_maxis_xa);
+    REGISTER_DECODER(ADPCM_EA_R1,       adpcm_ea_r1);
+    REGISTER_DECODER(ADPCM_EA_R2,       adpcm_ea_r2);
+    REGISTER_DECODER(ADPCM_EA_R3,       adpcm_ea_r3);
+    REGISTER_DECODER(ADPCM_EA_XAS,      adpcm_ea_xas);
+    REGISTER_DECODER(ADPCM_G722,        adpcm_g722);
+    REGISTER_DECODER(ADPCM_G726,        adpcm_g726);
+    REGISTER_DECODER(ADPCM_G726LE,      adpcm_g726le);
+    REGISTER_DECODER(ADPCM_IMA_AMV,     adpcm_ima_amv);
+    REGISTER_DECODER(ADPCM_IMA_APC,     adpcm_ima_apc);
+    REGISTER_DECODER(ADPCM_IMA_DK3,     adpcm_ima_dk3);
+    REGISTER_DECODER(ADPCM_IMA_DK4,     adpcm_ima_dk4);
+    REGISTER_DECODER(ADPCM_IMA_EA_EACS, adpcm_ima_ea_eacs);
+    REGISTER_DECODER(ADPCM_IMA_EA_SEAD, adpcm_ima_ea_sead);
+    REGISTER_DECODER(ADPCM_IMA_ISS,     adpcm_ima_iss);
+    REGISTER_DECODER(ADPCM_IMA_OKI,     adpcm_ima_oki);
+    REGISTER_DECODER (ADPCM_IMA_QT,      adpcm_ima_qt);
+    REGISTER_DECODER(ADPCM_IMA_RAD,     adpcm_ima_rad);
+    REGISTER_DECODER(ADPCM_IMA_SMJPEG,  adpcm_ima_smjpeg);
+    REGISTER_DECODER (ADPCM_IMA_WAV,     adpcm_ima_wav);
+    REGISTER_DECODER(ADPCM_IMA_WS,      adpcm_ima_ws);
+    REGISTER_DECODER (ADPCM_MS,          adpcm_ms);
+    REGISTER_DECODER(ADPCM_SBPRO_2,     adpcm_sbpro_2);
+    REGISTER_DECODER(ADPCM_SBPRO_3,     adpcm_sbpro_3);
+    REGISTER_DECODER(ADPCM_SBPRO_4,     adpcm_sbpro_4);
+    REGISTER_DECODER (ADPCM_SWF,         adpcm_swf);
+    REGISTER_DECODER(ADPCM_THP,         adpcm_thp);
+    REGISTER_DECODER(ADPCM_XA,          adpcm_xa);
+    REGISTER_DECODER (ADPCM_YAMAHA,      adpcm_yamaha);
+    //REGISTER_DECODER(VIMA,              vima);
+
 
     /*
         Video 
     */
     REGISTER_DECODER(MPEG4, mpeg4);  /* OK */
+    REGISTER_DECODER(MPEG1VIDEO,        mpeg1video);
+    REGISTER_DECODER(MPEG2VIDEO,        mpeg2video);
+    //REGISTER_DECODER(MSMPEG4_CRYSTALHD, msmpeg4_crystalhd);
+    REGISTER_DECODER(MSMPEG4V1,         msmpeg4v1);
+    REGISTER_DECODER(MSMPEG4V2,         msmpeg4v2);
+    REGISTER_DECODER(MSMPEG4V3,         msmpeg4v3);
+    
     REGISTER_DECODER(H264,  h264);
+    REGISTER_DECODER(H263,  h263);
+    REGISTER_DECODER(H263I, h263i);
+    REGISTER_DECODER(H263P, h263p);
 
+    
+    REGISTER_DECODER(VC1,               vc1);
+    //REGISTER_DECODER(VC1_CRYSTALHD,     vc1_crystalhd);
+    //REGISTER_DECODER(VC1_VDPAU,         vc1_vdpau);
     REGISTER_DECODER(WMV1,              wmv1);
     REGISTER_DECODER(WMV2,              wmv2);
-    REGISTER_DECODER(WMV3,              wmv3);
-    REGISTER_DECODER(WMV3_CRYSTALHD,    wmv3_crystalhd);
-    REGISTER_DECODER(WMV3_VDPAU,        wmv3_vdpau);
-    REGISTER_DECODER(WMV3IMAGE,         wmv3image);
+    REGISTER_DECODER(WMV3,              wmv3); /* OK */
+    //REGISTER_DECODER(WMV3_CRYSTALHD,    wmv3_crystalhd);
+    //REGISTER_DECODER(WMV3_VDPAU,        wmv3_vdpau);
+    //REGISTER_DECODER(WMV3IMAGE,         wmv3image);
+    
+    REGISTER_DECODER(VP6,               vp6);
+    REGISTER_DECODER(VP6A,              vp6a);
+    REGISTER_DECODER(VP6F,              vp6f);
+    REGISTER_DECODER(VP8,               vp8);
+
     REGISTER_DECODER(RV10,              rv10);
     REGISTER_DECODER(RV20,              rv20);
     REGISTER_DECODER(RV30,              rv30);
     REGISTER_DECODER(RV40,              rv40);
-    REGISTER_DECODER(VP8,               vp8);
+    REGISTER_DECODER(SVQ1,              svq1);
+    REGISTER_DECODER(SVQ3,              svq3);
+    REGISTER_DECODER(THEORA,            theora);
+    REGISTER_DECODER(MJPEG,             mjpeg);
+    REGISTER_DECODER(FLV,               flv);
+
+    REGISTER_DECODER(MSS1,              mss1);
+    REGISTER_DECODER(MSS2,              mss2);
     
+    /*  Video Encoder  */
+    REGISTER_ENCODER(MPEG4, mpeg4);  /* OK */
+    REGISTER_ENCODER(H263,  h263);
+    //REGISTER_ENCODER(LIBX264, libx264);
+    
+    
+    /*  Audio Encoder  */
+   // REGISTER_ENCODER(AC3,               ac3);
 }
 #else
 void avcodec_register_all(void)

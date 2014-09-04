@@ -50,7 +50,7 @@
                                     sizeof(ff_##x##_protocol));         \
     }
 
-#if 1 //((FFMPEG_OS == FFMPEG_OS_WIN32) || (FFMPEG_OS == FFMPEG_OS_ANDROID))
+#if ((FFMPEG_OS == FFMPEG_OS_WIN32) || (FFMPEG_OS == FFMPEG_OS_ANDROID))
 void av_register_all(void)
 {
     static int initialized;
@@ -80,10 +80,33 @@ void av_register_all(void)
         Demuxer
     */
     REGISTER_DEMUXER(AVI, avi);  /* OK */
+    REGISTER_DEMUXER(ASF,  asf); /* OK */
+    REGISTER_MUXDEMUX(WAV, wav); /* Non-Check */
     REGISTER_DEMUXER(MOV, mov);
-    REGISTER_DEMUXER(MATROSKA, matroska);
-    REGISTER_DEMUXER(ASF,              asf);
+    REGISTER_DEMUXER(OGG, ogg);
+    REGISTER_DEMUXER(FLV, flv);
+    REGISTER_DEMUXER(MATROSKA,         matroska);
+    
+
+    REGISTER_DEMUXER(MP3, mp3);
+    
+    REGISTER_DEMUXER(MPEGPS,           mpegps);
+    REGISTER_DEMUXER(MPEGTS,           mpegts);
+    REGISTER_DEMUXER (MPEGTSRAW,        mpegtsraw);
+    REGISTER_DEMUXER (MPEGVIDEO,        mpegvideo);
+    
+    
+    REGISTER_DEMUXER(VOBSUB,           vobsub);
     REGISTER_DEMUXER(RM,               rm);
+
+    REGISTER_DEMUXER (APE,              ape);
+    REGISTER_DEMUXER (AAC,              aac);
+
+    /*
+        Muxer 
+    */
+    REGISTER_MUXER(AVI, avi);  /* OK */
+ 
 }
 
 #else

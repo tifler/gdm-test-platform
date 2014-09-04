@@ -300,6 +300,57 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render_Ion(CMmpMediaSampleDecodeResult* pD
 	return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
+
+    int iret;
+	unsigned int t1, t2;
+    MMP_S32 i;
+
+    if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
+        return MMP_SUCCESS;
+    }
+        	
+	memset(&m_req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
+	m_req_data.id = (uint32_t)this;
+	m_req_data.num_plane = 3;
+    for(i = 0; i < (MMP_S32)m_req_data.num_plane; i++) {
+        m_req_data.data[i].memory_id = p_buf_videoframe->get_buf_shared_fd(i);
+        m_req_data.data[i].offset = 0;
+    }
+
+#if (MMP_OS == MMP_OS_WIN32)
+    this->dss_overlay_queue_win32(m_sock_fd, &m_req_data);
+#endif
+
+	dss_overlay_queue(m_sock_fd, &m_req_data);
+    if(m_gplayer.release_fd == -1) {
+        dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
+    }
+    
+    if(m_gplayer.release_fd != -1) {
+		//printf("wait frame done signal\n");
+
+		t1 = CMmpUtil::GetTickCount();
+		iret = sync_wait(m_gplayer.release_fd, 1000);
+		t2 = CMmpUtil::GetTickCount();
+
+        MMP_DRIVER_CLOSE(m_gplayer.release_fd);
+        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx1::RenderYUV420Planar] sync_wait %d"), t2-t1));
+
+        m_gplayer.release_fd = -1;
+		if( (t2-t1) < 100) {
+			CMmpUtil::Sleep( 100 - (t2-t1) );
+		}
+	}
+    else {
+        CMmpUtil::Sleep(100);
+    }
+
+    //CMmpRenderer::EncodeAndMux(pDecResult);
+
+	return MMP_SUCCESS;
+}
+
 MMP_RESULT CMmpRenderer_OdyClientEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     return MMP_FAILURE;

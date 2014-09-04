@@ -27,7 +27,7 @@
 void ff_fft_permute_neon(FFTContext *s, FFTComplex *z);
 void ff_fft_calc_neon(FFTContext *s, FFTComplex *z);
 
-#if (FFMPEG_OS == FFMPEG_OS_ANDROID)
+#if (HAVE_NEON == 1)
 void fft4_neon(FFTContext *s, FFTComplex *z);
 void fft8_neon(FFTContext *s, FFTComplex *z);
 void fft16_neon(FFTContext *s, FFTComplex *z);
@@ -88,7 +88,7 @@ av_cold void ff_rdft_init_arm(RDFTContext *s)
 }
 #endif
 
-#if (FFMPEG_OS == FFMPEG_OS_ANDROID)
+#if (HAVE_NEON == 1)
 const void* fft_tab_neon[]={
     /*.word */fft4_neon,
     /*.word */fft8_neon,
