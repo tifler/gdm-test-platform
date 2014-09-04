@@ -36,7 +36,11 @@ protected:
 
 private:
     MMP_BOOL m_bNeedDecodedBufPhyAddr;
+    MMP_S32 m_nDecodingAvgFPS;
     
+    MMP_U32 m_nTotalDecDur;
+    MMP_U32 m_nTotalDecFrameCount;
+
 protected:
     CMmpDecoderVideo(struct MmpDecoderCreateConfig *pCreateConfig, MMP_BOOL bNeedDecodedBufPhyAddr);
     virtual ~CMmpDecoderVideo();
@@ -46,11 +50,10 @@ protected:
     virtual MMP_RESULT Close();
 
     void DecodeMonitor(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
-    virtual const MMP_U8* GetClassName() = 0;
+
     
 public:
-    //virtual int GetPicWidth() { return m_pbih_out->biWidth; }
-    //virtual int GetPicHeight() { return m_pbih_out->biHeight; }
+    virtual const MMP_CHAR* GetClassName() = 0;
 
 	inline const MMPBITMAPINFOHEADER& GetBIH_Out() { return m_bih_out; }
 	inline const MMPBITMAPINFOHEADER& GetBIH_In() { return m_bih_in; }
@@ -58,7 +61,8 @@ public:
 
     void SetVideoSize(MMP_U32 w, MMP_U32 h);
 
-    
+    MMP_S32 GetAvgFPS();
+    MMP_S32 GetAvgDur();
 };
 
 #endif

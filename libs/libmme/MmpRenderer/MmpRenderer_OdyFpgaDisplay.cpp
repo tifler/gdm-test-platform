@@ -226,7 +226,7 @@ static int dss_overlay_unset(int fd, int ov_id)
 //CMmpRenderer_OdyFpgaDisplay Member Functions
 
 
-CMmpRenderer_OdyFpgaDisplay::CMmpRenderer_OdyFpgaDisplay(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(pRendererProp)
+CMmpRenderer_OdyFpgaDisplay::CMmpRenderer_OdyFpgaDisplay(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(MMP_MEDIATYPE_VIDEO, pRendererProp)
 ,m_fd_framebuffer(-1)
 ,m_buf_ndx(0)
 ,m_fp_dump(NULL)

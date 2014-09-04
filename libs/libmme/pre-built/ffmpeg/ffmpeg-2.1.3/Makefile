@@ -1,10 +1,14 @@
 
 
-export TOP = /home1/hthwang/develop/vpu_verify/verification
-MME_TOP = $(TOP)/ody_fpga/multimedia/mme
-FFMPEG_TOP = /home1/hthwang/develop/vpu_verify/verification/ody_fpga/multimedia//ffmpeg/ffmpeg-2.1.3
+CROSS_COMPILE   :=/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnueabi-
+TOP = /home1/hthwang/develop/odysseus/test-platform
+MME_TOP = $(TOP)/libs/libmme
+FFMPEG_TOP = .
 
-include $(TOP)/rules.mk
+CC				:=$(CROSS_COMPILE)gcc
+CXX				:=$(CROSS_COMPILE)g++
+LD				:=$(CROSS_COMPILE)ld
+
 include $(FFMPEG_TOP)/ffmpeg2.1.3.mk
 
 LIBNAME = libffmpeg_2.1.3_odyfpga.a

@@ -77,6 +77,7 @@ public:
 
     virtual MMP_RESULT Seek(MMP_S64 pts) { return MMP_FAILURE; }
 		
+    /* Play Property*/
     virtual MMP_S64 GetDuration() { return 0LL;}
     virtual MMP_S64 GetDuration(MMP_S32 *hour, MMP_S32* min, MMP_S32* sec, MMP_S32* msec);
     virtual MMP_S64 GetPlayPosition() { return 0LL;}
@@ -84,6 +85,21 @@ public:
 
     virtual MMP_U32 GetDurationMS() { return 0LL;}
     virtual MMP_U32 GetPlayPositionMS() { return 0LL;}
+    virtual MMP_S32 GetPlayFPS() { return 0; }
+
+    virtual MMP_S32 GetVideoWidth() { return 0; }
+    virtual MMP_S32 GetVideoHeight() { return 0; }
+    virtual MMP_U32 GetVideoFormat() { return 0; }
+    
+    /* Decoder Prop */
+    virtual MMP_S32 GetVideoDecoderFPS() { return 0; }
+    virtual MMP_S32 GetVideoDecoderDur() { return 0; }
+    virtual const MMP_CHAR* GetVideoDecoderClassName() { return "Unknown"; }
+    
+    /* Video Renderer */
+    virtual void SetFirstVideoRenderer() { }
+    virtual MMP_BOOL IsFirstVideoRenderer() { return MMP_FALSE; }
+    
 };
 
 #endif

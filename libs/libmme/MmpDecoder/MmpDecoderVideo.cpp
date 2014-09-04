@@ -27,6 +27,9 @@
 
 CMmpDecoderVideo::CMmpDecoderVideo(struct MmpDecoderCreateConfig *pCreateConfig, MMP_BOOL bNeedDecodedBufPhyAddr) : CMmpDecoder(pCreateConfig->nFormat, pCreateConfig->nStreamType) 
 ,m_bNeedDecodedBufPhyAddr(bNeedDecodedBufPhyAddr)
+,m_nDecodingAvgFPS(0)
+,m_nTotalDecDur(0)
+,m_nTotalDecFrameCount(0)
 {
 
 	/* In format */
@@ -121,6 +124,35 @@ void CMmpDecoderVideo::SetVideoSize(MMP_U32 w, MMP_U32 h) {
 
 }
 
+MMP_S32 CMmpDecoderVideo::GetAvgFPS() {
+    
+    MMP_S32 fps=0;
+    MMP_S32 avgdur;
+
+    if(m_nTotalDecFrameCount > 0)  {
+        avgdur = (MMP_S32)(m_nTotalDecDur/m_nTotalDecFrameCount);
+        if(avgdur == 0) {
+            fps = 1000;
+        }
+        else {
+            fps = 1000/avgdur;
+        }
+    }
+
+    return fps;
+}
+
+MMP_S32 CMmpDecoderVideo::GetAvgDur() {
+
+    MMP_S32 avgdur = 0;
+
+    if(m_nTotalDecFrameCount > 0)  {
+        avgdur = (MMP_S32)(m_nTotalDecDur/m_nTotalDecFrameCount);
+    }
+
+    return avgdur;
+}
+
 void CMmpDecoderVideo::DecodeMonitor(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult) {
 
     static MMP_U32 before_tick = 0, fps_sum=0, dur_sum=0;
@@ -130,6 +162,9 @@ void CMmpDecoderVideo::DecodeMonitor(CMmpMediaSample* pMediaSample, CMmpMediaSam
     if(pDecResult->uiDecodedSize > 0) {
         fps_sum ++;
         dur_sum += pDecResult->uiDecodedDuration;
+
+        m_nTotalDecFrameCount++;
+        m_nTotalDecDur += pDecResult->uiDecodedDuration;
     }
 
     cur_tick = CMmpUtil::GetTickCount();
@@ -139,9 +174,16 @@ void CMmpDecoderVideo::DecodeMonitor(CMmpMediaSample* pMediaSample, CMmpMediaSam
             dur_avg = dur_sum/fps_sum;
         }
         
-        MMPDEBUGMSG(1, (TEXT("[VideoDec %s %s %dx%d] %d. fps=%d dur=%d "), 
+        MMPDEBUGMSG(0, (TEXT("[VideoDec %s %s %dx%d] %d. fps=%d dur=%d "), 
                     this->GetClassName(),   m_szCodecName,  m_bih_out.biWidth, m_bih_out.biHeight,
                     (cur_tick-start_tick)/1000, fps_sum, dur_avg ));
+
+        if(dur_avg > 0) {
+            m_nDecodingAvgFPS = 1000/dur_avg;
+        }
+        else {
+            m_nDecodingAvgFPS = 1000;
+        }
 
         before_tick = cur_tick;
         fps_sum = 0;

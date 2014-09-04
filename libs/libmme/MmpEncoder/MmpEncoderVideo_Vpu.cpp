@@ -25,7 +25,7 @@
 /////////////////////////////////////////////////////////////
 //CMmpEncoderVideo_Vpu Member Functions
 
-CMmpEncoderVideo_Vpu::CMmpEncoderVideo_Vpu(struct MmpEncoderCreateConfig *pCreateConfig) : CMmpEncoderVideo(pCreateConfig, MMP_FALSE), CMmpEncoderVpu(pCreateConfig)
+CMmpEncoderVideo_Vpu::CMmpEncoderVideo_Vpu(struct MmpEncoderCreateConfig *pCreateConfig) : CMmpEncoderVideo(pCreateConfig, MMP_FALSE), CLASS_ENCODER_VPU(pCreateConfig)
 ,m_temp_picture_buffer(NULL)
 ,m_nEncodedStreamCount(0)
 ,m_bEncodeDSI(MMP_FALSE)
@@ -48,7 +48,7 @@ MMP_RESULT CMmpEncoderVideo_Vpu::Open()
         return mmpResult;
     }
 
-    mmpResult=CMmpEncoderVpu::Open();
+    mmpResult=CLASS_ENCODER_VPU::Open();
     if(mmpResult!=MMP_SUCCESS)
     {
         return mmpResult;
@@ -70,10 +70,10 @@ MMP_RESULT CMmpEncoderVideo_Vpu::Close()
 {
     MMP_RESULT mmpResult;
     
-    mmpResult=CMmpEncoderVpu::Close();
+    mmpResult=CLASS_ENCODER_VPU::Close();
     if(mmpResult!=MMP_SUCCESS)
     {
-        MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpEncoderVideo_Vpu::Close] CMmpEncoderVpu::Close() \n\r")));
+        MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpEncoderVideo_Vpu::Close] CLASS_ENCODER_VPU::Close() \n\r")));
         return mmpResult;
     }
 
@@ -94,7 +94,7 @@ MMP_RESULT CMmpEncoderVideo_Vpu::Close()
     return MMP_SUCCESS;
 }
 
-MMP_RESULT CMmpEncoderVideo_Vpu::EncodeAu(CMmpMediaSampleEncode* pMediaSample, CMmpMediaSampleEncodeResult* pEncResult) {
+MMP_RESULT CMmpEncoderVideo_Vpu::EncodeAu(CMmpMediaSampleEncode* pMediaSampleEnc, CMmpMediaSampleEncodeResult* pEncResult) {
 
     MMP_RESULT mmpResult = MMP_SUCCESS; 
     MMP_U32 enc_start_tick, enc_end_tick;
@@ -107,17 +107,20 @@ MMP_RESULT CMmpEncoderVideo_Vpu::EncodeAu(CMmpMediaSampleEncode* pMediaSample, C
 
     pEncResult->uiEncodedStreamSize[0] = 0;
     pEncResult->uiEncodedStreamSize[1] = 0;
-    pEncResult->uiTimeStamp = pMediaSample->uiTimeStamp;
+    pEncResult->uiTimeStamp = pMediaSampleEnc->uiTimeStamp;
     pEncResult->uiFlag = 0;
     
     if(m_bEncodeDSI == MMP_FALSE) {
     
-        mmpResult = CMmpEncoderVpu::EncodeDSI();
+        mmpResult = CLASS_ENCODER_VPU::EncodeDSI();
         if(mmpResult != MMP_SUCCESS) {
             return mmpResult;
         }
         m_bEncodeDSI = MMP_TRUE;
 
+#if (MMP_OS == MMP_OS_WIN32)
+        this->m_DSISize = 32;
+#endif
         this->EncodedFrameQueue_AddFrame((MMP_U8*)this->m_DSI, this->m_DSISize, MMP_ENCODED_FLAG_VIDEO_CONFIGDATA);
 
         pTemp = (MMP_U8*)this->m_DSI;
@@ -129,9 +132,13 @@ MMP_RESULT CMmpEncoderVideo_Vpu::EncodeAu(CMmpMediaSampleEncode* pMediaSample, C
    }
 
 
-    mmpResult = CMmpEncoderVpu::EncodeAuEx1(pMediaSample, pEncResult);
+    //mmpResult = CLASS_ENCODER_VPU::EncodeAuEx1(pMediaSample, pEncResult);
+    mmpResult = CLASS_ENCODER_VPU::EncodeAuEx2(pMediaSampleEnc, pEncResult);
     if(mmpResult == MMP_SUCCESS) {
 
+#if (MMP_OS == MMP_OS_WIN32)
+        pEncResult->uiEncodedStreamSize[MMP_ENCODED_BUF_STREAM] = 4096;
+#endif
         if(pEncResult->uiEncodedStreamSize[MMP_ENCODED_BUF_STREAM] > 0) {
 
             if(m_nEncodedStreamCount == 0) {
@@ -158,7 +165,7 @@ MMP_RESULT CMmpEncoderVideo_Vpu::EncodeAu(CMmpMediaSampleEncode* pMediaSample, C
     enc_end_tick = CMmpUtil::GetTickCount();
     pEncResult->uiEncodedDuration = enc_end_tick - enc_start_tick;
 
-    CMmpEncoderVideo::EncodeMonitor(pMediaSample, pEncResult);
+    CMmpEncoderVideo::EncodeMonitor(pMediaSampleEnc, pEncResult);
 
     return mmpResult;
 }

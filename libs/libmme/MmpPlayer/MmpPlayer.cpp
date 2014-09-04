@@ -28,6 +28,7 @@
 #include "MmpPlayerAVEx1.hpp"
 #include "MmpPlayerAVEx2.hpp"
 #include "MmpPlayerTONE.hpp"
+#include "MmpPlayerYUV.hpp"
 
 #if (MMP_OS == MMP_OS_LINUX_ANDROID)
 #include "MmpPlayerStagefright.hpp"
@@ -69,6 +70,10 @@ CMmpPlayer* CMmpPlayer::CreateObject(MMP_U32 playerID, CMmpPlayerCreateProp* pPl
 
             case MMP_PLAYER_TONEPLAYER:
                 pObj=new CMmpPlayerTONE(pPlayerProp);
+                break;
+
+            case MMP_PLAYER_YUVPLAYER:
+                pObj=new CMmpPlayerYUV(pPlayerProp);
                 break;
 
     #if (MMP_OS == MMP_OS_LINUX_ANDROID)
@@ -231,9 +236,9 @@ CMmpRenderer* CMmpPlayer::CreateRendererAudio(CMmpDemuxer* pDemuxer, CMmpDecoder
 #else
 
     wf.wFormatTag = MMP_WAVE_FORMAT_PCM;
-    wf.nChannels = pDemuxer->GetAudioChannel();
+    wf.nChannels = (short)pDemuxer->GetAudioChannel();
     wf.nSamplesPerSec = pDemuxer->GetAudioSamplingRate();
-	wf.wBitsPerSample = pDemuxer->GetAudioBitsPerSample();
+	wf.wBitsPerSample = (unsigned short)pDemuxer->GetAudioBitsPerSample();
 	wf.nAvgBytesPerSec = wf.nSamplesPerSec*wf.nChannels*(wf.wBitsPerSample/8);
 
 

@@ -69,5 +69,22 @@ typedef char TCHAR;
 //#define CLRREG32(reg, mask) (*(volatile unsigned long * const)(reg) &= ~mask)
 
 
+#ifdef __cplusplus
+#define MMP_DRIVER_OPEN    ::open
+#define MMP_DRIVER_CLOSE   ::close
+#define MMP_DRIVER_WRITE   ::write
+#define MMP_DRIVER_MMAP    ::mmap
+#define MMP_DRIVER_MUNMAP  ::munmap
+#define MMP_DRIVER_IOCTL   ::ioctl
+
+#else
+#define MMP_DRIVER_OPEN    open
+#define MMP_DRIVER_CLOSE   close
+#define MMP_DRIVER_WRITE   write
+#define MMP_DRIVER_MMAP    mmap
+#define MMP_DRIVER_MUNMAP  munmap
+#define MMP_DRIVER_IOCTL   ioctl
+#endif
+
 #endif
 

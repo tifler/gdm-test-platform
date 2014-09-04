@@ -1,8 +1,12 @@
 #include "mme_shell.h"
 
-static CMmpPlayer* s_pMmpPlayer = NULL;
+
+#if (MMP_OS == MMP_OS_WIN32)
+#define CONTENTS_PATH "C:\\MediaSample\\AVI\\"
+#else
 #define CONTENTS_PATH "/mnt/"
-//#define CONTENTS_PATH "/storage/sdcard1/"
+#endif
+
 
 struct mme_support_extension {
     int id;
@@ -86,6 +90,8 @@ struct mme_support_extension mme_exts[] = {
 #endif
 				  
 
+#define MAX_PLAYER_COUNT 4
+static CMmpPlayer* s_pMmpPlayer_Arr[MAX_PLAYER_COUNT] = {NULL, NULL, NULL, NULL};
 
 int mme_command_player_start(int argc, char* argv[]) {
 
@@ -105,49 +111,56 @@ int mme_command_player_start(int argc, char* argv[]) {
     char contents_path[256] = CONTENTS_PATH;
 
     int file_cnt;
-    int i;
+    MMP_S32 i;
 	int iret = 0;
 
     int contents_number;
-    MMP_BOOL bForceSWCodec = MMP_FALSE;
+    MMP_S32 player_index = 0;
 
+#if (MMP_OS == MMP_OS_WIN32)
+    MMP_BOOL bForceSWCodec = MMP_TRUE;
+#else
+    MMP_BOOL bForceSWCodec = MMP_FALSE;
+#endif
+    //MMP_U32 player_type = MMP_PLAYER_STAGEFRIGHT;
+    MMP_U32 player_type = MMP_PLAYER_VIDEO_ONLY;
+    //MMP_U32 player_type = MMP_PLAYER_DEFAULT;
+
+    
+    /* Get Player Index */
+    for(i = 0; i < MAX_PLAYER_COUNT; i++) {
+        if(s_pMmpPlayer_Arr[i] == NULL) {
+            player_index = i;
+            break;
+        }
+    }
+    if(i == MAX_PLAYER_COUNT) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("All Player is running. \n"));
+        return -1;
+    }
+
+    /* Check Arg */
     if( (argc > 1) && (argc < 10) ) {
         bForceSWCodec = atoi(argv[1]);
     }
-
-    //MMP_U32 player_type = MMP_PLAYER_STAGEFRIGHT;
-    MMP_U32 player_type = MMP_PLAYER_VIDEO_ONLY;
-
-    if(s_pMmpPlayer != NULL) {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("player is running. now will stop \n"));
-        s_pMmpPlayer->PlayStop();
-        CMmpPlayer::DestroyObject(s_pMmpPlayer);
-        s_pMmpPlayer = NULL;
-    }
-
     if(argc == 2) {
-    
         if(strcmp(argv[1], "a") == 0) {
             player_type = MMP_PLAYER_AUDIO_ONLY;
-
             MMESHELL_PRINT(MMESHELL_ERROR, ("Player Typer is MMP_PLAYER_AUDIO_ONLY \n"));
         }
-
     }
 
+    /* Select Media File */
     file_array = (char*)malloc(file_array_max*file_size_max);
     ext_array = (char*)malloc(ext_array_max*ext_size_max);
-    
     for(i = 0; i < ext_array_max; i++) {
         ext=&ext_array[ext_count*ext_size_max];  
         strcpy(ext, mme_exts[i].ext); 
         ext_count++;
     }
-    
     file_cnt = CMmpUtil::GetFileList(contents_path, 
                                      ext_array, ext_count, ext_size_max, 
                                      file_array, file_array_max, file_size_max);
-
 	if(argc == 0xFFFF) {
 	
 		contents_number = 0;
@@ -189,21 +202,24 @@ int mme_command_player_start(int argc, char* argv[]) {
 		}
 	}
 
+    /* Play Start */
     if(file_name != NULL) {
     
+        memset(&player_create_config, 0x00, sizeof(player_create_config));
         strcpy(player_create_config.filename, file_name);
         player_create_config.video_config.m_hRenderWnd = NULL;//hwnd;
         player_create_config.video_config.m_hRenderDC = NULL; //hdc;
         player_create_config.bForceSWCodec = bForceSWCodec;
         
-        s_pMmpPlayer = CMmpPlayer::CreateObject(player_type, &player_create_config);
+        pPlayer = CMmpPlayer::CreateObject(player_type, &player_create_config);
         //s_pMmpPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_STAGEFRIGHT, &player_create_config);
         //pPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_AUDIO_VIDEO, &player_create_config);
         //pPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_VIDEO_ONLY, &player_create_config);
         //pPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_AUDIO_ONLY, &player_create_config);
 #if 1
-        if(s_pMmpPlayer != NULL) {
-            s_pMmpPlayer->PlayStart();
+        if(pPlayer != NULL) {
+            pPlayer->PlayStart();
+            s_pMmpPlayer_Arr[player_index] = pPlayer;
         }
 		else {
 			iret = -1;
@@ -218,27 +234,79 @@ int mme_command_player_start(int argc, char* argv[]) {
     return iret;
 }
 
+static MMP_S32 get_player_index(int argc, char* argv[]) {
+
+    MMP_S32 player_index = 0;
+    MMP_S32 i;
+
+    for(i = 0; i < MAX_PLAYER_COUNT; i++) {
+        if(s_pMmpPlayer_Arr[i] != NULL) {
+            player_index = i;
+            break;
+        }
+    }
+
+    if(argc > 1) {
+        player_index = atoi(argv[1]);
+    }
+
+    if( (player_index <0) || (player_index >= MAX_PLAYER_COUNT) ) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: player index = %d \n", player_index));
+        return -1;
+    }
+
+    if(s_pMmpPlayer_Arr[player_index] == NULL) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: player[%d] is not running \n", player_index));
+        return -1;
+    }
+    
+    return player_index;
+}
 
 int mme_command_player_stop(int argc, char* argv[]) {
 
-    if(s_pMmpPlayer != NULL) {
-        
-        MMESHELL_PRINT(MMESHELL_ERROR, ("player is running. now will stop s_pMmpPlayer=0x%08x \n", s_pMmpPlayer));
+    MMP_S32 player_index = 0;
+    CMmpPlayer* pPlayer;
 
-        s_pMmpPlayer->PlayStop();
-        
-        MMESHELL_PRINT(MMESHELL_ERROR, ("player release111.  s_pMmpPlayer=0x%08x \n", s_pMmpPlayer));
-
-        CMmpPlayer::DestroyObject(s_pMmpPlayer);
-        s_pMmpPlayer = NULL;
-
+    player_index = get_player_index(argc, argv);
+    if(player_index < 0) {
+        return -1;
     }
+    
+    pPlayer = s_pMmpPlayer_Arr[player_index];
+    pPlayer->PlayStop();
+    CMmpPlayer::DestroyObject(pPlayer);
+    
+    MMESHELL_PRINT(MMESHELL_ERROR, ("[Player %d] Stop, Bye!  \n", player_index));
+    
+    s_pMmpPlayer_Arr[player_index] = NULL;
 
     return 0;
 }   
 
+int mme_command_player_stop_all(int argc, char* argv[]) {
+
+    MMP_S32 player_index = 0;
+    CMmpPlayer* pPlayer;
+
+
+    for(player_index = 0; player_index < MAX_PLAYER_COUNT; player_index++) {
+    
+        pPlayer = s_pMmpPlayer_Arr[player_index];
+        if(pPlayer != NULL) {
+            pPlayer->PlayStop();
+            CMmpPlayer::DestroyObject(pPlayer);
+            MMESHELL_PRINT(MMESHELL_ERROR, ("[Player %d] Stop, Bye!  \n", player_index));
+        }
+        s_pMmpPlayer_Arr[player_index] = NULL;
+    }
+
+    return 0;
+}
+
 int mme_command_player_seek(int argc, char* argv[]) {
 
+#if 0
     MMP_S32 hour, min, sec;
     MMP_S64 pts;
 
@@ -259,37 +327,79 @@ int mme_command_player_seek(int argc, char* argv[]) {
     pts = (MMP_S64)(hour*3600 + min*60 + sec) * 1000000L;
     
     s_pMmpPlayer->Seek(pts);
-        
+#endif        
     return 0;
 }
 
-int mme_command_player_info(int argc, char* argv[]) {
+int mme_command_player_status(int argc, char* argv[]) {
 
     MMP_S32 dur_hour, dur_min, dur_sec, dur_msec;
     MMP_S32 pos_hour, pos_min, pos_sec, pos_msec;
-    
+    MMP_U32 vf;
 
-    if(s_pMmpPlayer == NULL) {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("player is not running.  \n"));
+    MMP_S32 player_index = 0;
+    CMmpPlayer* pPlayer;
+
+    for(player_index = 0; player_index < MAX_PLAYER_COUNT; player_index++) {
+    
+        pPlayer = s_pMmpPlayer_Arr[player_index];
+
+        if(pPlayer != NULL) {
+            pPlayer->GetDuration(&dur_hour, &dur_min, &dur_sec, &dur_msec);
+            pPlayer->GetPlayPosition(&pos_hour, &pos_min, &pos_sec, &pos_msec);
+
+            vf = pPlayer->GetVideoFormat();
+
+            MMESHELL_PRINT(MMESHELL_ERROR, ("[Player %d] Display(%s) %c%c%c%c(%s) %dx%d PlayerFPS=%d  DecodingDur=%d  (%02d:%02d:%02d/%02d:%02d:%02d) \n",
+                                                player_index, 
+                                                pPlayer->IsFirstVideoRenderer()?"ON":"OFF",
+                                                MMPGETFOURCC(vf,0),MMPGETFOURCC(vf,1),MMPGETFOURCC(vf,2),MMPGETFOURCC(vf,3),
+                                                pPlayer->GetVideoDecoderClassName(),
+                                                pPlayer->GetVideoWidth(), pPlayer->GetVideoHeight(),
+                                                pPlayer->GetPlayFPS(), pPlayer->GetVideoDecoderDur(),
+                                                pos_hour, pos_min, pos_sec, 
+                                                dur_hour, dur_min, dur_sec 
+                                                ));
+        }
+        else {
+            MMESHELL_PRINT(MMESHELL_ERROR, ("[Player %d] Not Available     \n", player_index));
+        }
+
+    }
+
+    return 0;
+}
+
+int mme_command_player_set_first_renderer(int argc, char* argv[]) {
+
+    MMP_S32 player_index = 0;
+    CMmpPlayer* pPlayer;
+
+    if(argc != 2) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("FAIL:  argument err  e.g. disp [player_idx] \n"));
+        return -1;
+    }
+
+    player_index = atoi(argv[1]);
+
+    if( (player_index <0) || (player_index >= MAX_PLAYER_COUNT) ) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: player index = %d (0~%d) \n", player_index, MAX_PLAYER_COUNT-1));
+        return -1;
+    }
+
+    pPlayer = s_pMmpPlayer_Arr[player_index];
+    if(pPlayer == NULL) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: Player %d  is stopped \n", player_index));
         return -1;
     }
     
-    s_pMmpPlayer->GetDuration(&dur_hour, &dur_min, &dur_sec, &dur_msec);
-    s_pMmpPlayer->GetPlayPosition(&pos_hour, &pos_min, &pos_sec, &pos_msec);
+    pPlayer->SetFirstVideoRenderer();
 
-    MMESHELL_PRINT(MMESHELL_ERROR, ("PlayPos :  %02d:%02d:%02d:%02d  / %02d:%02d:%02d:%02d  \n",
-                                        pos_hour, pos_min, pos_sec, pos_msec,
-                                        dur_hour, dur_min, dur_sec, dur_msec
-                                        ));
-
-        
     return 0;
 }
 
 int mme_command_player_loop(int argc, char* argv[]) {
 
-
-    CMmpPlayer* pPlayer;
     CMmpPlayerCreateProp player_create_config;
     int file_array_max = 256;
     int file_size_max = 512;
@@ -308,8 +418,6 @@ int mme_command_player_loop(int argc, char* argv[]) {
     int i;
     int play_contents_count;
 
-    int contents_number;
-
     MMP_U32 play_start_tick;
     MMP_U32 play_dur, play_pos;
     MMP_U32 before_tick, cur_tick;
@@ -317,12 +425,22 @@ int mme_command_player_loop(int argc, char* argv[]) {
 
     static CMmpPlayer* pMmpPlayer = NULL;
 
+
+#if 0
     if(s_pMmpPlayer != NULL) {
         MMESHELL_PRINT(MMESHELL_ERROR, ("player is running. now will stop \n"));
         s_pMmpPlayer->PlayStop();
         CMmpPlayer::DestroyObject(s_pMmpPlayer);
         s_pMmpPlayer = NULL;
     }
+#else
+
+    if( get_player_index(argc, argv) != -1) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: other player is running. cannot start loop test!! \n"));
+        return -1;
+    }
+
+#endif
 
     file_array = (char*)malloc(file_array_max*file_size_max);
     ext_array = (char*)malloc(ext_array_max*ext_size_max);

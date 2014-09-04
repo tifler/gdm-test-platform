@@ -30,7 +30,9 @@ SRCS_PLAYER = multimedia/mme_cmd_player.cpp\
               multimedia/mme_cmd_vpu.cpp\
               multimedia/mme_cmd_encoder.cpp\
               
-SRCS = $(SRCS_MAIN) $(SRCS_SYSTEM) $(SRCS_PLAYER) $(MMEPLAYER_SRCS)              
+SRCS_ION = ion/mme_cmd_ion.cpp
+              
+SRCS = $(SRCS_MAIN) $(SRCS_SYSTEM) $(SRCS_PLAYER) $(SRCS_ION) 
 OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
 LOCAL_CFLAGS	:= -D__PLATFORM_ODY_FPGA
@@ -45,7 +47,8 @@ LOCAL_CFLAGS	+= \
             -I$(MME_TOP)/MmpGlobal \
             -I$(MME_TOP)/MmpComm \
             -I$(MME_TOP)/MmpDemuxer -I$(MME_TOP)/MmpMuxer \
-            -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpEncoder \
+            -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpDecoder/buffer\
+            -I$(MME_TOP)/MmpEncoder \
             -I$(MME_TOP)/MmpRenderer \
             -I$(MME_TOP)/MmpPlayer \
                         

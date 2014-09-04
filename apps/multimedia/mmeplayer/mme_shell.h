@@ -12,6 +12,10 @@
 #include "MmpPlayer.hpp"
 
 
+#define MMESHELL_RIL     0
+#define MMESHELL_SYSTEM  1
+#define MMESHELL_PLAYER  1
+
 #define MMESHELL_INFO  1
 #define MMESHELL_ERROR 1
 #if (MMP_OS == MMP_OS_WIN32)
@@ -33,10 +37,11 @@ int  mme_console_get_number(void);
 /* player */
 int mme_command_player_start(int argc, char* argv[]);
 int mme_command_player_stop(int argc, char* argv[]);
+int mme_command_player_stop_all(int argc, char* argv[]);
 int mme_command_player_seek(int argc, char* argv[]);
-int mme_command_player_info(int argc, char* argv[]);
-
+int mme_command_player_status(int argc, char* argv[]);
 int mme_command_player_loop(int argc, char* argv[]);
+int mme_command_player_set_first_renderer(int argc, char* argv[]);
 
 /* encoder */
 int mme_command_encoder_test01(int argc, char* argv[]);
@@ -60,9 +65,20 @@ int mme_command_system_meminfo(int argc, char* argv[]);
 int mme_command_system_checktick(int argc, char* argv[]);
 int mme_command_system_struct_align(int argc, char* argv[]);
 
-
 int mme_command_socket_connect_to_server(int argc, char* argv[]);
 
+/* ion */
+int mme_command_ion_test1(int argc, char* argv[]);
+
+/* ril */
+int mme_command_ril_init(int argc, char* argv[]);
+int mme_command_ril_deinit(int argc, char* argv[]);
+int mme_command_ril_set_radio_power(int argc, char* argv[]); /* airplane mode on/off */
+int mme_command_ril_modem_init(int argc, char* argv[]); 
+int mme_command_ril_signal_strength(int argc, char* argv[]);
+int mme_command_ril_mute(int argc, char* argv[]);
+int mme_command_ril_call(int argc, char* argv[]);
+int mme_command_ril_test_request_mem(int argc, char* argv[]);
 
 #ifdef __cplusplus
 }

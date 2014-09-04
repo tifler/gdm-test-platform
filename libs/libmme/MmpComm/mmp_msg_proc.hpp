@@ -36,7 +36,7 @@ class mmp_msg_packet {
 
 public:
     MMP_U32 m_msg;
-    MMP_S32 m_int_parm[4];
+    MMP_S32 m_int_parm[16];
     MMP_U8* m_data;
     MMP_S32 m_data_size;
 
@@ -64,6 +64,8 @@ private:
 class mmp_msg_res {
 
 private:
+    MMP_S32 m_req_queue_size;
+
     class mmp_oal_mutex* m_p_mutex;
     class mmp_oal_cond* m_p_cond;
     TCircular_Queue<class mmp_msg_packet*> m_queue;

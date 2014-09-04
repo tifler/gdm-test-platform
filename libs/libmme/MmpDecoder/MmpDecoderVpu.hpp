@@ -26,6 +26,7 @@
 #include "TemplateList.hpp"
 #include "vpuapi.h"
 #include "vpurun.h"
+#include "mmp_buffer_mgr.hpp"
 
 class CMmpDecoderVpu 
 {
@@ -33,7 +34,6 @@ private:
     enum {
         MAX_FRAMEBUFFER_COUNT = 16
     };
-
 
 protected:
     struct MmpDecoderCreateConfig m_create_config;
@@ -58,6 +58,7 @@ protected:
     DecOutputInfo m_output_info;
 	vpu_buffer_t m_vbFrame[MAX_FRAMEBUFFER_COUNT];
     
+    class mmp_buffer* m_p_decoded_buffer[MAX_FRAMEBUFFER_COUNT];
         
 protected:
     CMmpDecoderVpu(struct MmpDecoderCreateConfig *pCreateConfig);

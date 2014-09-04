@@ -52,6 +52,7 @@
 #include "ion_api.h"
 #include "sync.h"
 
+#include "mmp_buffer_mgr.hpp"
 
 #if (MMP_OS == MMP_OS_WIN32)
 struct sockaddr_un {
@@ -81,10 +82,11 @@ struct sockaddr_un {
 #define FD_COUNT               (16)
 
 
-static void dss_get_fence_fd(int sockfd, int *release_fd);
+static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
 static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer);
 static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req);
 static int alloc_video_memory(struct ody_videoframe *pframe);
+static int free_video_memory(struct ody_videoframe *pframe);
 static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data);
 static int dss_overlay_unset(int sockfd);
 
@@ -92,7 +94,7 @@ static int dss_overlay_unset(int sockfd);
 //CMmpRenderer_OdyClient Member Functions
 
 
-CMmpRenderer_OdyClient::CMmpRenderer_OdyClient(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(pRendererProp)
+CMmpRenderer_OdyClient::CMmpRenderer_OdyClient(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(MMP_MEDIATYPE_VIDEO, pRendererProp)
 ,m_sock_fd(-1)
 ,m_buf_idx(0)
 {
@@ -124,8 +126,8 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
 
         pfb = &gplayer->fb_info;
 		pvideo = &gplayer->video_info;
-        pvideo->width = m_pRendererProp->m_iPicWidth;
-        pvideo->height = m_pRendererProp->m_iPicHeight;
+        pvideo->width = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16);
+        pvideo->height = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
 		pvideo->format = GDM_DSS_PF_YUV420P3;
 
         gplayer->frame[0].size[0] = pvideo->width * pvideo->height;
@@ -135,16 +137,18 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
 	    gplayer->frame[1].size[1] = gplayer->frame[0].size[1];
 	    gplayer->frame[1].size[2] = gplayer->frame[0].size[2];
 
-
+#if 1
         if(alloc_video_memory(&gplayer->frame[0]) != 0) {/* front buffer */
     		mmpResult = MMP_FAILURE;
+			memset(&gplayer->frame[0], 0x00, sizeof(struct ody_videoframe));
     	}
         else {
 	        if(alloc_video_memory(&gplayer->frame[1]) != 0) { /* back buffer */
 		        mmpResult = MMP_FAILURE;
+				memset(&gplayer->frame[1], 0x00, sizeof(struct ody_videoframe));
     	    }
         }
-
+#endif
     }
 
     /* STEP1. connect to server */
@@ -165,7 +169,7 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
                 mmpResult = MMP_FAILURE;
             }
             else {
-                dss_get_fence_fd(m_sock_fd, &gplayer->release_fd);
+                dss_get_fence_fd(m_sock_fd, &gplayer->release_fd, &gplayer->vi);
             }
 		}
 		else {
@@ -179,7 +183,6 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
 	    dss_overlay_default_config(&m_req, gplayer);
 	    dss_overlay_set(m_sock_fd, &m_req);
     }
-
 
 	m_luma_size = m_pRendererProp->m_iPicWidth*m_pRendererProp->m_iPicHeight;
 	m_chroma_size = m_luma_size/4;
@@ -201,14 +204,16 @@ MMP_RESULT CMmpRenderer_OdyClient::Close()
 	    dss_overlay_unset(m_sock_fd);
 
         if(m_gplayer.release_fd != -1) {
-		    close(m_gplayer.release_fd);
+            ::MMP_DRIVER_CLOSE(m_gplayer.release_fd);
             m_gplayer.release_fd = -1;
         }
 
-	    close(m_sock_fd);
+        ::MMP_DRIVER_CLOSE(m_sock_fd);
         m_sock_fd = -1;
     }
 
+	free_video_memory(&m_gplayer.frame[0]);
+	free_video_memory(&m_gplayer.frame[1]);
 	
     return mmpResult;
 }
@@ -239,8 +244,6 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_
 	    mmpResult = this->RenderYUV420Planar_Memory(Y, U, V, buffer_width, buffer_height);
     }
 
-	
-
 	return mmpResult;
 }
 
@@ -249,10 +252,10 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_
 typedef void (*vdi_memcpy_func)(void* param, void* dest_vaddr, void* src_paddr, int size);
 
 MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
-
     
     FrameBuffer* pVPU_FrameBuffer;
 	int iret;
+	unsigned int t1, t2;
 
     pVPU_FrameBuffer = (FrameBuffer*)Y;
 	
@@ -269,10 +272,30 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, 
 	m_req_data.data[0].offset = pVPU_FrameBuffer->bufY - pVPU_FrameBuffer->ion_base_phyaddr;
 
 	dss_overlay_queue(m_sock_fd, &m_req_data);
+    if(m_gplayer.release_fd == -1) {
+        dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
+    }
+
     if(m_gplayer.release_fd != -1) {
 		//printf("wait frame done signal\n");
+
+		t1 = CMmpUtil::GetTickCount();
 		iret = sync_wait(m_gplayer.release_fd, 1000);
+		t2 = CMmpUtil::GetTickCount();
+
+        ::MMP_DRIVER_CLOSE(m_gplayer.release_fd);
+        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] sync_wait %d"), t2-t1));
+
+        m_gplayer.release_fd = -1;
+#if 0
+		if( (t2-t1) < 100) {
+			CMmpUtil::Sleep( 100 - (t2-t1) );
+		}
+#endif
 	}
+    else {
+        CMmpUtil::Sleep(100);
+    }
 
 	if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
 
@@ -296,11 +319,33 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, 
 		memcpy(&value, (void*)addr, sizeof(unsigned int));
 		vdi_memcpy = (vdi_memcpy_func)value;
 
+#ifdef __VPU_PLATFORM_MME
+        class mmp_buffer* p_mmp_buf;
+        class mmp_buffer_addr buf_addr;
+        MMP_U32 src_y, src_u, src_v;
+        p_mmp_buf = mmp_buffer_mgr::get_instance()->get_buffer(pVPU_FrameBuffer->ion_shared_fd);
+        if(p_mmp_buf != NULL) {
+            buf_addr = p_mmp_buf->get_buf_addr();
+
+            src_y = buf_addr.m_vir_addr;
+            src_u = src_y + MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16)*MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
+            src_v = src_u + MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16)*MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16)/4;
+            
+            memcpy(dest_y, (void*)src_y, m_luma_size);
+            memcpy(dest_u, (void*)src_u, m_chroma_size);
+            memcpy(dest_v, (void*)src_v, m_chroma_size);
+
+            CMmpRenderer::EncodeAndMux(dest_y, dest_u, dest_v, buffer_width, buffer_height);
+        }
+#else
 		(*vdi_memcpy)(param, dest_y, (void*)pVPU_FrameBuffer->bufY, m_luma_size);
 		(*vdi_memcpy)(param, dest_u, (void*)pVPU_FrameBuffer->bufCb, m_chroma_size);
 		(*vdi_memcpy)(param, dest_v, (void*)pVPU_FrameBuffer->bufCr, m_chroma_size);
 
-		CMmpRenderer::EncodeAndMux(dest_y, dest_u, dest_v, buffer_width, buffer_height);
+        CMmpRenderer::EncodeAndMux(dest_y, dest_u, dest_v, buffer_width, buffer_height);
+#endif
+
+		
 	}
 
 	m_buf_idx ^= 1;
@@ -362,11 +407,31 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* 
 	m_req_data.data[0].offset = 0;
 #endif
 
+    unsigned int t1, t2;
+
+    t1 = CMmpUtil::GetTickCount();
 	dss_overlay_queue(m_sock_fd, &m_req_data);
+    if(m_gplayer.release_fd == -1) {
+        dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
+    }
+    
     if(m_gplayer.release_fd != -1) {
-		//printf("wait frame done signal\n");
+        //printf("wait frame done signal\n");
 		iret = sync_wait(m_gplayer.release_fd, 1000);
+        t2 = CMmpUtil::GetTickCount();
+
+        ::MMP_DRIVER_CLOSE(m_gplayer.release_fd);
+        m_gplayer.release_fd = -1;
+#if 0
+        if( (t2-t1) < 100) {
+			CMmpUtil::Sleep( 100 - (t2-t1) );
+		}
+#endif
+        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar_mem] +++ %d "), t2-t1 ));
 	}
+    else {
+        CMmpUtil::Sleep(100);
+    }
 
 
 	m_buf_idx ^= 1;
@@ -376,20 +441,25 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* 
 	return MMP_SUCCESS;
 }
 
-
-static void dss_get_fence_fd(int sockfd, int *release_fd)
+static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
 	struct gdm_msghdr *msg = NULL;
 
-	//printf("dss_get_fence_fd - start\n");
+//	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-	//printf("received msg: %0x\n", (unsigned int)msg);
+//	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
-		//printf("msg->fds[0]: %d\n", msg->fds[0]);
+		if(vi) {
+			memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
+		}
+//		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
+    else {
+        *release_fd = -1;
+    }
 
 }
 
@@ -412,12 +482,13 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_p
 	req->src_rect.h = req->src.height;
 
 	req->dst_rect.x = req->dst_rect.y = 0;
-	req->dst_rect.w = 800;
-	req->dst_rect.h = 480;
+	req->dst_rect.w = gplayer->vi.xres;
+	req->dst_rect.h = gplayer->vi.yres;
 
 	req->transp_mask = 0;
 	req->flags = GDM_DSS_FLAG_SCALING;
 	req->id = GDMFB_NEW_REQUEST;
+
 
 }
 
@@ -450,8 +521,7 @@ static int alloc_video_memory(struct ody_videoframe *pframe)
 	fd = ion_open();
 	for(i = 0; i< 3; i++) {
 
-		ret = ion_alloc_fd(fd, pframe->size[i], 0, ION_HEAP_CARVEOUT_MASK,
-			0, &pframe->shared_fd[i]);
+		ret = ion_alloc_fd(fd, pframe->size[i], 0, ION_HEAP_CARVEOUT_MASK,	0, &pframe->shared_fd[i]);
 		if (ret) {
 			printf("share failed %s\n", strerror(errno));
 			goto cleanup;
@@ -471,11 +541,31 @@ cleanup:
 
 }
 
+static int free_video_memory(struct ody_videoframe *pframe) {
+
+	int i;
+	int ret = 0;
+
+	for(i = 0; i< 3; i++) {
+
+		if(pframe->address[i] != NULL) {
+            ::MMP_DRIVER_MUNMAP(pframe->address[i], pframe->size[i]);
+		}
+        if(pframe->shared_fd[i] >= 0) {
+            ::MMP_DRIVER_CLOSE(pframe->shared_fd[i]);
+        }
+	}
+
+	printf("free_video_memory \n");
+	return ret;
+}
+
+
 static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 {
 	struct gdm_hwc_msg msg_data;
 	struct gdm_msghdr *msg = NULL;
-	int i = 0;
+	MMP_S32 i = 0;
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
 
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), req_data->num_plane);
@@ -485,7 +575,7 @@ static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 	memcpy(msg_data.data, req_data, sizeof(struct gdm_dss_overlay_data));
 	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
 
-	for(i = 0 ; i < req_data->num_plane ; i++)
+	for(i = 0 ; i < (MMP_S32)req_data->num_plane ; i++)
 		msg->fds[i] = req_data->data[i].memory_id;
 	gdm_sendmsg(sockfd, msg);
 

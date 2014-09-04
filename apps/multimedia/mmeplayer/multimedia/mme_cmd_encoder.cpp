@@ -104,8 +104,12 @@ int mme_command_player_enc_start(int argc, char* argv[]) {
     int ext_count = 0;
     char* ext_array = NULL;
     char*  ext;
-    //MMP_U32 encFormat = MMP_FOURCC_VIDEO_MPEG4;
-	MMP_U32 encFormat = MMP_FOURCC_VIDEO_H264;
+	
+#ifdef WIN32	
+    MMP_U32 encFormat = MMP_FOURCC_VIDEO_MPEG4;
+#else
+    MMP_U32 encFormat = MMP_FOURCC_VIDEO_H264;
+#endif
 
     char contents_path[256] = CONTENTS_PATH;
 

@@ -125,9 +125,8 @@ void CMmpPlayerPCM::Service()
     
     CMmpRenderer* pRendererAudio = m_pRendererAudio;
         
-    float fv;
     float* p_pcm_float;
-    MMP_S32 i, j;
+    MMP_S32 i;
     MMP_U16 *p_pcm_16bit, u16, u16_1;
     MMP_S32 pcm_size;
     MMP_S64 pcm_dur;
@@ -197,7 +196,7 @@ void CMmpPlayerPCM::Service()
 
             pcm_dur = ((MMP_S64)pcm_size*1000000L) / (MMP_S64)this->m_create_config.audio_wf.nAvgBytesPerSec;
             packet_pts += pcm_dur;
-            CMmpUtil::Sleep(pcm_dur/1000);
+            CMmpUtil::Sleep( (MMP_U32)pcm_dur/1000);
         }
         
         cur_tick = CMmpUtil::GetTickCountUS();

@@ -119,7 +119,7 @@ void CMmpPlayerTONE::generate_pcm_buffer() {
        0xC766C766U, 0xCC26CC26U, 0xD1C9D1C9U, 0xD837D837U, 0xDF53DF53U, 0xE6FDE6FDU, 0xEF16EF16U, 0xF779F779U
     };
 
-    MMP_S32 skip_count;
+    //MMP_S32 skip_count;
     MMP_S32 cur_size, desired_size;
     MMP_U32 *p_pcm_u32;
     MMP_S32 next_idx;

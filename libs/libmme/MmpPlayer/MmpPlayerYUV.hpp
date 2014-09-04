@@ -19,42 +19,34 @@
  * limitations under the License.
  */
 
-#include "MmpRenderer_FileWriter.hpp"
-#include "MmpUtil.hpp"
+#ifndef MMPPLAYERYUV_HPP__
+#define MMPPLAYERYUV_HPP__
 
-/////////////////////////////////////////////////////////////
-//CMmpRenderer_FileWriter Member Functions
+#include "MmpPlayer.hpp"
+#include "mmp_buffer_videoframe.hpp"
 
-
-CMmpRenderer_FileWriter::CMmpRenderer_FileWriter(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(pRendererProp)
+class CMmpPlayerYUV : public CMmpPlayer
 {
+friend class CMmpPlayer;
 
-}
+private:
+    FILE* m_fp;
+    CMmpRenderer* m_pRendererVideo;
+    class mmp_buffer_videoframe* m_p_framebuf;
 
-CMmpRenderer_FileWriter::~CMmpRenderer_FileWriter()
-{
+    CMmpRendererCreateProp m_RendererProp;
 
-}
+    
+protected:
+    CMmpPlayerYUV(CMmpPlayerCreateProp* pPlayerProp);
+    virtual ~CMmpPlayerYUV();
 
-MMP_RESULT CMmpRenderer_FileWriter::Open()
-{
-    return MMP_SUCCESS;
-}
+    virtual MMP_RESULT Open();
+    virtual MMP_RESULT Close();
+
+    virtual void Service();
+};
+
+#endif
 
 
-MMP_RESULT CMmpRenderer_FileWriter::Close()
-{
-    return MMP_SUCCESS;
-}
-
-MMP_RESULT CMmpRenderer_FileWriter::Render(CMmpMediaSampleDecodeResult* pDecResult)
-{
-
-    return MMP_SUCCESS;
-}
-
-MMP_RESULT CMmpRenderer_FileWriter::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
-
-    MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_FileWriter::RenderYUV420Planar] +++ ")));
-    return MMP_SUCCESS;
-}

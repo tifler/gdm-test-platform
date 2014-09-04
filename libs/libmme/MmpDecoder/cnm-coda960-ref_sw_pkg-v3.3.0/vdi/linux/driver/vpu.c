@@ -37,6 +37,7 @@
 #include <linux/cdev.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#include <linux/vmalloc.h>
 
 #include "../../../vpuapi/vpuconfig.h"
 
@@ -64,7 +65,6 @@ typedef struct vpudrv_buffer_t {
 	unsigned long virt_addr;           // virtual user space address 
 	
 	unsigned int ion_shared_fd;       // ion fd buffer index value
-	unsigned int dma_buf_data_idx; // ion memory unit index value	
 
 } vpudrv_buffer_t;
 
@@ -75,7 +75,7 @@ gdm_codec_drv_data *gcodec_res; // ion codec driver data
 struct gdm_codec_drv_data {
     struct ion_client *iclient;	                           // client only one per driver         
     struct vb_dma_buf_data dma_buf_data[32]; // dma buffer unit
-    unsigned int dma_buf_data_idx;                   // global dma buff unit index
+
     struct platform_device *pdev;                      // platform device driver
 };
 
@@ -85,7 +85,6 @@ but dma buffer allocation is managed by gcodec_res.
 
 when vpu_alloc_dma_buffer is called , gcodec_res->dma_buf_index increases one unit(++)
 
-also vpu_free_dma_buffer is called, buffer is free through the vb->dma_buf_data_idx.
 what vpu_free_dma_buffer need is ihandle, that is able to be derivated to vb_dma_buf_data structure.
 -------------------------------------------------------------------------------------*/
 
@@ -1002,9 +1001,6 @@ struct file_operations vpu_fops = {
 	.write = vpu_write,
 	/*.ioctl = vpu_ioctl, // for kernel 2.6.9 of C&M*/
 	.unlocked_ioctl = vpu_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = vpu_compat_ioctl,
-#endif //CONFIG_COMPAT
 	.release = vpu_release,
 	.fasync = vpu_fasync,
 	.mmap = vpu_mmap,

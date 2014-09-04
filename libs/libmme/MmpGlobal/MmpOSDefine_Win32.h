@@ -27,7 +27,8 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <mmsystem.h>
-
+#include <wchar.h>
+#include <errno.h>
 
 
 
@@ -59,6 +60,30 @@ typedef TCHAR MMPCHAR;
 #define SETREG32(reg, mask) (*(volatile unsigned long * const)(reg) |=  mask)
 #define CLRREG32(reg, mask) (*(volatile unsigned long * const)(reg) &= ~mask)
 
+
+/* linux driver io */
+#define MMP_DRIVER_OPEN  kernel_driver_open
+#define MMP_DRIVER_CLOSE kernel_driver_close
+#define MMP_DRIVER_WRITE kernel_driver_write
+#define MMP_DRIVER_IOCTL kernel_driver_ioctl
+#define MMP_DRIVER_MMAP  kernel_driver_mmap
+#define MMP_DRIVER_MUNMAP  kernel_driver_munmap
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int kernel_driver_open(char* drvname, int flag);
+int kernel_driver_close(int fd);
+int kernel_driver_write(int fd, char* buf, int bufsize);
+int kernel_driver_ioctl(int d, unsigned long request, void* arg);
+
+void* kernel_driver_mmap(void *addr, size_t length, int prot, int flags, int fd, unsigned int offset);
+int kernel_driver_munmap(void* start, size_t length);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

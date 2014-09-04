@@ -107,6 +107,9 @@
 //#define MMP_HWCODEC MMP_HWCODEC_EXYNOS4_MFC
 #define MMP_HWCODEC MMP_HWCODEC_NONE
 
+#elif (MMP_OS == MMP_OS_WIN32)
+#define MMP_HWCODEC MMP_HWCODEC_VPU
+
 #else
 #define MMP_HWCODEC MMP_HWCODEC_NONE
 
@@ -163,6 +166,37 @@ enum MMP_MEDIATYPE
 #define MMP_SWAP_I32(v) (int)((((v)>>24) & 0xff) | (((v)>>8) & 0xff00) | (((v)&0xff00) << 8) | (((v)&0xff) << 24))
 #define MMP_SWAP_U16(v) (unsigned short)((((v)>>8)  & 0xff) | (((v)&0xff) << 8))
 #define MMP_SWAP_U32(v) (unsigned int)((((v)>>24) & 0xff) | (((v)>>8) & 0xff00) | (((v)&0xff00) << 8) | (((v)&0xff) << 24))
+
+#define MMP_PUT_BYTE(_p, _b) \
+    *_p++ = (unsigned char)_b; 
+
+#define MMP_PUT_BUFFER(_p, _buf, _len) \
+    memcpy(_p, _buf, _len); \
+    _p += _len;
+
+#define MMP_PUT_LE32(_p, _var) \
+    *_p++ = (unsigned char)((_var)>>0);  \
+    *_p++ = (unsigned char)((_var)>>8);  \
+    *_p++ = (unsigned char)((_var)>>16); \
+    *_p++ = (unsigned char)((_var)>>24); 
+
+#define MMP_PUT_BE32(_p, _var) \
+    *_p++ = (unsigned char)((_var)>>24);  \
+    *_p++ = (unsigned char)((_var)>>16);  \
+    *_p++ = (unsigned char)((_var)>>8); \
+    *_p++ = (unsigned char)((_var)>>0); 
+
+
+#define MMP_PUT_LE16(_p, _var) \
+    *_p++ = (unsigned char)((_var)>>0);  \
+    *_p++ = (unsigned char)((_var)>>8);  
+
+
+#define MMP_PUT_BE16(_p, _var) \
+    *_p++ = (unsigned char)((_var)>>8);  \
+    *_p++ = (unsigned char)((_var)>>0);  
+
+
 
 #define MMPMAKEFOURCC(ch0, ch1, ch2, ch3)                           \
                 ((MMP_U32)(MMP_U8)(ch0) | ((MMP_U32)(MMP_U8)(ch1) << 8) |   \

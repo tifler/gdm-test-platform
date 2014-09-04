@@ -194,7 +194,7 @@ MMP_RESULT CMmpDemuxer_Ffmpeg::Close()
     }
 
     if(m_pAVIOContext != NULL) {
-#if 0
+#if (MMP_OS == MMP_OS_WIN32)
         avio_close(m_pAVIOContext);
 #endif   
         m_pAVIOContext = NULL;

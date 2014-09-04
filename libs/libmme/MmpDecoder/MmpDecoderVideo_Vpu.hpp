@@ -24,8 +24,15 @@
 
 #include "MmpDecoderVideo.hpp"
 #include "MmpDecoderVpu.hpp"
+#include "MmpDecoderVpuIF.hpp"
 
-class CMmpDecoderVideo_Vpu : public CMmpDecoderVideo, CMmpDecoderVpu
+#ifdef __VPU_PLATFORM_MME
+#define CLASS_DECODER_VPU CMmpDecoderVpuIF
+#else
+#define CLASS_DECODER_VPU CMmpDecoderVpu
+#endif
+
+class CMmpDecoderVideo_Vpu : public CMmpDecoderVideo, CLASS_DECODER_VPU
 {
 friend class CMmpDecoder;
 
@@ -40,7 +47,7 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
-    virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"VPU";}
+    virtual const MMP_CHAR* GetClassName() { return (const MMP_CHAR*)"VPU";}
 public:
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);

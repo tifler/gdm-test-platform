@@ -23,13 +23,14 @@
 #include "main_mmeplayer.h"
 #include "mme_shell.h"
 
-
+#if 0
 static inline int MULH(int a, int b)
 {
     int r;
     __asm__ ("smmul %0, %1, %2" : "=r"(r) : "r"(a), "r"(b));
     return r;
 }
+#endif
 
 void mmeplayer_sig_int(int sig);
 

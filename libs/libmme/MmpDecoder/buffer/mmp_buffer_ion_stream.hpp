@@ -19,30 +19,25 @@
  * limitations under the License.
  */
 
-#ifndef MMPRENDERER_FILEWRITE_HPP__
-#define MMPRENDERER_FILEWRITE_HPP__
+#ifndef MMP_BUFFER_ION_STREAM_HPP__
+#define MMP_BUFFER_ION_STREAM_HPP__
 
-#include "MmpRenderer.hpp"
+#include "mmp_buffer.hpp"
 
-class CMmpRenderer_FileWriter : public CMmpRenderer
-{
-friend class CMmpRenderer;
+class mmp_buffer_ion_stream : public mmp_buffer {
+
+friend class mmp_buffer;
 
 private:
-	
+    
 protected:
-    CMmpRenderer_FileWriter(CMmpRendererCreateProp* pRendererProp);
-    virtual ~CMmpRenderer_FileWriter();
+    mmp_buffer_ion_stream(struct mmp_buffer_create_object *p_create_object);
+    virtual ~mmp_buffer_ion_stream();
 
-    virtual MMP_RESULT Open();
-    virtual MMP_RESULT Close();
+    virtual MMP_RESULT open();
+    virtual MMP_RESULT close();
 
-public:
-    virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
-    virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
-    
-    
+
 };
-
 
 #endif

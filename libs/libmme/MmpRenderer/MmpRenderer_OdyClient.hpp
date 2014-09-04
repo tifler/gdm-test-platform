@@ -50,6 +50,7 @@ struct ody_framebuffer {
 
 
 struct ody_player {
+    struct fb_var_screeninfo vi;
 	struct ody_framebuffer fb_info;
 	struct ody_videofile video_info;
 	struct ody_videoframe frame[2];

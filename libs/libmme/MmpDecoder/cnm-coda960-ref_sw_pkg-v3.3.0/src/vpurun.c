@@ -59,10 +59,12 @@
 
 #define FORCE_SET_VSYNC_FLAG
 //#define TEST_USER_FRAME_BUFFER
-#ifdef TEST_USER_FRAME_BUFFER
-//#define TEST_MULTIPLE_CALL_REGISTER_FRAME_BUFFER
-#endif
 
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+#ifndef TEST_USER_FRAME_BUFFER
+//#define TEST_USER_FRAME_BUFFER
+#endif
+#endif // #ifdef TEST_SUPPORT_SET_FRAME_BUFFER
 
 int DecodeTest(DecConfigParam *param)
 {
@@ -108,6 +110,10 @@ int DecodeTest(DecConfigParam *param)
 	DRAMConfig dramCfg = {0};
 	vpu_buffer_t vbFrame[MAX_REG_FRAME] = {0,};
 	FrameBuffer  fbUser[MAX_REG_FRAME]={0,};
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+    FrameBuffer  fbUserAddOne[MAX_REG_FRAME]={0,};
+    int          decIdx = 0;
+#endif
 	FrameBuffer  *pUserFrame = NULL;
 	MaverickCacheConfig decCacheConfig;
 	DecConfigParam decConfig;
@@ -365,7 +371,7 @@ VPU_SEQ_INIT:
 			VLOG(ERR, "Error reason is 0x%x\n", initialInfo.seqInitErrReason);
 			goto ERR_DEC_OPEN;					
 		}
-		VPU_ClearInterrupt(coreIdx);
+			
 	}
 	else
 	{
@@ -383,8 +389,8 @@ VPU_SEQ_INIT:
 			{
 				if (timeout_count*VPU_WAIT_TIME_OUT > VPU_DEC_TIMEOUT) 
 				{
-					VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d, PC=0x%x\n", instIdx, VpuReadReg(coreIdx, BIT_CUR_PC));
-					//VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d\n", instIdx);
+					//VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d, PC=0x%x, STS=0x%x\n", instIdx, VpuReadReg(coreIdx, BIT_CUR_PC), VpuReadReg(coreIdx, BIT_INT_STS));
+					VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d\n", instIdx);
 					VPU_SWReset(coreIdx, SW_RESET_SAFETY, handle);
 					break;
 				}
@@ -529,6 +535,9 @@ VPU_SEQ_INIT:
 	InitMixerInt();
 #endif
 	init_VSYNC_flag();
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+    decIdx = 0;
+#endif
 
 #ifdef SUPPORT_SW_MIXER
  	sw_mixer_close((coreIdx*MAX_NUM_VPU_CORE)+instIdx);
@@ -569,6 +578,13 @@ VPU_SEQ_INIT:
 #ifdef TEST_USER_FRAME_BUFFER
 	decConfig.userFbAlloc = 1;
 #endif
+
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+    // initially, lock all DPB
+    for(i=0; i<MAX_GDI_IDX; i++)
+        VPU_DecGiveCommand(handle, DEC_SET_DISPLAY_FLAG, &i);
+
+#else
 	if (decConfig.userFbAlloc) // if HOST wants to allocate framebuffer outside of API
 	{
 		fbAllocInfo.format          = framebufFormat;
@@ -629,13 +645,6 @@ VPU_SEQ_INIT:
 
 		pUserFrame = (FrameBuffer *)fbUser;
 	}
-	
-#ifdef TEST_SET_FRAME_DELAY
-#define NUM_FRAME_DELAY	0
-	decConfig.frameDelay = NUM_FRAME_DELAY;
-	VPU_DecGiveCommand(handle, DEC_SET_FRAME_DELAY, &decConfig.frameDelay);
-#endif
-
 
 	ret = VPU_DecRegisterFrameBuffer(handle, pUserFrame, regFrameBufCount, framebufStride, framebufHeight, mapType); // frame map type (can be changed before register frame buffer)
 	if( ret != RETCODE_SUCCESS )
@@ -653,6 +662,13 @@ VPU_SEQ_INIT:
 		VLOG(ERR, "VPU_DecGiveCommand[GET_TILEDMAP_CONFIG] failed Error code is 0x%x \n", ret );
 		goto ERR_DEC_OPEN;
 	}
+#endif //#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+
+#ifdef TEST_SET_FRAME_DELAY
+#define NUM_FRAME_DELAY	0
+    decConfig.frameDelay = NUM_FRAME_DELAY;
+    VPU_DecGiveCommand(handle, DEC_SET_FRAME_DELAY, &decConfig.frameDelay);
+#endif
 	if (ppuEnable) 
 	{
 		fbAllocInfo.format          = framebufFormat;
@@ -807,6 +823,81 @@ VPU_SEQ_INIT:
 		//ConfigDecReport(coreIdx, handle, decOP.bitstreamFormat);		
 		// Start decoding a frame.
 
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+        if (decIdx < regFrameBufCount)
+        {
+            fbAllocInfo.format          = framebufFormat;
+            fbAllocInfo.cbcrInterleave  = decOP.cbcrInterleave;
+            fbAllocInfo.mapType         = mapType;
+            fbAllocInfo.stride          = framebufStride;
+            fbAllocInfo.height          = framebufHeight;
+            fbAllocInfo.num             = 1;
+            fbAllocInfo.endian          = decOP.frameEndian;
+            fbAllocInfo.type            = FB_TYPE_CODEC;
+            // if HOST has a frame buffer which is allocated at other block such as render mode.  HOST can set it to VPU without frame buffer allocation in API		
+            framebufSize = VPU_GetFrameBufSize(framebufStride, framebufHeight, fbAllocInfo.mapType, framebufFormat, &dramCfg);
+            vbFrame[decIdx].size = framebufSize;
+            if (vdi_allocate_dma_memory(coreIdx, &vbFrame[decIdx]) < 0)
+            {
+                VLOG(ERR, "fail to allocate frame buffer\n" );
+                goto ERR_DEC_OPEN;
+            }
+            fbUser[0].bufY = vbFrame[decIdx].phys_addr;
+            fbUser[0].bufCb = -1;
+            fbUser[0].bufCr = -1;
+
+            ret = VPU_DecAllocateFrameBuffer(handle, fbAllocInfo, fbUser);
+            if( ret != RETCODE_SUCCESS )
+            {
+                VLOG(ERR, "VPU_DecAllocateFrameBuffer fail to allocate source frame buffer is 0x%x \n", ret );
+                goto ERR_DEC_OPEN;
+            }
+            if (decOP.wtlEnable)
+            {
+                fbAllocInfo.mapType = LINEAR_FRAME_MAP;
+
+                framebufSize = VPU_GetFrameBufSize(framebufStride, framebufHeight, fbAllocInfo.mapType, framebufFormat, &dramCfg);
+                vbFrame[MAX_GDI_IDX + decIdx].size = framebufSize;
+                if (vdi_allocate_dma_memory(coreIdx, &vbFrame[MAX_GDI_IDX + decIdx]) < 0)
+                {
+                    VLOG(ERR, "fail to allocate frame buffer\n" );
+                    goto ERR_DEC_OPEN;
+                }
+                fbUser[1].bufY = vbFrame[MAX_GDI_IDX + decIdx].phys_addr;
+                fbUser[1].bufCb = -1;
+                fbUser[1].bufCr = -1;
+                ret = VPU_DecAllocateFrameBuffer(handle, fbAllocInfo, &fbUser[1]);
+                if( ret != RETCODE_SUCCESS )
+                {
+                    VLOG(ERR, "VPU_DecAllocateFrameBuffer fail to allocate source frame buffer is 0x%x \n", ret );
+                    goto ERR_DEC_OPEN;
+                }
+            }
+            VPU_DecSetFrameBuffer(handle, fbUser);
+            if( ret != RETCODE_SUCCESS )
+            {
+                VLOG(ERR, "VPU_DecSetFrameBuffer failed Error code is 0x%x \n", ret );
+                goto ERR_DEC_OPEN;
+            }
+
+            ret = VPU_DecGiveCommand(handle, GET_TILEDMAP_CONFIG, &mapCfg);
+            if( ret != RETCODE_SUCCESS )
+            {
+                VLOG(ERR, "VPU_DecGiveCommand[GET_TILEDMAP_CONFIG] failed Error code is 0x%x \n", ret );
+                goto ERR_DEC_OPEN;
+            }
+
+            ret = VPU_DecClrDispFlag(handle, decIdx);
+            if( ret != RETCODE_SUCCESS )
+            {
+                VLOG(ERR, "VPU_DecClrDispFlag failed Error code is 0x%x \n", ret );
+                goto ERR_DEC_OPEN;
+            }
+        }
+        
+#else //#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+#endif //#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+
 		ret = VPU_DecStartOneFrame(handle, &decParam);
 		if (ret != RETCODE_SUCCESS)
 		{
@@ -824,8 +915,8 @@ VPU_SEQ_INIT:
 			{
 				if (timeout_count*VPU_WAIT_TIME_OUT > VPU_DEC_TIMEOUT) 
 				{
-					VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d, PC=0x%x\n", instIdx, VpuReadReg(coreIdx, BIT_CUR_PC));
-					//VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d\n", instIdx);
+					//VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d, PC=0x%x\n", instIdx, VpuReadReg(coreIdx, BIT_CUR_PC));
+					VLOG(WARN, "\n VPU interrupt wait timeout instIdx=%d\n", instIdx);
 					VPU_SWReset(coreIdx, SW_RESET_SAFETY, handle);
 					break;
 				}
@@ -872,14 +963,15 @@ VPU_SEQ_INIT:
 						VPU_DecGiveCommand(handle, SET_DECODE_FLUSH, 0); // if you want to stop the current decoding process to avoid some delay. you can stop decoding by using this command
 				}
 			}
-
-			ret = WriteBsBufHelper(coreIdx, handle, &bufInfo, &vbStream, STREAM_FILL_SIZE, decConfig.checkeos, &streameos, decOP.streamEndian);
-			if (ret != RETCODE_SUCCESS) 
+			if (decOP.bitstreamMode == BS_MODE_INTERRUPT)	// Rollback Test
 			{
-				VLOG(ERR, "WriteBsBufHelper failed Error code is 0x%x \n", ret );
-				goto ERR_DEC_OPEN;
+				ret = WriteBsBufHelper(coreIdx, handle, &bufInfo, &vbStream, STREAM_FILL_SIZE, decConfig.checkeos, &streameos, decOP.streamEndian);
+				if (ret != RETCODE_SUCCESS) 
+				{
+					VLOG(ERR, "WriteBsBufHelper failed Error code is 0x%x \n", ret );
+					goto ERR_DEC_OPEN;
+				}
 			}
-
 		}
 
 
@@ -917,6 +1009,9 @@ VPU_SEQ_INIT:
 				continue;
 			}
 		}
+ #ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+        decIdx++;
+#endif
 
 		if (outputInfo.sequenceChanged)
 		{
@@ -1218,6 +1313,10 @@ int FilePlayTest(DecConfigParam *param)
 	//Theora
 	tho_parser_t *  thoParser = 0; 
 	BYTE *		  pThoStream	= NULL, thoSeqSize;
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+    FrameBuffer  fbUserAddOne[MAX_REG_FRAME]={0,};
+    int          decIdx = 0;
+#endif
 
 	AVFormatContext *ic;
 	AVPacket pkt1, *pkt=&pkt1;
@@ -1234,6 +1333,9 @@ int FilePlayTest(DecConfigParam *param)
 
 	const char *filename;
 
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+    decIdx = 0;
+#endif
 	av_register_all();
 
 
@@ -1464,7 +1566,6 @@ int FilePlayTest(DecConfigParam *param)
 		if (kbhitRet)
 		{
 			if (kbhitRet == '\r' || kbhitRet == '\n')
-			#if 0	
 			{
 				ret = UI_GetUserCommand(coreIdx, handle, &decParam, &randomAccessPos);
 				kbhitRet = 0;
@@ -1475,18 +1576,6 @@ int FilePlayTest(DecConfigParam *param)
 					randomAccess = 1;
 					decParam.iframeSearchEnable = 1;
 				}
-			}
-			#else
-			{
-				ret = UI_GetUserCommand(coreIdx, handle, &decParam, &randomAccessPos);
-				if (ret == UI_CMD_SKIP_FRAME_LIFECYCLE)
-					continue;
-				else if (ret == UI_CMD_RANDOM_ACCESS)
-				{
-					randomAccess = 1;
-					decParam.iframeSearchEnable = 1;
-				}
-				kbhitRet = 0;
                 if (decParam.skipframeMode)
                 {
                     //clear all frame buffer 
@@ -1495,7 +1584,6 @@ int FilePlayTest(DecConfigParam *param)
                     for(i=0; i<regFrameBufCount; i++)
                         VPU_DecClrDispFlag(handle, i);
 
-					//can clear all display buffer before flushing a sync frame if HOST wants clearing all remained frame in buffer.
                     ret = VPU_DecFrameBufferFlush(handle);
                     if( ret != RETCODE_SUCCESS )
                     {
@@ -1512,7 +1600,6 @@ int FilePlayTest(DecConfigParam *param)
 
                 }
 			}
-			#endif
 			else if (kbhitRet == ' ')
 				break;
 		}
@@ -1708,12 +1795,20 @@ int FilePlayTest(DecConfigParam *param)
 #ifdef DUMP_ES_DATA
 		{
 			osal_file_t fpDump;
+			int OneFillSize = 0;
+
 			if (chunkIdx == 0)
 				fpDump = osal_fopen("dump.dat", "wb");
 			else
 				fpDump = osal_fopen("dump.dat", "a+b");
 			if (fpDump)
 			{
+
+#ifdef DUMP_ES_WITH_SIZE_7L
+				OneFillSize = seqHeaderSize + picHeaderSize + chunkSize;
+				osal_fwrite(&OneFillSize, 4, 1, fpDump);
+#endif
+
 				if (chunkIdx == 0) 
 				{
 #ifdef DUMP_ES_WITH_SIZE
@@ -1746,6 +1841,11 @@ int FilePlayTest(DecConfigParam *param)
 			ConfigSeqReport(coreIdx, handle, decOP.bitstreamFormat);
 			if (decOP.bitstreamMode == BS_MODE_PIC_END)
 			{
+				ret = VPU_DecSetEscSeqInit(handle, 1);
+				if (ret != RETCODE_SUCCESS)
+				{
+					VLOG(WARN, "Wanning! can not to set seqInitEscape in the current bitstream mode Option \n");		
+				}
 				ret = VPU_DecGetInitialInfo(handle, &initialInfo);
 				if (ret != RETCODE_SUCCESS) 
 				{
@@ -1753,10 +1853,18 @@ int FilePlayTest(DecConfigParam *param)
 					if (ret == RETCODE_MEMORY_ACCESS_VIOLATION)
 						PrintMemoryAccessViolationReason(coreIdx, NULL); 
 #endif
-					VLOG(ERR, "VPU_DecGetInitialInfo failed Error code is 0x%x \n", ret);
-					goto ERR_DEC_OPEN;					
+					if (ret == RETCODE_VPU_RESPONSE_TIMEOUT)
+					{
+						VLOG(ERR, "VPU_DecGetInitialInfo timeout \n");
+						goto ERR_DEC_OPEN;		
+					}
+					else
+					{
+						VLOG(ERR, "VPU_DecGetInitialInfo failed Error code is 0x%x \n", ret);
+						continue;
+					}
 				}
-				VPU_ClearInterrupt(coreIdx);
+				
 			}
 			else
 			{
@@ -1944,6 +2052,12 @@ int FilePlayTest(DecConfigParam *param)
 #ifdef TEST_USER_FRAME_BUFFER
 			decConfig.userFbAlloc = 1;
 #endif
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+            // initially, lock all DPB
+            for(i=0; i<MAX_GDI_IDX; i++)
+                VPU_DecGiveCommand(handle, DEC_SET_DISPLAY_FLAG, &i);
+
+#else
 			if (decConfig.userFbAlloc) // if HOST wants to allocate framebuffer outside of API
 			{
 				fbAllocInfo.format          = framebufFormat;
@@ -2012,7 +2126,7 @@ int FilePlayTest(DecConfigParam *param)
 				goto ERR_DEC_OPEN;
 			}
 			VPU_DecGiveCommand(handle, GET_TILEDMAP_CONFIG, &mapCfg);
-
+#endif //#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
 			if (ppuEnable) 
 			{
 				ppIdx = 0;
@@ -2076,7 +2190,80 @@ FLUSH_BUFFER:
 			ConfigDecReport(coreIdx, handle, decOP.bitstreamFormat);
 			
 
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+            if (decIdx < regFrameBufCount)
+            {
+                fbAllocInfo.format          = framebufFormat;
+                fbAllocInfo.cbcrInterleave  = decOP.cbcrInterleave;
+                fbAllocInfo.mapType         = mapType;
+                fbAllocInfo.stride          = framebufStride;
+                fbAllocInfo.height          = framebufHeight;
+                fbAllocInfo.num             = 1;
+                fbAllocInfo.endian          = decOP.frameEndian;
+                fbAllocInfo.type            = FB_TYPE_CODEC;
+                // if HOST has a frame buffer which is allocated at other block such as render mode.  HOST can set it to VPU without frame buffer allocation in API		
+                framebufSize = VPU_GetFrameBufSize(framebufStride, framebufHeight, fbAllocInfo.mapType, framebufFormat, &dramCfg);
+                vbFrame[decIdx].size = framebufSize;
+                if (vdi_allocate_dma_memory(coreIdx, &vbFrame[decIdx]) < 0)
+                {
+                    VLOG(ERR, "fail to allocate frame buffer\n" );
+                    goto ERR_DEC_OPEN;
+                }
+                fbUser[0].bufY = vbFrame[decIdx].phys_addr;
+                fbUser[0].bufCb = -1;
+                fbUser[0].bufCr = -1;
 
+                ret = VPU_DecAllocateFrameBuffer(handle, fbAllocInfo, fbUser);
+                if( ret != RETCODE_SUCCESS )
+                {
+                    VLOG(ERR, "VPU_DecAllocateFrameBuffer fail to allocate source frame buffer is 0x%x \n", ret );
+                    goto ERR_DEC_OPEN;
+                }
+                if (decOP.wtlEnable)
+                {
+                    fbAllocInfo.mapType = LINEAR_FRAME_MAP;
+
+                    framebufSize = VPU_GetFrameBufSize(framebufStride, framebufHeight, fbAllocInfo.mapType, framebufFormat, &dramCfg);
+                    vbFrame[MAX_GDI_IDX + decIdx].size = framebufSize;
+                    if (vdi_allocate_dma_memory(coreIdx, &vbFrame[MAX_GDI_IDX + decIdx]) < 0)
+                    {
+                        VLOG(ERR, "fail to allocate frame buffer\n" );
+                        goto ERR_DEC_OPEN;
+                    }
+                    fbUser[1].bufY = vbFrame[MAX_GDI_IDX + decIdx].phys_addr;
+                    fbUser[1].bufCb = -1;
+                    fbUser[1].bufCr = -1;
+                    ret = VPU_DecAllocateFrameBuffer(handle, fbAllocInfo, &fbUser[1]);
+                    if( ret != RETCODE_SUCCESS )
+                    {
+                        VLOG(ERR, "VPU_DecAllocateFrameBuffer fail to allocate source frame buffer is 0x%x \n", ret );
+                        goto ERR_DEC_OPEN;
+                    }
+                }
+                VPU_DecSetFrameBuffer(handle, fbUser);
+                if( ret != RETCODE_SUCCESS )
+                {
+                    VLOG(ERR, "VPU_DecSetFrameBuffer failed Error code is 0x%x \n", ret );
+                    goto ERR_DEC_OPEN;
+                }
+
+                ret = VPU_DecGiveCommand(handle, GET_TILEDMAP_CONFIG, &mapCfg);
+                if( ret != RETCODE_SUCCESS )
+                {
+                    VLOG(ERR, "VPU_DecGiveCommand[GET_TILEDMAP_CONFIG] failed Error code is 0x%x \n", ret );
+                    goto ERR_DEC_OPEN;
+                }
+
+                ret = VPU_DecClrDispFlag(handle, decIdx);
+                if( ret != RETCODE_SUCCESS )
+                {
+                    VLOG(ERR, "VPU_DecClrDispFlag failed Error code is 0x%x \n", ret );
+                    goto ERR_DEC_OPEN;
+                }
+            }
+
+#else //#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+#endif //#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
 			// Start decoding a frame.
 			ret = VPU_DecStartOneFrame(handle, &decParam);
 			if (ret != RETCODE_SUCCESS) 
@@ -2147,7 +2334,7 @@ FLUSH_BUFFER:
 				break;				
 		}			
 
-		if (int_reason == (Uint32)-1)
+		if (int_reason != (Uint32)-1)
 		{
 			if(int_reason & (1<<INT_BIT_BIT_BUF_EMPTY)) 
 			{
@@ -2160,6 +2347,12 @@ FLUSH_BUFFER:
 				continue; // go to take next chunk.
 			}		
 		}
+
+        if(int_reason & (1<<INT_BIT_DEC_FIELD)) 
+        {
+            bsfillSize = 0;
+            continue; // go to take next chunk.
+        }		
 
 		ret = VPU_DecGetOutputInfo(handle, &outputInfo);
 		if (ret != RETCODE_SUCCESS) 
@@ -2175,8 +2368,9 @@ FLUSH_BUFFER:
 		if ((outputInfo.decodingSuccess & 0x01) == 0)
 		{
 			VLOG(ERR, "VPU_DecGetOutputInfo decode fail framdIdx %d \n", frameIdx);
-			VLOG(TRACE, "#%d, indexFrameDisplay %d || picType %d || indexFrameDecoded %d\n", 
+			VLOG(ERR, "#%d, indexFrameDisplay %d || picType %d || indexFrameDecoded %d\n", 
 				frameIdx, outputInfo.indexFrameDisplay, outputInfo.picType, outputInfo.indexFrameDecoded );
+				goto ERR_DEC_OPEN;
 		}		
 		else
 		{
@@ -2201,6 +2395,9 @@ FLUSH_BUFFER:
 
 		if (outputInfo.indexFrameDisplay == -1)
 			decodefinish = 1;
+#ifdef TEST_SUPPORT_SET_FRAME_BUFFER
+        decIdx++;
+#endif
 
 //#define TEST_RENEW_COMMAND
 #ifdef TEST_RENEW_COMMAND
@@ -2213,6 +2410,19 @@ FLUSH_BUFFER:
 			int_reason = 0;
 			clear_VSYNC_flag();
 			frame_queue_dequeue_all(display_queue);
+
+
+			for(i=0; i<regFrameBufCount; i++)
+				VPU_DecClrDispFlag(handle, i);
+
+			//Clear all display buffer before Bitstream & Frame buffer flush
+			ret = VPU_DecFrameBufferFlush(handle);
+			if( ret != RETCODE_SUCCESS )
+			{
+				VLOG(ERR, "VPU_DecGetBitstreamBuffer failed Error code is 0x%x \n", ret );
+				goto ERR_DEC_OPEN;
+
+			}
 			av_seek_frame(ic, -1, 0, AVSEEK_FLAG_ANY);
 			continue;
 		}
@@ -2670,8 +2880,7 @@ int EncodeTest(EncConfigParam *param)
 		VLOG(ERR, "VPU_EncGetInitialInfo failed Error code is 0x%x \n", ret );
 		goto ERR_ENC_OPEN;
 	}
-
-	VPU_ClearInterrupt(coreIdx);
+		
 
 	regFrameBufCount = initialInfo.minFrameBufferCount;
 
@@ -2734,6 +2943,7 @@ int EncodeTest(EncConfigParam *param)
 	encParam.quantParam	   = encConfig.picQpY;
 
 
+    encHeaderParam.zeroPaddingEnable = 0;
 	if (encOP.ringBufferEnable == 0)
 	{
 		encHeaderParam.buf = vbStream.phys_addr;
@@ -3946,8 +4156,6 @@ int FileTranscodingTest(DecConfigParam *decCfgParam, EncConfigParam *encCfgParam
 				VLOG(ERR, "VPU_EncGetInitialInfo failed Error code is 0x%x \n", ret_code );
 				goto ERR_ENC_OPEN;
 			}
-
-			VPU_ClearInterrupt(core_index);
 
 			req_frame_buffer_count = enc_initial_info.minFrameBufferCount;
 

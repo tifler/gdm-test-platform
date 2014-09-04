@@ -14,7 +14,6 @@
 //
 //--=========================================================================--
 
-#include "MmpDefine.h"
 #include "vpuapifunc.h"
 #include "regdefine.h"
 
@@ -137,12 +136,30 @@ RetCode CheckInstanceValidity(CodecInst * pCodecInst)
 /******************************************************************************
     API Subroutines
 ******************************************************************************/
+RetCode BitLoadFirmwareCodewrite(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *codeWord, int codeSize)
+{
+	int i;
+	Uint32 data;
+
+	BYTE code[8];
+
+	for (i=0; i<codeSize; i+=4) {
+		// 2byte little endian variable to 1byte big endian buffer
+		code[0] = (BYTE)(codeWord[i+0]>>8);
+		code[1] = (BYTE)codeWord[i+0];
+		code[2] = (BYTE)(codeWord[i+1]>>8);
+		code[3] = (BYTE)codeWord[i+1];
+		code[4] = (BYTE)(codeWord[i+2]>>8);
+		code[5] = (BYTE)codeWord[i+2];
+		code[6] = (BYTE)(codeWord[i+3]>>8);
+		code[7] = (BYTE)codeWord[i+3];
+		VpuWriteMem(coreIdx, codeBase+i*2, (BYTE *)code, 8, VDI_BIG_ENDIAN);
+	}	
+	return RETCODE_SUCCESS;
+}
+
 RetCode BitLoadFirmware(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *codeWord, int codeSize)
 {
-#if (MMP_OS == MMP_OS_WIN32)
-
-    return RETCODE_SUCCESS;
-#else
 	int i;
 	Uint32 data;
 
@@ -161,7 +178,6 @@ RetCode BitLoadFirmware(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *
 		code[7] = (BYTE)codeWord[i+3];
 		VpuWriteMem(coreIdx, codeBase+i*2, (BYTE *)code, 8, VDI_BIG_ENDIAN);
 	}
-
 	VpuWriteReg(coreIdx, BIT_INT_ENABLE, 0);
 	VpuWriteReg(coreIdx, BIT_CODE_RUN, 0);
 	
@@ -173,7 +189,6 @@ RetCode BitLoadFirmware(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *
 	vdi_set_bit_firmware_to_pm(coreIdx, codeWord); 
 	
 	return RETCODE_SUCCESS;
-#endif
 }
 
 
@@ -256,12 +271,9 @@ RetCode CheckDecOpenParam(DecOpenParam * pop)
 	if (pop == 0) {
 		return RETCODE_INVALID_PARAM;
 	}
-
-#if (MMP_OS != MMP_OS_WIN32)
 	if (pop->bitstreamBuffer % 512) {
 		return RETCODE_INVALID_PARAM;
 	}
-#endif
 
 	if (pop->bitstreamBufferSize % 1024 || pop->bitstreamBufferSize < 1024) {
 		return RETCODE_INVALID_PARAM;
@@ -391,7 +403,7 @@ RetCode SetParaSet(DecHandle handle, int paraSetType, DecParamSet * para)
 	src = para->paraSet;
 
 	EnterLock(pCodecInst->coreIdx);
-
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	paraBuffer = VpuReadReg(pCodecInst->coreIdx, BIT_PARA_BUF_ADDR);
 	for (i = 0; i < para->size; i += 4) {
 		VpuWriteReg(pCodecInst->coreIdx, paraBuffer + i, *src++);
@@ -403,12 +415,13 @@ RetCode SetParaSet(DecHandle handle, int paraSetType, DecParamSet * para)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, DEC_PARA_SET, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, DEC_PARA_SET, 0);
-	
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -686,6 +699,8 @@ RetCode GetEncHeader(EncHandle handle, EncHeaderParam * encHeaderParam)
 
 	EnterLock(pCodecInst->coreIdx);
 
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
+
 	if (pEncInfo->ringBufferEnable == 0) {	
 
 		if (pEncInfo->lineBufIntEn)
@@ -727,6 +742,7 @@ RetCode GetEncHeader(EncHandle handle, EncHeaderParam * encHeaderParam)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, ENCODE_HEADER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
@@ -750,7 +766,7 @@ RetCode GetEncHeader(EncHandle handle, EncHeaderParam * encHeaderParam)
 
 	pEncInfo->streamWrPtr = wrPtr;
 	pEncInfo->streamRdPtr = rdPtr;
-
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 
@@ -778,6 +794,8 @@ RetCode EncParaSet(EncHandle handle, int paraSetType)
 
 	EnterLock(pCodecInst->coreIdx);
 
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
+
 	if( paraSetType == 0 && pEncInfo->openParam.bitstreamFormat == STD_AVC) {
 		Uint32 CropV, CropH;
 
@@ -800,12 +818,14 @@ RetCode EncParaSet(EncHandle handle, int paraSetType)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, ENC_PARA_SET, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, ENC_PARA_SET, 0);
 
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -825,6 +845,7 @@ RetCode SetGopNumber(EncHandle handle, Uint32 *pGopNumber)
 
 	EnterLock(pCodecInst->coreIdx);
 	
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_ENABLE, data);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_GOP_NUM, gopNumber);
 
@@ -832,12 +853,13 @@ RetCode SetGopNumber(EncHandle handle, Uint32 *pGopNumber)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
-	
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -855,7 +877,7 @@ RetCode SetIntraQp(EncHandle handle, Uint32 *pIntraQp)
 
 	EnterLock(pCodecInst->coreIdx);
 	
-
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_ENABLE, data);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_INTRA_QP, intraQp);
 
@@ -863,11 +885,13 @@ RetCode SetIntraQp(EncHandle handle, Uint32 *pIntraQp)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -884,7 +908,7 @@ RetCode SetBitrate(EncHandle handle, Uint32 *pBitrate)
 	
 	EnterLock(pCodecInst->coreIdx);
 	
-
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_ENABLE, data);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_BITRATE, bitrate);
 
@@ -892,11 +916,13 @@ RetCode SetBitrate(EncHandle handle, Uint32 *pBitrate)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -914,7 +940,7 @@ RetCode SetFramerate(EncHandle handle, Uint32 *pFramerate)
 	data = 1<<3;
 
 	EnterLock(pCodecInst->coreIdx);
-
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_ENABLE, data);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_F_RATE, frameRate);
 
@@ -922,12 +948,13 @@ RetCode SetFramerate(EncHandle handle, Uint32 *pFramerate)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
-	
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -944,7 +971,7 @@ RetCode SetIntraRefreshNum(EncHandle handle, Uint32 *pIntraRefreshNum)
 	data = 1<<4;
 
 	EnterLock(pCodecInst->coreIdx);
-
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_ENABLE, data);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_INTRA_REFRESH, intraRefreshNum);
 
@@ -952,11 +979,13 @@ RetCode SetIntraRefreshNum(EncHandle handle, Uint32 *pIntraRefreshNum)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -970,7 +999,7 @@ RetCode SetSliceMode(EncHandle handle, EncSliceMode *pSliceMode)
 	pCodecInst = handle;
 
 	EnterLock(pCodecInst->coreIdx);	
-	
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	data = pSliceMode->sliceSize<<2 | pSliceMode->sliceSizeMode<<1 | pSliceMode->sliceMode;
 	data2 = 1<<5;
 
@@ -983,11 +1012,14 @@ RetCode SetSliceMode(EncHandle handle, EncSliceMode *pSliceMode)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
+
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 
 	return RETCODE_SUCCESS;
@@ -1006,7 +1038,7 @@ RetCode SetHecMode(EncHandle handle, int mode)
 	data = 1 << 6;
 
 	EnterLock(pCodecInst->coreIdx);
-	
+	SetPendingInst(pCodecInst->coreIdx, pCodecInst);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_ENABLE, data);
 	VpuWriteReg(pCodecInst->coreIdx, CMD_ENC_PARAM_CHANGE_HEC_MODE, HecMode);
 
@@ -1014,11 +1046,13 @@ RetCode SetHecMode(EncHandle handle, int mode)
 	if (vdi_wait_vpu_busy(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 2);
+		SetPendingInst(pCodecInst->coreIdx, 0);
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, RC_CHANGE_PARAMETER, 0);
+	SetPendingInst(pCodecInst->coreIdx, 0);
 	LeaveLock(pCodecInst->coreIdx);
 	return RETCODE_SUCCESS;
 }
@@ -1072,20 +1106,8 @@ RetCode LeaveLock(Uint32 coreIdx)
 
 RetCode SetClockGate(Uint32 coreIdx, Uint32 on)
 {
-	CodecInst *inst;
-	vpu_instance_pool_t *vip;
+	vdi_set_clock_gate(coreIdx, on);		
 
-	vip = (vpu_instance_pool_t *)vdi_get_instance_pool(coreIdx);
-	if (!vip)
-		return RETCODE_INSUFFICIENT_RESOURCE;
-	
-	inst = (CodecInst *)vip->pendingInst;
-
-	if ( !on && (inst || !vdi_lock_check(coreIdx)))
-		return RETCODE_SUCCESS;
-
-	vdi_set_clock_gate(coreIdx, on);	
-	
 	return RETCODE_SUCCESS;
 }
 
@@ -1119,16 +1141,14 @@ void ClearPendingInst(Uint32 coreIdx)
 	}
 }
 
+
 CodecInst *GetPendingInst(Uint32 coreIdx)
 {
 	vpu_instance_pool_t *vip;
 	int pendingInstIdx;
-	
+
 	vip = (vpu_instance_pool_t *)vdi_get_instance_pool(coreIdx);
 	if (!vip)
-		return NULL;
-
-	if (!vip->pendingInst)
 		return NULL;
 
 	pendingInstIdx = vip->pendingInstIdxPlus1-1;
@@ -1137,21 +1157,11 @@ CodecInst *GetPendingInst(Uint32 coreIdx)
 	if (pendingInstIdx > MAX_NUM_INSTANCE)
 		return NULL;
 
-	return  (CodecInst *)vip->codecInstPool[pendingInstIdx];
 
+	return (CodecInst *)vip->codecInstPool[pendingInstIdx];
 }
 
 
-int GetPendingInstIdx(Uint32 coreIdx)
-{
-	vpu_instance_pool_t *vip;
-
-	vip = (vpu_instance_pool_t *)vdi_get_instance_pool(coreIdx);
-	if (!vip)
-		return -1;
-
-	return (vip->pendingInstIdxPlus1-1);
-}
 
 int GetLowDelayOutput(CodecInst *pCodecInst, DecOutputInfo *info)
 {
@@ -1601,16 +1611,17 @@ RetCode AllocateFrameBufferArray(int coreIdx, FrameBuffer *frambufArray, vpu_buf
 			if (alloc_by_user)
 				addrY = frambufArray[i].bufY;
 
+#ifdef __VPU_PLATFORM_MME
             frambufArray[i].ion_shared_fd = pvbFrame->ion_shared_fd;
             frambufArray[i].ion_base_phyaddr = pvbFrame->phys_addr;
-
+#endif
 			frambufArray[i].myIndex = i+gdiIndex;
 			frambufArray[i].mapType = mapType;
 			frambufArray[i].height = memHeight;
 			frambufArray[i].bufY    = addrY;
 			frambufArray[i].bufCb   = frambufArray[i].bufY + size_dpb_lum;
-			if (!interleave)
-				frambufArray[i].bufCr = frambufArray[i].bufY + size_dpb_lum + size_dpb_chr;
+			//if (!interleave)
+			frambufArray[i].bufCr = frambufArray[i].bufY + size_dpb_lum + size_dpb_chr;
             frambufArray[i].stride         = width;		
             frambufArray[i].cbcrInterleave = interleave;
 			frambufArray[i].sourceLBurstEn = 0;
@@ -1778,7 +1789,6 @@ RetCode AllocateFrameBufferArray(int coreIdx, FrameBuffer *frambufArray, vpu_buf
 		pvbFrame->size     = size_dpb_all*num;
 		if (alloc_by_user)
 		{
-			pvbFrame->phys_addr = frambufArray[0].bufY;
 			pvbFrame->phys_addr = GetTiledFrameBase(coreIdx, &frambufArray[0], num);
 		}
 		else 

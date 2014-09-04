@@ -27,6 +27,7 @@
 #include "MmpMediaInfo.hpp"
 #include "MmpEncoderVideo.hpp"
 #include "MmpMuxer.hpp"
+#include "mmp_buffer_videoframe.hpp"
 
 class CMmpRenderer
 {
@@ -38,6 +39,11 @@ public:
     static MMP_RESULT DestroyObject(CMmpRenderer* pObj);
 
 protected:
+    static CMmpRenderer* s_pFirstRenderer[MMP_MEDIATYPE_MAX];
+
+protected:
+    enum MMP_MEDIATYPE m_MediaType;
+
     CMmpRendererCreateProp* m_pRendererProp;
 	CMmpRendererCreateProp m_RendererProp;
 
@@ -45,27 +51,41 @@ protected:
     CMmpMuxer* m_pMuxer;
     MMP_U8* m_p_enc_stream;
 
+    CMmpMediaSampleEncode m_MediaSample_Enc;
+    CMmpMediaSampleEncodeResult m_MediaSample_EncResult;
+
 protected:
-    CMmpRenderer(CMmpRendererCreateProp* pRendererProp);
+    CMmpRenderer(enum MMP_MEDIATYPE mt, CMmpRendererCreateProp* pRendererProp);
     virtual ~CMmpRenderer();
 
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
-public:
+protected:
+    virtual MMP_RESULT Render_Ion(CMmpMediaSampleDecodeResult* pDecResult) {return MMP_FAILURE;}
+        
+protected:
+    MMP_RESULT EncodeAndMux(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
+    MMP_RESULT EncodeAndMux(CMmpMediaSampleDecodeResult* pDecResult);
 
-    virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult)=0;
-    virtual MMP_RESULT Render(){return MMP_FAILURE;}
+public:
     virtual MMP_RESULT OnSize(int cx, int cy) { return MMP_FAILURE; }
 
-    virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) = 0;
-    virtual MMP_RESULT RenderPCM(MMP_U8* pcm_buffer, MMP_U32 pcm_byte_size);
+    virtual void SetFirstRenderer() { CMmpRenderer::s_pFirstRenderer[m_MediaType] = this; }
+    MMP_BOOL IsFirstRenderer() { return (CMmpRenderer::s_pFirstRenderer[m_MediaType] == this)?MMP_TRUE:MMP_FALSE; }
 
     int GetPicWidth() { return m_RendererProp.m_iPicWidth; }
     int GetPicHeight() { return m_RendererProp.m_iPicHeight; }
+    
+    virtual MMP_RESULT Render() {return MMP_FAILURE;}
+    virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
+    virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe) {return MMP_FAILURE;}
+    
+    
+    virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) = 0;
+    virtual MMP_RESULT RenderPCM(MMP_U8* pcm_buffer, MMP_U32 pcm_byte_size);
 
-protected:
-    MMP_RESULT EncodeAndMux(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
+
 };
 
 

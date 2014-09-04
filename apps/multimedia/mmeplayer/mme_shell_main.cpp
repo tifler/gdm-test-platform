@@ -1,6 +1,7 @@
 #include "mme_shell.h"
 #include <stdio.h>
 #include <string.h>
+#include "MmpAudioTool.hpp"
 
 
 static int mme_parse_args(char *cmdline, char **argv);
@@ -35,21 +36,31 @@ struct mme_command mme_cmds[] = {
         /* player */
         { (char*)"play"    , mme_command_player_start,  (char*)"player start"},
         { (char*)"stop"    , mme_command_player_stop,  (char*)"player stop"},
+        { (char*)"stop_all"    , mme_command_player_stop_all,  (char*)"all player stop"},
         { (char*)"seek"    , mme_command_player_seek,  (char*)"player seek ex)seek [hour] [min] [sec] "},
-        { (char*)"playinfo"    , mme_command_player_info,  (char*)"display play infomation  "},
+        { (char*)"stat"    , mme_command_player_status,  (char*)"display play status infomation  "},
         { (char*)"play_loop"    , mme_command_player_loop,  (char*)"player loop "},
+        { (char*)"disp"    , mme_command_player_set_first_renderer,  (char*)"set first renderer to display  "},
 
         /*encoder */
         { (char*)"play_enc"    , mme_command_player_enc_start,  (char*)"player enc start"},
         { (char*)"stop_enc"    , mme_command_player_enc_stop,  (char*)"player enc stop"},
 
-        
-        /* vpu */
-        { (char*)"vpu_load"    , mme_command_vpu_load,  (char*)"vpu driver load"},
-        { (char*)"vpu_unload"    , mme_command_vpu_unload,  (char*)"vpu driver unload"},
-        { (char*)"vpu_test1"    , mme_command_vpu_test1,  (char*)"vpu driver test1"},
-        { (char*)"vpu_test2"    , mme_command_vpu_test2,  (char*)"vpu driver test2"},
-        
+
+        /* ion */
+        { (char*)"ion_t1"  , mme_command_ion_test1,  (char*)"ion test1"},
+
+#if (MMESHELL_RIL==1)
+        /*ril*/
+        { (char*)"ril_init"   , mme_command_ril_init,  (char*)"ril init"},
+        { (char*)"ril_deinit"   , mme_command_ril_deinit,  (char*)"ril deinit"},
+        { (char*)"ril_radiopower"   , mme_command_ril_set_radio_power,  (char*)"ril radio power on/off (airplane mode)  ex)ril_radiopower on/off"},
+        { (char*)"ril_modeminit"   , mme_command_ril_modem_init,  (char*)"ril modem init"},
+        { (char*)"ril_sig_stren"   , mme_command_ril_signal_strength,  (char*)"display ril signal strength"},
+        { (char*)"ril_mute"   , mme_command_ril_mute,  (char*)"ri_mute  0/1"},
+        { (char*)"ril_call"   , mme_command_ril_call,  (char*)"ri_call 01077369829"},
+        { (char*)"ril_testmem"   , mme_command_ril_test_request_mem,  (char*)"test req mem"},
+#endif
 };
 
 int command_help(int argc, char **argv) {
@@ -83,9 +94,13 @@ static void mme_shell_init() {
 
 void mme_shell_deinit() {
 
-    mme_command_player_stop(0, NULL);
+    mme_command_player_stop_all(0, NULL);
     mme_command_system_deinit(0, NULL);
-    //mme_command_ril_deinit(0, NULL);
+
+#if (MMESHELL_RIL==1)
+    mme_command_ril_deinit(0, NULL);
+#endif
+
 }
 
 void mme_shell_main(int argc_app, char* argv_app[]) {
@@ -237,58 +252,8 @@ int  mme_console_get_number(void)
     return atoi(buffer);
 }
 
-void foo(char *fmt, ...) {
-
-    va_list ap;
-    int d;
-    char c, *p, *s;
-    char buf[512];
-
-    va_start(ap, fmt);
-
-#if 0
-    while(*fmt) {
-
-        if(*fmt == '%') {
-
-            fmt++;
-
-            switch(*fmt) {
-
-                case 's':                       /* string */
-                        s = va_arg(ap, char *);
-                        printf("string %s\n", s);
-                        break;
-                case 'd':                       /* int */
-                        d = va_arg(ap, int);
-                        printf("int %d\n", d);
-                        break;
-                case 'c':                       /* char */
-                        /* need a cast here since va_arg only
-                           takes fully promoted types */
-                        c = (char) va_arg(ap, int);
-                        printf("char %c\n", c);
-                        break;
-            }
-
-        }
-
-        fmt++;
-    }
-#else
-
-    vsprintf(buf, fmt, ap);
-    printf("%s", buf);
-
-#endif
-
-    va_end(ap);
-
-}
 
 static int command_test1(int argc, char **argv) {
-
-    foo("TTTT %d %08x %s \n", 1, 10, "TTTEEESSSTTTT");
 
     return 0;
 }

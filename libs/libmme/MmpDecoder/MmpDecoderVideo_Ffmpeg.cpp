@@ -21,12 +21,13 @@
 
 #include "MmpDecoderVideo_Ffmpeg.hpp"
 #include "../MmpComm/MmpUtil.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 /////////////////////////////////////////////////////////////
 //CMmpDecoderVideo_Ffmpeg Member Functions
 
 CMmpDecoderVideo_Ffmpeg::CMmpDecoderVideo_Ffmpeg(struct MmpDecoderCreateConfig *pCreateConfig) : CMmpDecoderVideo(pCreateConfig, MMP_FALSE), CMmpDecoderFfmpeg(pCreateConfig)
-
+,m_p_framebuf(NULL)
 {
     
 }
@@ -79,7 +80,12 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::Close()
         MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVideo_Ffmpeg::Close] CMmpDecoderVideo::Close() \n\r")));
         return mmpResult;
     }
-    
+
+    if(m_p_framebuf != NULL) {
+        mmp_buffer_mgr::get_instance()->free_video_buffer(m_p_framebuf);
+        m_p_framebuf = NULL;
+    }
+        
     MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[CMmpDecoderVideo_Ffmpeg::Close] Success nForamt=(0x%08x %s) \n\r"), 
                   m_nFormat, m_szCodecName ));
 
@@ -210,7 +216,7 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSi
 MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult)
 {
 	MMP_RESULT mmpResult = MMP_SUCCESS;
-
+    MMP_S32 i;
     int32_t frameFinished = 192000 * 2;
     int32_t usebyte;
     AVPacket avpkt;
@@ -276,11 +282,24 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeAu(CMmpMediaSample* pMediaSample, CMmp
             m_bih_in.biWidth = m_pAVCodecContext->width;
             m_bih_in.biHeight = m_pAVCodecContext->height;
 
+            /* create video frame buffer */
+            if(m_p_framebuf != NULL) {
+                mmp_buffer_mgr::get_instance()->free_video_buffer(m_p_framebuf);
+                m_p_framebuf = NULL;
+            }
+            
+            m_p_framebuf = mmp_buffer_mgr::get_instance()->alloc_video_buffer(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_VIDEO_I420);
+            if(m_p_framebuf == NULL) {
+                mmpResult = MMP_FAILURE;
+            }
+
         }
 
         if( (pDecResult->uiDecodedBufferMaxSize >= m_bih_out.biSizeImage) 
-            && (pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_Y] >= m_pAVCodecContext->width) 
-            && (pDecResult->uiDecodedBufferAlignHeight[MMP_DECODED_BUF_Y] >= m_pAVCodecContext->height) )
+            && (pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_Y] >= (MMP_U32)m_pAVCodecContext->width) 
+            && (pDecResult->uiDecodedBufferAlignHeight[MMP_DECODED_BUF_Y] >= (MMP_U32)m_pAVCodecContext->height) 
+            && (m_p_framebuf != NULL)
+            )
         {
             pDecResult->uiDecodedSize = (m_bih_out.biWidth*m_bih_out.biHeight*3)/2;
             pDecResult->bImage = MMP_TRUE;
@@ -290,15 +309,14 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeAu(CMmpMediaSample* pMediaSample, CMmp
             AVPicture *pFrameOut = &pic;
             memset(pFrameOut, 0x00, sizeof(AVPicture));
             
-            pFrameOut->data[0] = (uint8_t*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y];//output;
-            pFrameOut->data[1] = (uint8_t*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U];//pFrameOut->data[0];//+m_pAVCodecContext->width*m_pAVCodecContext->height;
-            pFrameOut->data[2] = (uint8_t*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V];//pFrameOut->data[1];//+m_pAVCodecContext->width*m_pAVCodecContext->height/4;
-            pFrameOut->linesize[0] = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_Y];//em_pAVCodecContext->width;
-            pFrameOut->linesize[1] = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_U];//m_pAVCodecContext->width >> 1;
-            pFrameOut->linesize[2] = pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_V];//m_pAVCodecContext->width >> 1;
+            for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+                pFrameOut->data[i] = m_p_framebuf->get_buf_vir_addr(i);
+                pFrameOut->linesize[i] = pDecResult->uiDecodedBufferStride[i];
+            }
             
-            //avpicture_fill((AVPicture *)pFrameOut, (uint8_t*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y], PIX_FMT_YUV420P, m_pAVCodecContext->width, m_pAVCodecContext->height);
-
+            pDecResult->uiResultType = MMP_MEDIASAMPLE_BUFFER_TYPE_VIDEO_FRAME;
+            pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_VIDEO_FRAME] = (MMP_U32)m_p_framebuf;
+            
             if(m_pAVFrame_Decoded->format == AV_PIX_FMT_YUV420P) {
                 av_picture_copy ((AVPicture *)pFrameOut, (AVPicture*)m_pAVFrame_Decoded, AV_PIX_FMT_YUV420P, m_pAVCodecContext->width, m_pAVCodecContext->height);
             }

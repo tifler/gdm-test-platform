@@ -100,6 +100,7 @@ typedef enum {
 	ENABLE_DEC_THUMBNAIL_MODE,
 	DEC_SET_DISPLAY_FLAG,
 	DEC_GET_SEQ_INFO,
+    DEC_DISABLE_SKIP_REORDER,
 	//vpu put header stream to bitstream buffer
 	ENC_PUT_VIDEO_HEADER,
 	ENC_PUT_MP4_HEADER,
@@ -278,8 +279,10 @@ typedef struct {
     int height;
     int sourceLBurstEn;
 
+#ifdef __VPU_PLATFORM_MME
     int ion_shared_fd;
     PhysicalAddress ion_base_phyaddr;
+#endif
 } FrameBuffer;
 
 typedef enum {
@@ -622,6 +625,7 @@ typedef struct {
 	int sequenceChanged;
 	int streamEndFlag;
 	int frameCycle;
+	int rvTr;
 } DecOutputInfo;
 
 
@@ -785,6 +789,7 @@ typedef struct {
 	BYTE *pBuf;
 	int size;
 	int headerType;
+    int zeroPaddingEnable;
 } EncHeaderParam;
 
 typedef enum {

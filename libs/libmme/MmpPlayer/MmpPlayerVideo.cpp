@@ -39,6 +39,9 @@ CMmpPlayerVideo::CMmpPlayerVideo(CMmpPlayerCreateProp* pPlayerProp) : CMmpPlayer
 ,m_Y(NULL)
 ,m_U(NULL)
 ,m_V(NULL)
+
+,m_last_packet_pts(0)
+,m_fps(0)
 {
     
 
@@ -121,6 +124,7 @@ MMP_RESULT CMmpPlayerVideo::Open()
                 m_pDecoderVideo->DecodeAu(pMediaSample, pDecResult);
             }
         }
+
     }
 #endif
 
@@ -174,9 +178,22 @@ MMP_RESULT CMmpPlayerVideo::Close()
 {
     CMmpPlayer::Close();
 
-    CMmpDemuxer::DestroyObject(m_pDemuxer);  m_pDemuxer = NULL;
-    CMmpDecoder::DestroyObject(m_pDecoderVideo);  m_pDecoderVideo = NULL;
-    CMmpRenderer::DestroyObject(m_pRendererVideo);  m_pRendererVideo = NULL;
+    if(m_pDemuxer != NULL) {
+        CMmpDemuxer::DestroyObject(m_pDemuxer);  
+        m_pDemuxer = NULL;
+    }
+
+
+    if(m_pDecoderVideo != NULL) {
+        CMmpDecoder::DestroyObject(m_pDecoderVideo);  
+        m_pDecoderVideo = NULL;
+    }
+
+
+    if(m_pRendererVideo != NULL) {
+        CMmpRenderer::DestroyObject(m_pRendererVideo);  
+        m_pRendererVideo = NULL;
+    }
     
     if(m_Y!=NULL) { free(m_Y); m_Y=NULL; }
     if(m_U!=NULL) { free(m_U); m_U=NULL; }
@@ -185,6 +202,93 @@ MMP_RESULT CMmpPlayerVideo::Close()
     if(m_stream_buffer!=NULL) { free(m_stream_buffer); m_stream_buffer = NULL; }
     
     return MMP_SUCCESS;
+}
+
+MMP_S64 CMmpPlayerVideo::GetDuration() {
+
+    MMP_S64 dur = 0;
+    if(m_pDemuxer != NULL) {
+       dur = m_pDemuxer->GetDuration();
+    }
+    return dur;
+}
+    
+MMP_S32 CMmpPlayerVideo::GetPlayFPS() {
+    return m_fps;
+}
+
+MMP_S64 CMmpPlayerVideo::GetPlayPosition() {
+    return m_last_packet_pts;
+}
+
+MMP_S32 CMmpPlayerVideo::GetVideoDecoderFPS() {
+
+    MMP_S32 fps = 0;
+    
+    if(m_pDecoderVideo != NULL) {
+        fps = m_pDecoderVideo->GetAvgFPS();
+    }
+
+    return fps;
+}
+
+MMP_S32 CMmpPlayerVideo::GetVideoDecoderDur() {
+
+    MMP_S32 dur = 0;
+    
+    if(m_pDecoderVideo != NULL) {
+        dur = m_pDecoderVideo->GetAvgDur();
+    }
+
+    return dur;
+}
+
+const MMP_CHAR* CMmpPlayerVideo::GetVideoDecoderClassName() {
+
+    return m_pDecoderVideo->GetClassName();
+}
+
+MMP_S32 CMmpPlayerVideo::GetVideoWidth() {
+    MMP_S32 val = 0;
+    if(m_pDemuxer != NULL) {
+       val = m_pDemuxer->GetVideoPicWidth();
+    }
+    return val;
+}
+
+MMP_S32 CMmpPlayerVideo::GetVideoHeight() {
+    MMP_S32 val = 0;
+    if(m_pDemuxer != NULL) {
+       val = m_pDemuxer->GetVideoPicHeight();
+    }
+    return val;
+}
+
+MMP_U32 CMmpPlayerVideo::GetVideoFormat(){
+    MMP_U32 val = 0;
+    if(m_pDemuxer != NULL) {
+       val = m_pDemuxer->GetVideoFormat();
+    }
+    return val;
+}
+
+/* Video Renderer */
+void CMmpPlayerVideo::SetFirstVideoRenderer() {
+
+    if(m_pRendererVideo != NULL) {
+        m_pRendererVideo->SetFirstRenderer();
+    }
+}
+
+MMP_BOOL CMmpPlayerVideo::IsFirstVideoRenderer() {
+
+    MMP_BOOL bFlag = MMP_FALSE;
+
+    if(m_pRendererVideo != NULL) {
+        bFlag = m_pRendererVideo->IsFirstRenderer();
+    }
+
+    return bFlag;
 }
 
 void CMmpPlayerVideo::Service()
@@ -196,16 +300,22 @@ void CMmpPlayerVideo::Service()
     MMP_U32 frame_count = 0;
     MMP_S64 packet_pts;
     FILE* dump_fp = NULL;
-
+    MMP_S32 fps = 0;
+    MMP_U32 cur_tick, before_tick, t1, t2;
+    class mmp_buffer_videoframe* p_buf_videoframe;
+    
 #if 1
 #if (MMP_OS == MMP_OS_WIN32)
     dump_fp = fopen("d:\\work\\h264_BP_FullHD.h264", "wb");
 #endif
 #endif
     
-    
+    before_tick = CMmpUtil::GetTickCount();
+
     while(m_bServiceRun == MMP_TRUE) {
-    
+
+        t1 = CMmpUtil::GetTickCount();
+        
         mmpResult = m_pDemuxer->GetNextVideoData(m_stream_buffer, m_stream_buffer_max_size, &stream_buf_size, &packet_pts);
         if(mmpResult == MMP_SUCCESS) {
 
@@ -216,8 +326,10 @@ void CMmpPlayerVideo::Service()
             pMediaSample->pAu = m_stream_buffer;
             pMediaSample->uiAuSize = stream_buf_size;
             pMediaSample->uiSampleNumber = 0;
-            pMediaSample->uiTimeStamp = 0;
+            pMediaSample->uiTimeStamp = packet_pts;
             pMediaSample->uiFlag = 0;
+
+            m_last_packet_pts = packet_pts;
 
             pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y] = (MMP_U32)m_Y;
             pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U] = (MMP_U32)m_U;
@@ -232,17 +344,42 @@ void CMmpPlayerVideo::Service()
                     
             m_pDecoderVideo->DecodeAu(pMediaSample, pDecResult);
             if(pDecResult->uiDecodedSize > 0) {
-                m_pRendererVideo->RenderYUV420Planar(m_Y, m_U, m_V,m_buffer_width, m_buffer_height);
+
+                switch(pDecResult->uiResultType) {
+                    case MMP_MEDIASAMPLE_BUFFER_TYPE_VIDEO_FRAME:
+                         p_buf_videoframe = (class mmp_buffer_videoframe*)pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_VIDEO_FRAME];
+                         m_pRendererVideo->Render(p_buf_videoframe);
+                         break;
+
+                    case MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD:
+                         m_pRendererVideo->Render(pDecResult);
+                         break;
+                
+                    default:
+                        m_pRendererVideo->RenderYUV420Planar(m_Y, m_U, m_V,m_buffer_width, m_buffer_height);
+                        break;
+                }
             }
+
+            fps++;
         }
 
         frame_count++;
+        t2 = CMmpUtil::GetTickCount();
+        cur_tick = t2;    
+        if( (cur_tick - before_tick) > 1000 ) {
+            m_fps = fps;
+            fps = 0;
+            before_tick = cur_tick;
+        }
+        
+        if( (t2-t1) < 20 ) {
+            CMmpUtil::Sleep(30);
+        }
+        else {
+            CMmpUtil::Sleep(10);
+        }
 
-        //if(frame_count > 120) {
-        //    break;
-        //}
-
-        CMmpUtil::Sleep(1);
     } /* endo fo while(m_bServiceRun == MMP_TRUE) { */
 
     if(dump_fp != NULL) {

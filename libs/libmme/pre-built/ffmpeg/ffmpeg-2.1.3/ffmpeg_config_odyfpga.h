@@ -55,9 +55,16 @@
 #define HAVE_ARMV5TE 1
 #define HAVE_ARMV6 1
 #define HAVE_ARMV6T2 1
+#if 0 /* set by hthwang */
 #define HAVE_NEON 0
 #define HAVE_VFP 0
 #define HAVE_VFPV3 0
+#else
+#define HAVE_NEON 1
+#define HAVE_VFP 1
+#define HAVE_VFPV3 1
+
+#endif
 #define HAVE_AMD3DNOW 0
 #define HAVE_AMD3DNOWEXT 0
 #define HAVE_AVX 0

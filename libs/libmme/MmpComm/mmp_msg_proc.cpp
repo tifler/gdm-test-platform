@@ -119,7 +119,9 @@ void mmp_msg_packet::set_timer(MMP_U32 dur_timer) {
 class mmp_msg_res
 *******************************************/
 mmp_msg_res::mmp_msg_res(MMP_S32 queue_size) :
-m_p_mutex(NULL)
+
+m_req_queue_size(queue_size)
+,m_p_mutex(NULL)
 ,m_p_cond(NULL)
 ,m_queue(queue_size)
 ,m_task_run(MMP_FALSE)
@@ -137,6 +139,44 @@ MMP_RESULT mmp_msg_res::open(void (*task_service_func)(void*), void* task_parm) 
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
     struct mmp_oal_task_create_config oal_task_create_config;
+    class mmp_msg_packet* p_msg_pack;
+    MMP_S32 i;
+
+    /* check queue status */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        for(i = 0; i < m_req_queue_size*100; i++) {
+            p_msg_pack = (class mmp_msg_packet*)(0x100+i);
+            m_queue.Add(p_msg_pack);
+            if(m_queue.IsFull()==MMP_TRUE) {
+                break;
+            }
+        }
+
+        if(m_queue.GetSize() == m_req_queue_size) {
+            
+            for(i = 0; i < m_req_queue_size*100; i++) {
+                m_queue.Delete(p_msg_pack);
+                if(p_msg_pack != (class mmp_msg_packet*)(0x100+i) ) {
+                    mmpResult = MMP_FAILURE;
+                    break;
+                }
+
+                if(m_queue.IsEmpty()==MMP_TRUE) {
+                    i++;
+                    break;
+                }
+            }
+
+            if(i != m_req_queue_size) {
+                mmpResult = MMP_FAILURE;
+            }
+        }
+        else {
+            mmpResult = MMP_FAILURE;
+        }
+
+    }
 
     if(mmpResult == MMP_SUCCESS) {
         m_p_mutex = mmp_oal_mutex::create_object();
@@ -322,6 +362,7 @@ MMP_RESULT mmp_msg_proc::close() {
 
     if(m_p_mutex_timer != NULL) {
         mmp_oal_mutex::destroy_object(m_p_mutex_timer);
+        m_p_mutex_timer = NULL;
     }
 
     m_res_read.close();

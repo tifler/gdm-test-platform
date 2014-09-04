@@ -24,13 +24,14 @@
 
 #include "MmpDecoderVideo.hpp"
 #include "MmpDecoderFfmpeg.hpp"
+#include "mmp_buffer_videoframe.hpp"
 
 class CMmpDecoderVideo_Ffmpeg : public CMmpDecoderVideo, CMmpDecoderFfmpeg
 {
 friend class CMmpDecoder;
 
 private:
-    
+    class mmp_buffer_videoframe* m_p_framebuf;
     
 protected:
     CMmpDecoderVideo_Ffmpeg(struct MmpDecoderCreateConfig *pCreateConfig);
@@ -39,7 +40,7 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
-    virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"Ffmpeg";}
+    virtual const MMP_CHAR* GetClassName() { return (const MMP_CHAR*)"Ffmpeg";}
 public:
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);

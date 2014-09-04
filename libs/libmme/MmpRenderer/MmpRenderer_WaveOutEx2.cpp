@@ -34,7 +34,7 @@ void CALLBACK CMmpRenderer_WaveOutEx2::waveOutProcStub(HWAVEOUT WaveOutHandle, U
     pObj->waveOutProc(WaveOutHandle, uMsg, dwInstance, dwParam1, dwParam2 );
 }
 
-CMmpRenderer_WaveOutEx2::CMmpRenderer_WaveOutEx2(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(pRendererProp)
+CMmpRenderer_WaveOutEx2::CMmpRenderer_WaveOutEx2(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(MMP_MEDIATYPE_AUDIO, pRendererProp)
 ,m_WaveOutHandle(NULL)
 ,m_sync_cs(NULL)
 ,m_hEvent(NULL)
@@ -452,8 +452,8 @@ MMP_RESULT CMmpRenderer_WaveOutEx2::Render(CMmpMediaSampleDecodeResult* pDecResu
 
 MMP_RESULT CMmpRenderer_WaveOutEx2::Render(CMmpMediaSampleDecodeResult* pDecResult)
 {
-    int bufIndex,decodedSize;
-    unsigned int decodedBufAddr;
+    //int bufIndex;//,decodedSize;
+    //unsigned int decodedBufAddr;
     MMP_RESULT mmpResult = MMP_SUCCESS;
 
 #if 0

@@ -59,6 +59,7 @@ enum {
 	SET_FRAME_BUF = 4,
 	ENCODE_HEADER = 5,
 	ENC_PARA_SET = 6,
+    DEC_RENEW = 6,
 	DEC_PARA_SET = 7,
 	DEC_BUF_FLUSH = 8,
 	RC_CHANGE_PARAMETER	= 9,
@@ -161,6 +162,9 @@ typedef struct {
 	DecOutputInfo   decOutInfo[MAX_GDI_IDX];
 	TiledMapConfig	mapCfg;
 	int reorderEnable;
+    int skipReorderEnable;
+    int reOrderQueueNum;
+    int reOrderQueue[MAX_GDI_IDX];
 	AVCErrorConcealMode avcErrorConcealMode;
 	DRAMConfig dramCfg;
 	int thumbnailMode;
@@ -230,7 +234,7 @@ extern "C" {
 #endif
 
 	RetCode BitLoadFirmware(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *codeWord, int codeSize);
-
+	RetCode BitLoadFirmwareCodewrite(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *codeWord, int codeSize);
 	void BitIssueCommand(Uint32 coreIdx, CodecInst *inst, int cmd);
 	RetCode InitCodecInstancePool(Uint32 coreIdx);
 	RetCode GetCodecInstance(Uint32 coreIdx, CodecInst ** ppInst);
@@ -278,8 +282,7 @@ extern "C" {
 	void SetPendingInst(Uint32 coreIdx, CodecInst *inst);
     void ClearPendingInst(Uint32 coreIdx);
 	CodecInst *GetPendingInst(Uint32 coreIdx);
-	int GetPendingInstIdx(Uint32 coreIdx);
-
+	
 	int SetTiledMapType(Uint32 coreIdx, TiledMapConfig *pMapCfg, DRAMConfig *dramCfg, int stride, int mapType);
 	void SetTiledFrameBase(Uint32 coreIdx, PhysicalAddress baseAddr);
 	PhysicalAddress GetTiledFrameBase(Uint32 coreIdx, FrameBuffer *frame, int num);

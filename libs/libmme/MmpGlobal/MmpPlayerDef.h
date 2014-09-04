@@ -70,7 +70,7 @@ struct MmpEncoderCreateConfig {
 
 #define MMP_RENDERER_TYPE_NORMAL     0x100
 #define MMP_RENDERER_TYPE_DUMMY      0x101
-#define MMP_RENDERER_TYPE_FILEWRITE  0x102
+#define MMP_RENDERER_TYPE_YUVWRITER  0x102
 
 typedef struct CMmpRenderCreateProp_st
 {
@@ -117,6 +117,11 @@ struct mmp_player_callback_playtime {
     //MMP_S64 last_render_time[MMP_MEDIATYPE_MAX];
 };
 
+struct mmp_player_option_yuv {
+    MMP_S32 width;
+    MMP_S32 height;
+};
+
 typedef struct CMmpPlayerCreateProp_st
 {
     //Source
@@ -129,10 +134,27 @@ typedef struct CMmpPlayerCreateProp_st
     //Audio Config
     MMPWAVEFORMATEX audio_wf;
 
+    union {
+        struct mmp_player_option_yuv yuv;
+    }option;
 
     void* callback_privdata;
     void (*callback)(void* priv, MMP_U32 msg, void* data1, void* data2);
 }CMmpPlayerCreateProp;
+
+#define MMP_MEDIASAMPLE_BUFFER_TYPE_HEAP_MEM 0x10
+#define MMP_MEDIASAMPLE_BUFFER_TYPE_PHY_MEM  0x11
+#define MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD   0x12
+#define MMP_MEDIASAMPLE_BUFFER_TYPE_VIDEO_FRAME  0x13
+
+#define MMP_MEDIASAMPLE_PLANE_COUNT 3
+#define MMP_MEDIASAMPLE_BUF_Y 0
+#define MMP_MEDIASAMPLE_BUF_U 1
+#define MMP_MEDIASAMPLE_BUF_V 2
+#define MMP_MEDIASAMPLE_BUF_CB MMP_MEDIASAMPLE_BUF_U
+#define MMP_MEDIASAMPLE_BUF_CR MMP_MEDIASAMPLE_BUF_V
+
+#define MMP_MEDIASAMPLE_BUF_PCM 0
 
 #define MMP_MEDIASAMPMLE_FLAG_CONFIGDATA     (1<<0)
 #define MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME (1<<1)
@@ -147,20 +169,22 @@ typedef struct CMmpMediaSample_st
     MMP_U32 uiFlag;
 }CMmpMediaSample;
 
-#define MMP_DECODED_BUF_PCM 0
-#define MMP_DECODED_BUF_Y 0
-#define MMP_DECODED_BUF_U 1
-#define MMP_DECODED_BUF_V 2
+#define MMP_DECODED_BUF_PCM MMP_MEDIASAMPLE_BUF_PCM
+#define MMP_DECODED_BUF_Y MMP_MEDIASAMPLE_BUF_Y
+#define MMP_DECODED_BUF_U MMP_MEDIASAMPLE_BUF_U
+#define MMP_DECODED_BUF_V MMP_MEDIASAMPLE_BUF_V
+#define MMP_DECODED_BUF_VIDEO_FRAME 0
 typedef struct CMmpMediaSampleDecodeResult_st
 {
+    MMP_U32 uiResultType;
+    
     MMP_BOOL bImage;                     //outbuf[0]
 	MMP_BOOL bReconfig; 
 	
-    
-    MMP_U32 uiDecodedBufferPhyAddr[3];
-    MMP_U32 uiDecodedBufferLogAddr[3];
-    MMP_U32 uiDecodedBufferStride[3];       //Buffer Stride
-    MMP_U32 uiDecodedBufferAlignHeight[3];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
+    MMP_U32 uiDecodedBufferPhyAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_U32 uiDecodedBufferLogAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_U32 uiDecodedBufferStride[MMP_MEDIASAMPLE_PLANE_COUNT];       //Buffer Stride
+    MMP_U32 uiDecodedBufferAlignHeight[MMP_MEDIASAMPLE_PLANE_COUNT];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
     MMP_U32 uiDecodedBufferMaxSize; 
     
     MMP_U32 uiDecodedSize;                       //outbuf[7]  reserve
@@ -175,13 +199,14 @@ typedef struct CMmpMediaSampleDecodeResult_st
 
 }CMmpMediaSampleDecodeResult;
 
-
 typedef struct CMmpMediaSampleEncode_st
 {
-    MMP_U32 uiBufferPhyAddr[3];
-    MMP_U32 uiBufferLogAddr[3];
-    MMP_U32 uiBufferStride[3];       //Buffer Stride
-    MMP_U32 uiBufferAlignHeight[3];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
+    MMP_U32 uiSampleType;
+
+    MMP_U32 uiBufferPhyAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_U32 uiBufferLogAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_U32 uiBufferStride[MMP_MEDIASAMPLE_PLANE_COUNT];       //Buffer Stride
+    MMP_U32 uiBufferAlignHeight[MMP_MEDIASAMPLE_PLANE_COUNT];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
     MMP_U32 uiBufferMaxSize; 
 
     MMP_U32 uiSampleNumber;            //inbuf[4]  (input) sample number for debugging

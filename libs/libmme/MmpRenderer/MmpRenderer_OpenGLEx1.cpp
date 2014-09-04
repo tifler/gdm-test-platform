@@ -26,7 +26,7 @@
 /////////////////////////////////////////////////////////////
 //CMmpRenderer_OpenGLEx1 Member Functions
 
-CMmpRenderer_OpenGLEx1::CMmpRenderer_OpenGLEx1(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(pRendererProp)
+CMmpRenderer_OpenGLEx1::CMmpRenderer_OpenGLEx1(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(MMP_MEDIATYPE_VIDEO, pRendererProp)
 ,m_pMmpGL(NULL)
 ,m_iRenderCount(0)
 
@@ -163,6 +163,59 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(CMmpMediaSampleDecodeResult* pDecResul
     return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
+
+    MMP_U8 *Y,*U,*V;
+    int picWidth, picHeight;
+    int lumaSize, y_stride, uv_stride;
+    unsigned char* pImageBuffer;
+
+    if(m_pMmpGL != NULL) {
+
+        picWidth = m_pMmpGL->GetPicWidth();
+        picHeight = m_pMmpGL->GetPicHeight();
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
+        lumaSize=picWidth*picHeight;
+        
+        Y = p_buf_videoframe->get_buf_vir_addr_y();
+        U = p_buf_videoframe->get_buf_vir_addr_cb();
+        V = p_buf_videoframe->get_buf_vir_addr_cr();
+
+        y_stride = p_buf_videoframe->get_stride_luma();
+        uv_stride = p_buf_videoframe->get_stride_chroma();
+            
+        (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
+				        picWidth*3, //int x_stride,
+					    Y, //uint8_t * y_src,
+					    V, //uint8_t * v_src,
+					    U, //uint8_t * u_src,
+					    y_stride,//int y_stride,
+					    uv_stride, //int uv_stride,
+					    picWidth, //int width,
+					    picHeight, //int height,
+					    1 //int vflip
+                        );
+
+
+    
+       m_pMmpGL->Draw();
+    }
+    else {
+        picWidth = this->m_pRendererProp->m_iPicWidth;
+        picHeight = this->m_pRendererProp->m_iPicHeight;
+
+        Y = p_buf_videoframe->get_buf_vir_addr_y();
+        U = p_buf_videoframe->get_buf_vir_addr_cb();
+        V = p_buf_videoframe->get_buf_vir_addr_cr();
+
+    }
+
+    m_iRenderCount++;
+    this->Dump(Y, U, V, picWidth, picHeight);
+
+    return MMP_SUCCESS;
+}
+    
 MMP_RESULT CMmpRenderer_OpenGLEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     int picWidth, picHeight;

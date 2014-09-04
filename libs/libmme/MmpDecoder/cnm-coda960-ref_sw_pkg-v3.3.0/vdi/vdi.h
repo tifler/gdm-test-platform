@@ -7,7 +7,9 @@
 #ifndef _VDI_H_
 #define _VDI_H_
 
-#include "MmpDefine.h"
+#ifdef CNM_HISI_PLATFORM
+#include <linux/fb.h>
+#endif
 #include "../vpuapi/vpuconfig.h"
 #include "../vpuapi/regdefine.h"
 #include "mm.h"
@@ -28,31 +30,23 @@
 #define VpuWriteMem( CORE, ADDR, DATA, LEN, ENDIAN )	vdi_write_memory( CORE, ADDR, DATA, LEN, ENDIAN )		// system memory write
 #define VpuReadMem( CORE, ADDR, DATA, LEN, ENDIAN )		vdi_read_memory( CORE, ADDR, DATA, LEN, ENDIAN )		// system memory write
 
-#if (MMP_OS == MMP_OS_WIN32)
-extern int vdi_write_memory_ffmpeg_framebuffer(unsigned long coreIdx, unsigned int addr, unsigned char *data, int len, int endian);
-#endif
 
 
 typedef struct vpu_buffer_t {
 	unsigned int size;
-	unsigned int  phys_addr;
+	unsigned int  phys_addr;	
 #ifdef CNM_HISI_PLATFORM	
 	unsigned long long base;
 #else
 	unsigned long base;
 #endif
 	unsigned long virt_addr;
-    
-    int ion_shared_fd; 
+    unsigned int firmware_code_reuse; // vpu_code_write flag		
+    unsigned int ion_shared_fd;    // ion fd buffer index value
 } vpu_buffer_t;
 
 #ifdef CNM_HISI_PLATFORM
 /* add by y00251056 at 2014-5-9 for sram  start */
-typedef struct SramDrvInfo {
-   unsigned int sram_size;
-   unsigned int phys_addr;
-} SramDrvInfo;
-
 typedef struct SramVdiInfo {
    unsigned int sram_size;
    unsigned long phys_addr;
@@ -95,6 +89,7 @@ typedef struct vpu_instance_pool_t {
 	void *pendingInst;
 	int pendingInstIdxPlus1;
 	vpu_buffer_t vpu_common_buffer;
+	int vpu_clock_state;
 	video_mm_t vmem;	    
 } vpu_instance_pool_t;
 
@@ -114,6 +109,12 @@ extern "C" {
 	int vdi_get_sram_memory(unsigned long core_idx, vpu_buffer_t *vb);
 	int vdi_dettach_dma_memory(unsigned long core_idx, vpu_buffer_t *vb);
 
+#ifdef __VPU_PLATFORM_MME
+    //add by hthwnag
+    int vdi_register_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb);
+    void vdi_unregister_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb);
+#endif
+
 	int vdi_wait_interrupt(unsigned long core_idx, int timeout, unsigned int addr_bit_int_reason);
 	int vdi_wait_vpu_busy(unsigned long core_idx, int timeout, unsigned int addr_bit_busy_flag);
 	int vdi_wait_bus_busy(unsigned long coreIdx, int timeout, unsigned int gdi_busy_flag);
@@ -128,17 +129,19 @@ extern "C" {
 
 	int vdi_write_memory(unsigned long core_idx, unsigned int addr, unsigned char *data, int len, int endian);
 	int vdi_read_memory(unsigned long core_idx, unsigned int addr, unsigned char *data, int len, int endian);
-#ifdef ANDROID
-	int vdi_omx_lock(unsigned long core_idx);
-	void vdi_omx_unlock(unsigned long coreIdx);
-#endif
+
 	int vdi_lock(unsigned long core_idx);
-	int vdi_lock_check(unsigned long coreIdx);
 	void vdi_unlock(unsigned long core_idx);
 	int vdi_disp_lock(unsigned long core_idx);
 	void vdi_disp_unlock(unsigned long core_idx);
+#ifdef CNM_HISI_PLATFORM
+	int vdi_get_screen_info(struct fb_var_screeninfo* var);
+#endif
+#if defined(linux) || defined(__linux) || defined(ANDROID)
+#else	
 	int vmem_lock(unsigned long coreIdx);
 	void vmem_unlock(unsigned long coreIdx);
+#endif
     void vdi_set_sdram(unsigned long core_idx, unsigned int addr, int len, unsigned char data, int endian);
 	void vdi_log(unsigned long coreIdx, int cmd, int step);
 	int vdi_open_instance(unsigned long coreIdx, unsigned long instIdx);
@@ -153,6 +156,9 @@ extern "C" {
     int vdi_allocate_sram_memory(unsigned int coreIdx, unsigned int memSize);
     int vdi_free_sram_memory(unsigned int coreIdx);
     /* add by y00251056 at 2014-5-9 for sram  end */
+	/* add by y00251056 at 2014-7-31  start */
+	int vdi_get_memory_virtual_addr(unsigned long coreIdx, unsigned int addr, vpu_buffer_t *outPutVdb);
+	/* add by y00251056 at 2014-7-31  end */
 #endif //CNM_HISI_PLATFORM
 
 #ifdef CNM_FPGA_PLATFORM
@@ -166,7 +172,6 @@ extern "C" {
 #if defined (__cplusplus)
 }
 #endif
-
 
 #endif //#ifndef _VDI_H_
 

@@ -41,13 +41,12 @@
 
 #elif (MMP_OS == MMP_OS_LINUX_ODYSSEUS_FPGA)
 //#include "MmpRenderer_OdyFpgaDisplay.hpp"
-#include "MmpRenderer_OdyClient.hpp"
-
 #else
 #error "ERROR : Select OS"
 #endif
 
-#include "MmpRenderer_FileWriter.hpp"
+#include "MmpRenderer_OdyClientEx1.hpp"
+#include "MmpRenderer_YUVWriter.hpp"
 #include "MmpRenderer_Dummy.hpp"
 
 //////////////////////////////////////////////////////////////
@@ -95,25 +94,37 @@ CMmpRenderer* CMmpRenderer::CreateVideoObject(CMmpRendererCreateProp* pRendererP
             pObj=new CMmpRenderer_Dummy(pRendererProp);
             break;
 
-        case MMP_RENDERER_TYPE_FILEWRITE:
-            pObj=new CMmpRenderer_FileWriter(pRendererProp);
+        case MMP_RENDERER_TYPE_YUVWRITER:
+            pObj=new CMmpRenderer_YUVWriter(pRendererProp);
             break;
 
         case MMP_RENDERER_TYPE_NORMAL:
         default:
-            #if (MMP_OS == MMP_OS_WIN32)
+#if (MMP_OS == MMP_OS_WIN32)
+
+            if(pRendererProp->m_hRenderWnd != NULL) {
                 pObj=new CMmpRenderer_OpenGLEx1(pRendererProp);
-            #elif (MMP_OS_LINUX == MMP_OS_LINUX_ANDROID)
-                pObj=new CMmpRenderer_AndroidSurfaceEx1(pRendererProp);
-            #elif (MMP_OS_LINUX == MMP_OS_LINUX_ARM)
-                //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
-                pObj=new CMmpRenderer_FileWriter(pRendererProp);
-            #elif (MMP_OS_LINUX == MMP_OS_LINUX_ODYSSEUS_FPGA)
-                //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
-				pObj=new CMmpRenderer_OdyClient(pRendererProp);
-            #else
-            #error "ERROR : Select OS"
-            #endif
+            }
+            else {
+                pObj=new CMmpRenderer_YUVWriter(pRendererProp);
+            }
+            //pObj=new CMmpRenderer_OdyClientEx1(pRendererProp);
+            //pObj=new CMmpRenderer_Dummy(pRendererProp);
+            //pObj=new CMmpRenderer_FileWriter(pRendererProp);
+#elif (MMP_OS_LINUX == MMP_OS_LINUX_ANDROID)
+            pObj=new CMmpRenderer_AndroidSurfaceEx1(pRendererProp);
+#elif (MMP_OS_LINUX == MMP_OS_LINUX_ARM)
+            //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
+            pObj=new CMmpRenderer_FileWriter(pRendererProp);
+#elif (MMP_OS_LINUX == MMP_OS_LINUX_ODYSSEUS_FPGA)
+            //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
+			//pObj=new CMmpRenderer_Dummy(pRendererProp);
+			//pObj=new CMmpRenderer_OdyClient(pRendererProp);
+            pObj=new CMmpRenderer_OdyClientEx1(pRendererProp);
+            //pObj=new CMmpRenderer_YUVWriter(pRendererProp);
+#else
+#error "ERROR : Select OS to create VideoRenderer"
+#endif
 
             
     }
@@ -145,15 +156,20 @@ MMP_RESULT CMmpRenderer::DestroyObject(CMmpRenderer* pObj)
 /////////////////////////////////////////////////////////////
 //CMmpRenderer Member Functions
 
-CMmpRenderer::CMmpRenderer(CMmpRendererCreateProp* pRendererProp) :
+CMmpRenderer* CMmpRenderer::s_pFirstRenderer[MMP_MEDIATYPE_MAX] = { NULL, NULL };
 
-m_pVideoEncoder(NULL)
+CMmpRenderer::CMmpRenderer(enum MMP_MEDIATYPE mt, CMmpRendererCreateProp* pRendererProp) :
+
+m_MediaType(mt)
+,m_pVideoEncoder(NULL)
 ,m_pMuxer(NULL)
 ,m_p_enc_stream(NULL)
 
 {
 	memcpy(&m_RendererProp, pRendererProp, sizeof(CMmpRendererCreateProp));
 	m_pRendererProp = &m_RendererProp;
+
+    CMmpRenderer::s_pFirstRenderer[m_MediaType] = this;
 }
 
 CMmpRenderer::~CMmpRenderer()
@@ -219,6 +235,19 @@ MMP_RESULT CMmpRenderer::Close()
     return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpRenderer::Render(CMmpMediaSampleDecodeResult* pDecResult)
+{
+    MMP_RESULT mmpResult = MMP_FAILURE;
+
+    switch(pDecResult->uiResultType) {
+        case  MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD:
+            mmpResult = this->Render_Ion(pDecResult);
+            break;
+    }
+    
+    return mmpResult;
+}
+
 
 MMP_RESULT CMmpRenderer::RenderPCM(MMP_U8* pcm_buffer, MMP_U32 pcm_byte_size) {
     CMmpMediaSampleDecodeResult dec;
@@ -247,6 +276,52 @@ MMP_RESULT CMmpRenderer::EncodeAndMux(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 b
                 }
             }
          }
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpRenderer::EncodeAndMux(CMmpMediaSampleDecodeResult* pDecResult) {
+
+    MMP_S32 i;
+    MMP_U32 buffer_enc_stream_size;
+    MMP_U32 buffer_enc_flag;
+    MMP_RESULT mmpResult;
+    
+    m_MediaSample_Enc.uiSampleType = pDecResult->uiResultType;
+
+    if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
+    
+        for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+            m_MediaSample_Enc.uiBufferPhyAddr[i] = pDecResult->uiDecodedBufferPhyAddr[i];
+            m_MediaSample_Enc.uiBufferLogAddr[i] = pDecResult->uiDecodedBufferLogAddr[i];
+            m_MediaSample_Enc.uiBufferStride[i] = pDecResult->uiDecodedBufferStride[i];
+            m_MediaSample_Enc.uiBufferAlignHeight[i] = pDecResult->uiDecodedBufferAlignHeight[i];
+        }
+        m_MediaSample_Enc.pixelformat = MMP_PIXELFORMAT_YUV420_PLANAR;;
+        m_MediaSample_Enc.uiBufferMaxSize = 0;
+        m_MediaSample_Enc.uiTimeStamp = 0;
+        m_MediaSample_Enc.uiFlag = 0;
+
+        m_MediaSample_EncResult.uiEncodedBufferLogAddr[0] = (MMP_U32)m_p_enc_stream;
+        m_MediaSample_EncResult.uiEncodedBufferMaxSize[0] = ENC_STREAM_MAX_SIZE;
+        m_MediaSample_EncResult.uiEncodedStreamSize[0] = 0;
+        m_MediaSample_EncResult.uiFlag = 0;
+
+        MMPDEBUGMSG(0, (TEXT("[CMmpRenderer::EncodeAndMux] type=0x%x "), m_MediaSample_Enc.uiSampleType));
+        mmpResult = m_pVideoEncoder->EncodeAu(&m_MediaSample_Enc, &m_MediaSample_EncResult);
+        if(mmpResult == MMP_SUCCESS) {
+
+            buffer_enc_stream_size = m_MediaSample_EncResult.uiEncodedStreamSize[0];
+            buffer_enc_flag = m_MediaSample_EncResult.uiFlag;
+
+            m_pMuxer->AddVideoData(m_p_enc_stream, buffer_enc_stream_size, buffer_enc_flag, 0);
+            if(m_pVideoEncoder->EncodedFrameQueue_IsEmpty() != MMP_TRUE) {
+                if(m_pVideoEncoder->EncodedFrameQueue_GetFrame(m_p_enc_stream, ENC_STREAM_MAX_SIZE, &buffer_enc_stream_size, &buffer_enc_flag) == MMP_SUCCESS) {
+                    m_pMuxer->AddVideoData(m_p_enc_stream, buffer_enc_stream_size, buffer_enc_flag, 0);
+                }
+            }
+        }
     }
 
     return MMP_SUCCESS;

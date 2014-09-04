@@ -23,6 +23,7 @@
 #define MMPPLAYERVIDEO_HPP__
 
 #include "MmpPlayer.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 class CMmpPlayerVideo : public CMmpPlayer
 {
@@ -47,6 +48,9 @@ private:
     CMmpMediaSampleDecodeResult m_DecResult;
     CMmpRendererCreateProp m_RendererProp;
     
+    MMP_S64 m_last_packet_pts;
+    MMP_S32 m_fps;
+
 protected:
     CMmpPlayerVideo(CMmpPlayerCreateProp* pPlayerProp);
     virtual ~CMmpPlayerVideo();
@@ -55,6 +59,24 @@ protected:
     virtual MMP_RESULT Close();
 
     virtual void Service();
+
+public:
+    virtual MMP_S64 GetDuration();
+    virtual MMP_S64 GetPlayPosition();
+    virtual MMP_S32 GetPlayFPS();
+    
+    virtual MMP_S32 GetVideoWidth();
+    virtual MMP_S32 GetVideoHeight();
+    virtual MMP_U32 GetVideoFormat();
+
+    virtual MMP_S32 GetVideoDecoderFPS();
+    virtual MMP_S32 GetVideoDecoderDur();
+    virtual const MMP_CHAR* GetVideoDecoderClassName();
+
+    /* Video Renderer */
+    virtual void SetFirstVideoRenderer();
+    virtual MMP_BOOL IsFirstVideoRenderer();
+    
 };
 
 #endif

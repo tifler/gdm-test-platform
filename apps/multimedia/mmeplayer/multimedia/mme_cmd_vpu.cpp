@@ -36,7 +36,7 @@ int mme_command_vpu_test1(int argc, char* argv[]) {
     vpu_ret = VPU_Init(coreIdx);
     if( (vpu_ret == RETCODE_SUCCESS) || (vpu_ret == RETCODE_CALLED_BEFORE) ) {
         MMESHELL_PRINT(MMESHELL_INFO, ("SUCCESS :  VPU_Init \n"));
-
+#if 0
         VPU_GetVersionInfo(coreIdx, &version, &revision, &productId);	
 
         MMESHELL_PRINT(MMESHELL_INFO, ("VPU coreNum : [%d]\n", coreIdx));
@@ -44,7 +44,7 @@ int mme_command_vpu_test1(int argc, char* argv[]) {
         (Uint32)(version>>16), (Uint32)((version>>(12))&0x0f), (Uint32)((version>>(8))&0x0f), (Uint32)((version)&0xff), revision));
         MMESHELL_PRINT(MMESHELL_INFO, ("Hardware Version => %04x\n", productId));
         MMESHELL_PRINT(MMESHELL_INFO, ("API Version => %04x\n\n", API_VERSION));
-
+#endif
 
     }
     else {

@@ -79,7 +79,7 @@ MMP_RESULT CMmpPlayerAVEx1::Open()
 {
     MMP_RESULT mmpResult = MMP_SUCCESS;
 
-    struct MmpDecoderCreateConfig decoder_create_config;
+ //   struct MmpDecoderCreateConfig decoder_create_config;
 
     CMmpRendererCreateProp RendererProp;
     CMmpRendererCreateProp* pRendererProp=&RendererProp; 
@@ -476,8 +476,7 @@ void CMmpPlayerAVEx1::Service() {
     MMP_BOOL bFreeAu;
     MMP_RESULT mmpResult;
     MMP_U32 stream_buf_max_size = 1024*1024;
-    MMP_BOOL bRenderAudio;
-
+    
     CMmpMediaSample MediaSampleObj;
     CMmpMediaSampleDecodeResult DecResultObjAudio;
     CMmpMediaSampleDecodeResult DecResultObjVideo;
@@ -486,7 +485,7 @@ void CMmpPlayerAVEx1::Service() {
     CMmpMediaSampleDecodeResult* pDecResultVideo = &DecResultObjVideo;
     
     MMP_U32 start_tick, cur_tick;
-    MMP_U64 playtime;
+    MMP_S64 playtime;
     
     MMP_U32 video_render_count = 0 , audio_render_count = 0;
 

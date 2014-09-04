@@ -70,8 +70,8 @@ typedef struct _video_mm_struct {
 
 
 
-#define VMEM_P_ALLOC(_x)         kmalloc(_x, GFP_KERNEL)
-#define VMEM_P_FREE(_x)          kfree(_x)
+#define VMEM_P_ALLOC(_x)         vmalloc(_x)
+#define VMEM_P_FREE(_x)          vfree(_x)
 
 #define VMEM_ASSERT(_exp)        if (!(_exp)) { printk(KERN_INFO "VMEM_ASSERT at %s:%d\n", __FILE__, __LINE__); /*while(1);*/ }
 #define VMEM_HEIGHT(_tree)       (_tree==NULL ? -1 : _tree->height)
@@ -492,11 +492,15 @@ vmem_init(
     mm->base_addr  = (addr+(VMEM_PAGE_SIZE-1))&~(VMEM_PAGE_SIZE-1);
     mm->mem_size   = size&~VMEM_PAGE_SIZE;
     mm->num_pages  = mm->mem_size/VMEM_PAGE_SIZE;
-    mm->page_list  = (page_t*)VMEM_P_ALLOC(mm->num_pages*sizeof(page_t));
     mm->free_tree  = NULL;
     mm->alloc_tree = NULL;
     mm->free_page_count = mm->num_pages;
     mm->alloc_page_count = 0;
+    mm->page_list  = (page_t*)VMEM_P_ALLOC(mm->num_pages*sizeof(page_t));
+    if (mm->page_list == NULL) {
+        printk(KERN_ERR "%s:%d failed to kmalloc(%d)\n", mm->num_pages*sizeof(page_t));
+        return -1;
+    }
 
     for (i=0; i<mm->num_pages; i++) {
         mm->page_list[i].pageno       = i;

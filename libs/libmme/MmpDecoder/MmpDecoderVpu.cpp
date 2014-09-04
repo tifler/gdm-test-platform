@@ -23,6 +23,7 @@
 #include "MmpUtil.hpp"
 #include "vpuhelper.h"
 #include "MmpH264Tool.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 extern "C"
 {
@@ -132,6 +133,9 @@ m_create_config(*pCreateConfig)
         memset(&m_vbFrame[i], 0x00, sizeof(vpu_buffer_t));
     }
     
+    for(i = 0; i < MAX_FRAMEBUFFER_COUNT; i++) {
+        m_p_decoded_buffer[i] = NULL;
+    }
 }
 
 CMmpDecoderVpu::~CMmpDecoderVpu()
@@ -583,7 +587,6 @@ MMP_RESULT CMmpDecoderVpu::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize) {
         int framebufStride = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16);
         int framebufHeight = MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16);
 
-
         m_regFrameBufCount = m_dec_init_info.minFrameBufferCount + EXTRA_FRAME_BUFFER_NUM;
 
         vpu_ret = VPU_DecRegisterFrameBuffer(m_DecHandle, pUserFrame, m_regFrameBufCount, framebufStride, framebufHeight, m_mapType);
@@ -819,7 +822,7 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
             
             if(m_output_info.indexFrameDisplay >= 0) {
             
-                int luma_size, chroma_size;
+                //int luma_size, chroma_size;
                 FrameBuffer frameBuf;
                 VPU_DecGetFrameBuffer(m_DecHandle, m_output_info.indexFrameDisplay, &frameBuf);
 
@@ -838,7 +841,7 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
                 pDecResult->bImage = MMP_TRUE;
                 pDecResult->uiTimeStamp = pMediaSample->uiTimeStamp;
 
-#if (MMP_OS == MMP_OS_WIN32)
+#if 0//(MMP_OS == MMP_OS_WIN32)
                 luma_size = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16) * MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16);
                 chroma_size = luma_size/4;
                 vdi_read_memory(m_codec_idx, frameBuf.bufY, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y],  luma_size, m_decOP.frameEndian);

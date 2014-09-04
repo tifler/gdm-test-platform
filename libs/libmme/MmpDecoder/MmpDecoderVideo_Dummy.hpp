@@ -39,7 +39,7 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
-    virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"Dummy";}
+    virtual const MMP_CHAR* GetClassName() { return (const MMP_CHAR*)"Dummy";}
 public:
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);

@@ -25,7 +25,7 @@
 /////////////////////////////////////////////////////////////
 //CMmpDecoderVideo_Vpu Member Functions
 
-CMmpDecoderVideo_Vpu::CMmpDecoderVideo_Vpu(struct MmpDecoderCreateConfig *pCreateConfig) : CMmpDecoderVideo(pCreateConfig, MMP_FALSE), CMmpDecoderVpu(pCreateConfig)
+CMmpDecoderVideo_Vpu::CMmpDecoderVideo_Vpu(struct MmpDecoderCreateConfig *pCreateConfig) : CMmpDecoderVideo(pCreateConfig, MMP_FALSE), CLASS_DECODER_VPU(pCreateConfig)
 ,m_bDecodeDSI(MMP_FALSE)
 {
     
@@ -48,7 +48,7 @@ MMP_RESULT CMmpDecoderVideo_Vpu::Open()
     sprintf((char*)m_szCodecName, "%c%c%c%c", MMPGETFOURCC(m_nFormat,0), MMPGETFOURCC(m_nFormat,1), MMPGETFOURCC(m_nFormat,2), MMPGETFOURCC(m_nFormat,3));
 
 
-    mmpResult=CMmpDecoderVpu::Open();
+    mmpResult=CLASS_DECODER_VPU::Open();
     if(mmpResult!=MMP_SUCCESS)
     {
         return mmpResult;
@@ -67,7 +67,7 @@ MMP_RESULT CMmpDecoderVideo_Vpu::Close()
 {
     MMP_RESULT mmpResult;
     
-    mmpResult=CMmpDecoderVpu::Close();
+    mmpResult=CLASS_DECODER_VPU::Close();
     if(mmpResult!=MMP_SUCCESS)
     {
         MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVideo_Vpu::Close] CMmpDecoderFfmpeg::Close() \n\r")));
@@ -92,7 +92,7 @@ MMP_RESULT CMmpDecoderVideo_Vpu::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize)
 
     MMP_RESULT mmpResult;
 
-    mmpResult = CMmpDecoderVpu::DecodeDSI(pStream, nStreamSize);
+    mmpResult = CLASS_DECODER_VPU::DecodeDSI(pStream, nStreamSize);
     if(mmpResult == MMP_SUCCESS) {
     
         m_bih_out.biWidth = m_dec_init_info.picWidth;
@@ -101,8 +101,6 @@ MMP_RESULT CMmpDecoderVideo_Vpu::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize)
 
 	    m_bih_in.biWidth = m_bih_out.biWidth;
 	    m_bih_in.biHeight = m_bih_out.biHeight;
-
-
         
         MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[CMmpDecoderVideo_Vpu::DecodeDSI] Success nForamt=(0x%08x %s)  W=%d H=%d  FrmCnt=%d+1 \n\r"), 
                   m_nFormat, m_szCodecName,
@@ -149,7 +147,6 @@ MMP_RESULT CMmpDecoderVideo_Vpu::DecodeAu(CMmpMediaSample* pMediaSample, CMmpMed
     dec_start_tick = CMmpUtil::GetTickCount();
 
      mmpResult = this->DecodeAu_PinEnd(pMediaSample, pDecResult);
-   
     
     
     dec_end_tick = CMmpUtil::GetTickCount();

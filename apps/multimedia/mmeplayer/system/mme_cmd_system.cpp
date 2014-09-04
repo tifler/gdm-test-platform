@@ -92,7 +92,7 @@ int mme_command_system_memalloc(int argc, char* argv[]) {
         return -1;
     }
 
-    szptr[len-1] = NULL;
+    szptr[len-1] = '\0';
 
     alloc_size = atoi(szptr);
     alloc_size *= alloc_unit;
@@ -158,7 +158,7 @@ int mme_command_system_hardwork(int argc, char* argv[]) {
             while(flag) {
                 if(mallocobj.ptr!=NULL) {
                     memset(mallocobj.ptr, p, mallocobj.size);
-                    MMESHELL_PRINT(MMESHELL_INFO, (" ptr=0x%x sz=%d  ", mallocobj.ptr, mallocobj.size));
+                    MMESHELL_PRINT(MMESHELL_INFO, (" ptr=0x%x sz=%d  ", (unsigned int)mallocobj.ptr, mallocobj.size));
                 }
                 flag = p_system_test->m_list_malloc.GetNext(mallocobj);
             }
@@ -178,43 +178,43 @@ int mme_command_system_meminfo(int argc, char* argv[]) {
     
     CMmpUtil::system_meminfo(&meminfo);
 
-    MMESHELL_PRINT(MMESHELL_INFO, (" MemTotal:     %d KB\n\r", meminfo.MemTotal));
-    MMESHELL_PRINT(MMESHELL_INFO, (" MemFree:      %d KB\n\r", meminfo.MemFree));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Buffers:      %d KB\n\r", meminfo.Buffers));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Cached:       %d KB\n\r", meminfo.Cached));
-    MMESHELL_PRINT(MMESHELL_INFO, (" SwapCached:   %d KB\n\r", meminfo.SwapCached));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Active:       %d KB\n\r", meminfo.Active));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Inactive:     %d KB\n\r", meminfo.Inactive));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Active(anon): %d KB\n\r", meminfo.Active_anon));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Inactive(anon): %d KB\n\r", meminfo.Inactive_anon));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Active(file):   %d KB\n\r", meminfo.Active_file));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Inactive(file): %d KB\n\r", meminfo.Inactive_file));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Unevictable:    %d KB\n\r", meminfo.Unevictable));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Mlocked:        %d KB\n\r", meminfo.Mlocked));
-    MMESHELL_PRINT(MMESHELL_INFO, (" HighTotal:      %d KB\n\r", meminfo.HighTotal));
-    MMESHELL_PRINT(MMESHELL_INFO, (" HighFree:       %d KB\n\r", meminfo.HighFree));
-    MMESHELL_PRINT(MMESHELL_INFO, (" LowTotal:       %d KB\n\r", meminfo.LowTotal));
-    MMESHELL_PRINT(MMESHELL_INFO, (" LowFree:        %d KB\n\r", meminfo.LowFree));
-    MMESHELL_PRINT(MMESHELL_INFO, (" SwapTotal:      %d KB\n\r", meminfo.SwapTotal));
-    MMESHELL_PRINT(MMESHELL_INFO, (" SwapFree:       %d KB\n\r", meminfo.SwapFree));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Dirty:          %d KB\n\r", meminfo.Dirty));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Writeback:      %d KB\n\r", meminfo.Writeback));
-    MMESHELL_PRINT(MMESHELL_INFO, (" AnonPages:      %d KB\n\r", meminfo.AnonPages));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Mapped:         %d KB\n\r", meminfo.Mapped));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Shmem:          %d KB\n\r", meminfo.Shmem));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Slab:           %d KB\n\r", meminfo.Slab));
-    MMESHELL_PRINT(MMESHELL_INFO, (" SReclaimable:   %d KB\n\r", meminfo.SReclaimable));
-    MMESHELL_PRINT(MMESHELL_INFO, (" SUnreclaim:     %d KB\n\r", meminfo.SUnreclaim));
-    MMESHELL_PRINT(MMESHELL_INFO, (" KernelStack:    %d KB\n\r", meminfo.KernelStack));
-    MMESHELL_PRINT(MMESHELL_INFO, (" PageTables:     %d KB\n\r", meminfo.PageTables));
-    MMESHELL_PRINT(MMESHELL_INFO, (" NFS_Unstable:   %d KB\n\r", meminfo.NFS_Unstable));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Bounce:         %d KB\n\r", meminfo.Bounce));
-    MMESHELL_PRINT(MMESHELL_INFO, (" WritebackTmp:   %d KB\n\r", meminfo.WritebackTmp));
-    MMESHELL_PRINT(MMESHELL_INFO, (" CommitLimit:    %d KB\n\r", meminfo.CommitLimit));
-    MMESHELL_PRINT(MMESHELL_INFO, (" Committed_AS:   %d KB\n\r", meminfo.Committed_AS));
-    MMESHELL_PRINT(MMESHELL_INFO, (" VmallocTotal:   %d KB\n\r", meminfo.VmallocTotal));
-    MMESHELL_PRINT(MMESHELL_INFO, (" VmallocUsed:    %d KB\n\r", meminfo.VmallocUsed));
-    MMESHELL_PRINT(MMESHELL_INFO, (" VmallocChunk:   %d KB\n\r", meminfo.VmallocChunk));
+    MMESHELL_PRINT(MMESHELL_INFO, (" MemTotal:     %d KB\n\r", (int)meminfo.MemTotal));
+    MMESHELL_PRINT(MMESHELL_INFO, (" MemFree:      %d KB\n\r", (int)meminfo.MemFree));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Buffers:      %d KB\n\r", (int)meminfo.Buffers));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Cached:       %d KB\n\r", (int)meminfo.Cached));
+    MMESHELL_PRINT(MMESHELL_INFO, (" SwapCached:   %d KB\n\r", (int)meminfo.SwapCached));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Active:       %d KB\n\r", (int)meminfo.Active));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Inactive:     %d KB\n\r", (int)meminfo.Inactive));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Active(anon): %d KB\n\r", (int)meminfo.Active_anon));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Inactive(anon): %d KB\n\r", (int)meminfo.Inactive_anon));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Active(file):   %d KB\n\r", (int)meminfo.Active_file));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Inactive(file): %d KB\n\r", (int)meminfo.Inactive_file));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Unevictable:    %d KB\n\r", (int)meminfo.Unevictable));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Mlocked:        %d KB\n\r", (int)meminfo.Mlocked));
+    MMESHELL_PRINT(MMESHELL_INFO, (" HighTotal:      %d KB\n\r", (int)meminfo.HighTotal));
+    MMESHELL_PRINT(MMESHELL_INFO, (" HighFree:       %d KB\n\r", (int)meminfo.HighFree));
+    MMESHELL_PRINT(MMESHELL_INFO, (" LowTotal:       %d KB\n\r", (int)meminfo.LowTotal));
+    MMESHELL_PRINT(MMESHELL_INFO, (" LowFree:        %d KB\n\r", (int)meminfo.LowFree));
+    MMESHELL_PRINT(MMESHELL_INFO, (" SwapTotal:      %d KB\n\r", (int)meminfo.SwapTotal));
+    MMESHELL_PRINT(MMESHELL_INFO, (" SwapFree:       %d KB\n\r", (int)meminfo.SwapFree));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Dirty:          %d KB\n\r", (int)meminfo.Dirty));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Writeback:      %d KB\n\r", (int)meminfo.Writeback));
+    MMESHELL_PRINT(MMESHELL_INFO, (" AnonPages:      %d KB\n\r", (int)meminfo.AnonPages));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Mapped:         %d KB\n\r", (int)meminfo.Mapped));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Shmem:          %d KB\n\r", (int)meminfo.Shmem));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Slab:           %d KB\n\r", (int)meminfo.Slab));
+    MMESHELL_PRINT(MMESHELL_INFO, (" SReclaimable:   %d KB\n\r", (int)meminfo.SReclaimable));
+    MMESHELL_PRINT(MMESHELL_INFO, (" SUnreclaim:     %d KB\n\r", (int)meminfo.SUnreclaim));
+    MMESHELL_PRINT(MMESHELL_INFO, (" KernelStack:    %d KB\n\r", (int)meminfo.KernelStack));
+    MMESHELL_PRINT(MMESHELL_INFO, (" PageTables:     %d KB\n\r", (int)meminfo.PageTables));
+    MMESHELL_PRINT(MMESHELL_INFO, (" NFS_Unstable:   %d KB\n\r", (int)meminfo.NFS_Unstable));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Bounce:         %d KB\n\r", (int)meminfo.Bounce));
+    MMESHELL_PRINT(MMESHELL_INFO, (" WritebackTmp:   %d KB\n\r", (int)meminfo.WritebackTmp));
+    MMESHELL_PRINT(MMESHELL_INFO, (" CommitLimit:    %d KB\n\r", (int)meminfo.CommitLimit));
+    MMESHELL_PRINT(MMESHELL_INFO, (" Committed_AS:   %d KB\n\r", (int)meminfo.Committed_AS));
+    MMESHELL_PRINT(MMESHELL_INFO, (" VmallocTotal:   %d KB\n\r", (int)meminfo.VmallocTotal));
+    MMESHELL_PRINT(MMESHELL_INFO, (" VmallocUsed:    %d KB\n\r", (int)meminfo.VmallocUsed));
+    MMESHELL_PRINT(MMESHELL_INFO, (" VmallocChunk:   %d KB\n\r", (int)meminfo.VmallocChunk));
 
     return 0;
 }
@@ -235,11 +235,11 @@ int mme_command_system_checktick(int argc, char* argv[]) {
     start_tick = CMmpUtil::GetTickCount();
     before_tick = start_tick;
     cur_tick = before_tick;
-    while((cur_tick-start_tick) < durtick ) {
+    while( (int)(cur_tick-start_tick) < durtick ) {
     
         cur_tick = CMmpUtil::GetTickCount();
         if((cur_tick-before_tick) > 1000) {
-            MMESHELL_PRINT(MMESHELL_INFO, ("%d. cur_tick=%d \n\r", (cur_tick-start_tick)/1000, cur_tick ));
+            MMESHELL_PRINT(MMESHELL_INFO, ("%d. cur_tick=%d \n\r", (int)((cur_tick-start_tick)/1000), (int)cur_tick ));
 
             before_tick = cur_tick;
         }

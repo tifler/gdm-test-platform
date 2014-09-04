@@ -24,8 +24,15 @@
 
 #include "MmpEncoderVideo.hpp"
 #include "MmpEncoderVpu.hpp"
+#include "MmpEncoderVpuIF.hpp"
 
-class CMmpEncoderVideo_Vpu : public CMmpEncoderVideo, CMmpEncoderVpu
+#ifdef __VPU_PLATFORM_MME
+#define CLASS_ENCODER_VPU CMmpEncoderVpuIF
+#else
+#define CLASS_ENCODER_VPU CMmpEncoderVpu
+#endif
+
+class CMmpEncoderVideo_Vpu : public CMmpEncoderVideo, CLASS_ENCODER_VPU
 {
 friend class CMmpEncoder;
 

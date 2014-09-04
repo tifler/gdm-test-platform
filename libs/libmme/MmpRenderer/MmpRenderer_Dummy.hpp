@@ -29,6 +29,8 @@ class CMmpRenderer_Dummy : public CMmpRenderer
 friend class CMmpRenderer;
 
 private:
+    MMP_S32 m_luma_size;
+    MMP_S32 m_chroma_size;
 	
 protected:
     CMmpRenderer_Dummy(CMmpRendererCreateProp* pRendererProp);
@@ -40,6 +42,9 @@ protected:
 public:
     virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
     virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
+    virtual MMP_RESULT RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
+    virtual MMP_RESULT RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
+    
     
     
 };
