@@ -148,7 +148,7 @@ void CMmpEncoderVideo::EncodeMonitor(CMmpMediaSampleEncode* pMediaSample, CMmpMe
             dur_avg = dur_sum/fps_sum;
         }
         
-        MMPDEBUGMSG(0, (TEXT("[VideoEnc %s %s %dx%d] %d. fps=%d dur=%d "), 
+        MMPDEBUGMSG(1, (TEXT("[VideoEnc %s %s %dx%d] %d. fps=%d dur=%d "), 
                     this->GetClassName(),   m_szCodecName,  m_bih_out.biWidth, m_bih_out.biHeight,
                     (cur_tick-start_tick)/1000, fps_sum, dur_avg ));
 

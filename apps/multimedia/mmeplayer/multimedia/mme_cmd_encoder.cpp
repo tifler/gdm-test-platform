@@ -117,7 +117,12 @@ int mme_command_player_enc_start(int argc, char* argv[]) {
     int i;
 	
     int contents_number;
+#ifdef WIN32	
     MMP_BOOL bForceSWDecoder = MMP_TRUE;
+#else
+    MMP_BOOL bForceSWDecoder = MMP_FALSE;
+#endif
+
     MMP_BOOL bForceSWEncoder = MMP_FALSE;
 
     if(argc > 1) {
