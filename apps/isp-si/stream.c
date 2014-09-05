@@ -1,31 +1,63 @@
-static void mainLoop(
-        struct GCamera *gcam, struct GDMBuffer **buffers, int count, int display)
+#include <stdlib.h>
+#include <poll.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <linux/videodev2.h>
+
+#include "stream.h"
+#include "gdm-buffer.h"
+#include "v4l2.h"
+#include "debug.h"
+
+/*****************************************************************************/
+
+#define STREAM_TIMEOUT                      (1000)
+
+#define STREAM_STAT_SET_FORMAT              (0x0001)
+#define STREAM_STAT_SET_BUFFER              (0x0002)
+#define STREAM_STAT_START                   (0x0004)
+
+/*****************************************************************************/
+
+struct STREAM {
+    int fd;
+    int port;
+    uint32_t width;
+    uint32_t height;
+    uint32_t pixelformat;
+    int bufferCount;
+    unsigned long status;
+    struct GDMBuffer **buffers;
+    struct v4l2_format fmt;
+
+    pthread_t thread;
+    int (*callback)(void *callbackParam, struct GDMBuffer *buffer, int index);
+    void *callbackParam;
+};
+
+/*****************************************************************************/
+
+static void *streamThread(void *arg)
 {
     int ret;
     int idx;
     struct pollfd pollfd;
+    struct STREAM *stream = (struct STREAM *)arg;
 
-    if (display) {
-        struct GDMDispFormat fmt;
+    pthread_detach(pthread_self());
 
-        gcam->display = GDispOpen(DISPLAY_SOCK_PATH, 0);
-        ASSERT(gcam->display);
-
-        fmt.pixelformat = GCAM_PIXEL_FORMAT;
-        fmt.width = DISPLAY_WIDTH;
-        fmt.height = DISPLAY_HEIGHT;
-        GDispSetFormat(gcam->display, &fmt);
-    }
-
-    pollfd.fd = gcam->port[GCAM_PORT_DIS].fd;
+    pollfd.fd = stream->fd;
     pollfd.events = POLLIN;
     pollfd.revents = 0;
 
-    for ( ; ; ) {
-        ret = poll(&pollfd, 1, 1000);
+    while (stream->status & STREAM_STAT_START) {
+        ret = poll(&pollfd, 1, STREAM_TIMEOUT);
         if (ret < 0) {
             perror("poll");
-            exit(0);
+            exit(EXIT_FAILURE);
         }
         else if (ret == 0) {
             DBG("Timeout.");
@@ -38,140 +70,41 @@ static void mainLoop(
             exit(0);
         }
 
-        if (gcam->display)
-            GDispSendFrame(gcam->display, buffers[idx], 1000);
+        DBG("Buffer Index = %d", idx);
 
-        ret = v4l2_qbuf(gcam->port[GCAM_PORT_DIS].fd,
-                DISPLAY_WIDTH, DISPLAY_HEIGHT, buffers[idx], idx);
+        ret = 0;
+        if (stream->callback)
+            ret = stream->callback(
+                    stream->callbackParam, stream->buffers[idx], idx);
+
+        if (ret)
+            break;
+
+        ret = v4l2_qbuf(stream->fd,
+                stream->width, stream->height, stream->buffers[idx], idx);
 
         if (ret) {
             DBG("=====> QBUF(%d) FAILED <=====", idx);
         }
-        DBG("Buffer Index = %d", idx);
     }
+
+    return stream->callbackParam;
 }
 
 /*****************************************************************************/
 
-//int initdone;
-
-int main(int argc, char **argv)
-{
-    int i;
-    int ret;
-    int planes;
-    struct GCamera *gcam;
-    struct v4l2_format fmt;
-    struct v4l2_pix_format_mplane *pixmp;
-    unsigned int planeSizes[3];
-    struct GDMBuffer **buffers;
-    struct DXOSystemConfig conf;
-    struct DXOControl ctrl;
-    struct DXOOutputFormat dxoFmt;
-    struct SIFConfig sifConf;
-    struct ISP *isp;
-    struct SIF *sif;
-    struct DXO *dxo;
-
-    parseOption(argc, argv);
-
-    buffers = calloc(opt.buffers, sizeof(*buffers));
-
-    gcam = GCamOpen();
-    ASSERT(gcam);
-
-    // V4L2 init
-    ret = v4l2_enum_fmt(gcam->port[GCAM_PORT_DIS].fd, GCAM_PIXEL_FORMAT);
-    ASSERT(ret == 0);
-
-    ret = v4l2_s_fmt(gcam->port[GCAM_PORT_DIS].fd,
-            DISPLAY_WIDTH, DISPLAY_HEIGHT, GCAM_PIXEL_FORMAT, &fmt);
-    ASSERT(ret == 0);
-
-    ret = v4l2_reqbufs(gcam->port[GCAM_PORT_DIS].fd, opt.buffers);
-    DBG("reqbufs result = %d", ret);
-
-    pixmp = &fmt.fmt.pix_mp;
-    planes = pixmp->num_planes;
-    for (i = 0; i < planes; i++)
-        planeSizes[i] = pixmp->plane_fmt[i].sizeimage;
-
-    for (i = 0; i < opt.buffers; i++) {
-        buffers[i] = allocContigMemory(planes, planeSizes, 0);
-        ASSERT(buffers[i]);
-    }
-
-    for (i = 0; i < opt.buffers; i++) {
-        ret = v4l2_qbuf(gcam->port[GCAM_PORT_DIS].fd,
-                DISPLAY_WIDTH, DISPLAY_HEIGHT, buffers[i], i);
-        DBG("v4l2_qbuf = %d", ret);
-    }
-
-    memset(&conf, 0, sizeof(conf));
-    conf.sysFreqMul = 32;
-    conf.sysFreqDiv = 1;
-    conf.frmTimeMul = 4;
-    conf.frmTimeDiv = 1;
-
-    isp = ISPInit();
-    sif = SIFInit();
-    dxo = DXOInit(&conf);
-
-    sifConf.width = SENSOR_WIDTH;
-    sifConf.height = SENSOR_HEIGHT;
-    SIFSetConfig(sif, &sifConf);
-
-    ctrl.input = DXO_INPUT_SOURCE_FRONT;
-    ctrl.hMirror = 0;
-    ctrl.vFlip = 0;
-    ctrl.enableTNR = 0;
-    ctrl.fpsMul = 8;
-    ctrl.fpsDiv = 1;
-    DXOSetControl(dxo, &ctrl);
-
-    dxoFmt.width = DISPLAY_WIDTH;
-    dxoFmt.height = DISPLAY_HEIGHT;
-    dxoFmt.pixelFormat = V4L2_PIX_FMT_UYVY;
-    dxoFmt.crop.left = 0;
-    dxoFmt.crop.top = 0;
-    dxoFmt.crop.right = DISPLAY_WIDTH - 1;
-    dxoFmt.crop.bottom = DISPLAY_HEIGHT - 1;
-    DXOSetOutputFormat(dxo, DXO_OUTPUT_DISPLAY, &dxoFmt);
-
-    DXOSetOutputEnable(dxo, 1 << DXO_OUTPUT_DISPLAY, 1 << DXO_OUTPUT_DISPLAY);
-    DXORunState(dxo, DXO_STATE_PREVIEW, 0);
-
-//    initdone = 1;
-
-    if (!opt.v4l2)
-        pause();
-
-    v4l2_streamon(gcam->port[GCAM_PORT_DIS].fd);
-    DBG("======= STREAM ON =======");
-
-    mainLoop(gcam, buffers, opt.buffers, opt.display);
-
-    v4l2_streamoff(gcam->port[GCAM_PORT_DIS].fd);
-
-    DXOExit(dxo);
-    SIFExit(sif);
-    ISPExit(isp);
-
-    GCamClose(gcam);
-
-    return 0;
-}
-
 struct STREAM *streamOpen(int port)
 {
+    char path[256];
     struct STREAM *stream;
 
     ASSERT(port >= 0);
-    ASSERT(port < GISP_PORT_COUNT);
+    ASSERT(port < STREAM_PORT_COUNT);
 
     stream = (struct STREAM *)calloc(1, sizeof(*stream));
     ASSERT(stream);
 
+    stream->port = port;
     snprintf(path, sizeof(path) - 1, "/dev/video%d", port + 1);
     stream->fd = open(path, O_RDWR);
     ASSERT(stream->fd > 0);
@@ -194,7 +127,7 @@ int streamSetFormat(struct STREAM *stream,
 
     stream->width = width;
     stream->height = height;
-    sttream->pixelformat = pixelformat;
+    stream->pixelformat = pixelformat;
 
     ret = v4l2_enum_fmt(stream->fd, stream->pixelformat);
     ASSERT(ret == 0);
@@ -203,12 +136,18 @@ int streamSetFormat(struct STREAM *stream,
             stream->width, stream->height, stream->pixelformat, &stream->fmt);
     ASSERT(ret == 0);
 
+    stream->status |= STREAM_STAT_SET_FORMAT;
+
     return 0;
 }
 
 int streamGetBufferSize(struct STREAM *stream, uint32_t planeSizes[3])
 {
+    int i;
+    int planes;
     struct v4l2_pix_format_mplane *pixmp;
+
+    ASSERT(stream->status & STREAM_STAT_SET_FORMAT);
 
     pixmp = &stream->fmt.fmt.pix_mp;
     planes = pixmp->num_planes;
@@ -218,10 +157,11 @@ int streamGetBufferSize(struct STREAM *stream, uint32_t planeSizes[3])
     return planes;
 }
 
-int streamSetExternalBuffers(
+int streamSetBuffers(
         struct STREAM *stream, uint32_t bufferCount, struct GDMBuffer **buffers)
 {
     int i;
+    int ret;
 
     stream->bufferCount = v4l2_reqbufs(stream->fd, bufferCount);
     ASSERT(stream->bufferCount >= 0);
@@ -232,10 +172,47 @@ int streamSetExternalBuffers(
                 stream->fd, stream->width, stream->height, buffers[i], i);
         ASSERT(ret == 0);
     }
+
+    stream->status |= STREAM_STAT_SET_BUFFER;
     
     return stream->bufferCount;
 }
 
+int streamSetCallback(struct STREAM *stream,
+        int (*callback)(void *param, struct GDMBuffer *buffer, int index),
+        void *callbackParam)
+{
+    ASSERT(stream);
+    stream->callback = callback;
+    stream->callbackParam = callbackParam;
+    return 0;
+}
+
 int streamStart(struct STREAM *stream)
 {
+    int ret;
+
+    ASSERT(stream);
+    ASSERT(stream->status & (STREAM_STAT_SET_FORMAT|STREAM_STAT_SET_BUFFER));
+
+    stream->status |= STREAM_STAT_START;
+
+    ret = pthread_create(&stream->thread, NULL, streamThread, stream);
+    ASSERT(ret == 0);
+
+    ret = v4l2_streamon(stream->fd);
+    ASSERT(ret == 0);
+
+    return ret;
+}
+
+void streamStop(struct STREAM *stream)
+{
+    int ret;
+
+    ret = v4l2_streamoff(stream->fd);
+    ASSERT(ret == 0);
+
+    stream->status &= ~STREAM_STAT_START;
+    pthread_join(stream->thread, NULL);
 }

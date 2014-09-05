@@ -14,6 +14,7 @@
 #include "v4l2.h"
 #include "gdm-buffer.h"
 #include "display.h"
+#include "stream.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -30,23 +31,6 @@
 #define DISPLAY_HEIGHT                      (480)
 
 /*****************************************************************************/
-
-enum {
-    GCAM_PORT_CAP,
-    GCAM_PORT_VID,
-    GCAM_PORT_DIS,
-    GCAM_PORT_FD,
-    GCAM_PORT_COUNT,
-};
-
-struct GCamPort {
-    int fd;
-};
-
-struct GCamera {
-    struct GCamPort port[GCAM_PORT_COUNT];
-    struct GDMDisplay *display;
-};
 
 struct Option {
     int buffers;
@@ -119,103 +103,22 @@ static int parseOption(int argc, char **argv)
 
     return 0;
 }
-/*****************************************************************************/
 
-struct GCamera *GCamOpen(void)
+static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    int i;
-    char path[64];
-    struct GCamera *gcam;
+    struct GDMDisplay *disp = (struct GDMDisplay *)param;
 
-    gcam = calloc(1, sizeof(*gcam));
-    ASSERT(gcam);
+    GDispSendFrame(disp, buffer, 1000);
 
-    for (i = 0; i < GCAM_PORT_COUNT; i++) {
-        sprintf(path, "/dev/video%d", i + GCAM_PORT_NODE_BASE);
-        gcam->port[i].fd = open(path, O_RDWR);
-        ASSERT(gcam->port[i].fd > 0);
-    }
-
-    return gcam;
-}
-
-void GCamClose(struct GCamera *gcam)
-{
-    int i;
-
-    ASSERT(gcam);
-
-    for (i = 0; i < GCAM_PORT_COUNT; i++)
-        close(gcam->port[i].fd);
-
-    free(gcam);
-}
-
-static void mainLoop(
-        struct GCamera *gcam, struct GDMBuffer **buffers, int count, int display)
-{
-    int ret;
-    int idx;
-    struct pollfd pollfd;
-
-    if (display) {
-        struct GDMDispFormat fmt;
-
-        gcam->display = GDispOpen(DISPLAY_SOCK_PATH, 0);
-        ASSERT(gcam->display);
-
-        fmt.pixelformat = GCAM_PIXEL_FORMAT;
-        fmt.width = DISPLAY_WIDTH;
-        fmt.height = DISPLAY_HEIGHT;
-        GDispSetFormat(gcam->display, &fmt);
-    }
-
-    pollfd.fd = gcam->port[GCAM_PORT_DIS].fd;
-    pollfd.events = POLLIN;
-    pollfd.revents = 0;
-
-    for ( ; ; ) {
-        ret = poll(&pollfd, 1, 1000);
-        if (ret < 0) {
-            perror("poll");
-            exit(0);
-        }
-        else if (ret == 0) {
-            DBG("Timeout.");
-            continue;
-        }
-
-        idx = v4l2_dqbuf(pollfd.fd, 3);
-        if (idx < 0) {
-            perror("v4l2_dqbuf");
-            exit(0);
-        }
-
-        if (gcam->display)
-            GDispSendFrame(gcam->display, buffers[idx], 1000);
-
-        ret = v4l2_qbuf(gcam->port[GCAM_PORT_DIS].fd,
-                DISPLAY_WIDTH, DISPLAY_HEIGHT, buffers[idx], idx);
-
-        if (ret) {
-            DBG("=====> QBUF(%d) FAILED <=====", idx);
-        }
-        DBG("Buffer Index = %d", idx);
-    }
+    return 0;
 }
 
 /*****************************************************************************/
-
-//int initdone;
 
 int main(int argc, char **argv)
 {
     int i;
-    int ret;
     int planes;
-    struct GCamera *gcam;
-    struct v4l2_format fmt;
-    struct v4l2_pix_format_mplane *pixmp;
     unsigned int planeSizes[3];
     struct GDMBuffer **buffers;
     struct DXOSystemConfig conf;
@@ -225,39 +128,40 @@ int main(int argc, char **argv)
     struct ISP *isp;
     struct SIF *sif;
     struct DXO *dxo;
+    struct STREAM *displayStream;
 
     parseOption(argc, argv);
 
+    displayStream = streamOpen(STREAM_PORT_DISPLAY);
+    ASSERT(displayStream);
+
+    streamSetFormat(displayStream,
+            DISPLAY_WIDTH, DISPLAY_HEIGHT, GCAM_PIXEL_FORMAT);
+
+    planes = streamGetBufferSize(displayStream, planeSizes);
+
     buffers = calloc(opt.buffers, sizeof(*buffers));
-
-    gcam = GCamOpen();
-    ASSERT(gcam);
-
-    // V4L2 init
-    ret = v4l2_enum_fmt(gcam->port[GCAM_PORT_DIS].fd, GCAM_PIXEL_FORMAT);
-    ASSERT(ret == 0);
-
-    ret = v4l2_s_fmt(gcam->port[GCAM_PORT_DIS].fd,
-            DISPLAY_WIDTH, DISPLAY_HEIGHT, GCAM_PIXEL_FORMAT, &fmt);
-    ASSERT(ret == 0);
-
-    ret = v4l2_reqbufs(gcam->port[GCAM_PORT_DIS].fd, opt.buffers);
-    DBG("reqbufs result = %d", ret);
-
-    pixmp = &fmt.fmt.pix_mp;
-    planes = pixmp->num_planes;
-    for (i = 0; i < planes; i++)
-        planeSizes[i] = pixmp->plane_fmt[i].sizeimage;
 
     for (i = 0; i < opt.buffers; i++) {
         buffers[i] = allocContigMemory(planes, planeSizes, 0);
         ASSERT(buffers[i]);
     }
 
-    for (i = 0; i < opt.buffers; i++) {
-        ret = v4l2_qbuf(gcam->port[GCAM_PORT_DIS].fd,
-                DISPLAY_WIDTH, DISPLAY_HEIGHT, buffers[i], i);
-        DBG("v4l2_qbuf = %d", ret);
+    streamSetBuffers(displayStream, opt.buffers, buffers);
+
+    if (opt.display) {
+        struct GDMDisplay *display;
+        struct GDMDispFormat dispFmt;
+        display = GDispOpen(DISPLAY_SOCK_PATH, 0);
+        ASSERT(display);
+
+        dispFmt.pixelformat = GCAM_PIXEL_FORMAT;
+        dispFmt.width = DISPLAY_WIDTH;
+        dispFmt.height = DISPLAY_HEIGHT;
+
+        GDispSetFormat(display, &dispFmt);
+
+        streamSetCallback(displayStream, displayCallback, display);
     }
 
     memset(&conf, 0, sizeof(conf));
@@ -294,23 +198,13 @@ int main(int argc, char **argv)
     DXOSetOutputEnable(dxo, 1 << DXO_OUTPUT_DISPLAY, 1 << DXO_OUTPUT_DISPLAY);
     DXORunState(dxo, DXO_STATE_PREVIEW, 0);
 
-//    initdone = 1;
-
     if (!opt.v4l2)
         pause();
 
-    v4l2_streamon(gcam->port[GCAM_PORT_DIS].fd);
-    DBG("======= STREAM ON =======");
+    streamStart(displayStream);
 
-    mainLoop(gcam, buffers, opt.buffers, opt.display);
-
-    v4l2_streamoff(gcam->port[GCAM_PORT_DIS].fd);
-
-    DXOExit(dxo);
-    SIFExit(sif);
-    ISPExit(isp);
-
-    GCamClose(gcam);
+    while (1)
+        sleep (1);
 
     return 0;
 }
