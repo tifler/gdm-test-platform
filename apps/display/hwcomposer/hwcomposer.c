@@ -390,6 +390,7 @@ void *commit_thread(void *argp)
 
 		}
 
+		pthread_mutex_lock(&hwc_ctx->ov_lock);
 		buf_sync.acq_fen_fd_cnt = 0;
 		if(hwc_ctx->release_fence > 0)
 			close(hwc_ctx->release_fence);
@@ -397,6 +398,8 @@ void *commit_thread(void *argp)
 		hwc_ctx->release_fence = -1;
 		buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
 		gdss_io_buffer_sync(fb_fd, &buf_sync);
+		pthread_mutex_unlock(&hwc_ctx->ov_lock);
+
 #else
 		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, &display_commit.var) < 0) {
 			printf("failed to get fb0 info");
@@ -506,6 +509,9 @@ void *server_loop(void *argp)
 	socklen_t client_len = 0;
 	struct sockaddr_un server_addr, client_addr;
 	struct hwc_context_t *hwc_ctx;
+	int err;
+	fd_set selectfds;
+	int max_fds = 0;
 
 	ASSERT(UNIX_SOCKET_PATH);
 
@@ -530,6 +536,24 @@ void *server_loop(void *argp)
 	DBG("Server is wating(server_sock = %d)...", server_sock);
 
 	for ( ; ; ) {
+		do {
+		    FD_ZERO(&selectfds);
+
+		    if(server_sock != -1) {
+			FD_SET(server_sock, &selectfds);
+
+			if(server_sock > max_fds)
+			    max_fds = server_sock;
+		    }
+
+		    err = select(max_fds + 1, &selectfds, NULL, NULL, NULL);
+
+		    if(err < 0 && errno != EINTR) {
+			perror("select");
+			exit(EXIT_FAILURE);
+		    }
+		} while(err <= 0);
+
 		bzero(&client_addr, sizeof(client_addr));
 		client_sock =
 			accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
@@ -577,6 +601,9 @@ int main(int argc, char **argv)
 {
 	struct hwc_context_t *hwc_ctx = NULL;
 	pthread_t commitThread, serverThread;;
+
+	signal(SIGPIPE, SIG_IGN);
+
 
 	hwc_ctx = (struct hwc_context_t *)malloc(sizeof(struct hwc_context_t));
 	memset(hwc_ctx, 0x00, sizeof(*hwc_ctx));

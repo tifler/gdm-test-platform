@@ -55,28 +55,28 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components  = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_VYUY),
         .description = "YUV 4:2:2 packed, CrYCbY",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_YUYV),
         .description = "YUV 4:2:2 packed, YCbYCr",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_YVYU),
         .description = "YUV 4:2:2 packed, YCrYCb",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     },
     // 422_2P
     {
@@ -85,14 +85,14 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 2,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422P2,
+        .dss_format = GDMFB_YUV422P2,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_NV61),
         .description = "YUV 4:2:2 planar, Y/CrCb",
         .planes = 1,
         .components = 2,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422P2,
+        .dss_format = GDMFB_YUV422P2,
     },
     // 422_3P
     {
@@ -101,7 +101,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 3,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422P3,
+        .dss_format = GDMFB_YUV422P3,
     },
     // 420_2P
     {
@@ -111,7 +111,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 2,
         .bitperpixel = { 12 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     },
     {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_NV21),
@@ -119,7 +119,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 2,
         .bitperpixel = { 12 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     },
     {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_NV12M),
@@ -127,7 +127,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 2,
         .components = 2,
         .bitperpixel = { 8, 4 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     }, {
 
 #ifndef V4L2_PIX_FMT_NV21M
@@ -139,7 +139,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 2,
         .components = 2,
         .bitperpixel = { 8, 4 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     },
     // 420_3P
     {
@@ -148,7 +148,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 3,
         .components = 3,
         .bitperpixel = { 8, 2, 2 },
-        .dss_format = GDM_DSS_PF_YUV420P3,
+        .dss_format = GDMFB_YUV420P3,
     },
     // ARGB
     {
@@ -157,14 +157,14 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 1,
         .bitperpixel = { 32 },
-        .dss_format = GDM_DSS_PF_ARGB8888,
+        .dss_format = GDMFB_ARGB8888,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_BGR32),
         .description = "XBGR-8888, 32 bpp",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 32 },
-        .dss_format = GDM_DSS_PF_ARGB8888,
+        .dss_format = GDMFB_ABGR8888,
     },
     // RGB565
     {
@@ -173,7 +173,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_RGB565,
+        .dss_format = GDMFB_RGB565,
     },
 };
 
@@ -319,8 +319,8 @@ int GDispSetFormat(struct GDMDisplay *d, const struct GDMDispFormat *fmt)
     overlay.src.width = fmt->width;
     overlay.src.height = fmt->height;
     overlay.src.format = V4LFmt2DSSFmt(fmt->pixelformat);
-    overlay.src.endian = 0;
-    overlay.src.swap = 0;
+//    overlay.src.endian = 0;
+//    overlay.src.swap = 0;
     overlay.pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
     overlay.src_rect.x = overlay.src_rect.y = 0;

@@ -47,7 +47,7 @@
 #define FRAMEBUFFER_NAME	"/dev/fb0"
 #define VIDEO_WIDTH		1280
 #define VIDEO_HEIGHT		 720
-#define VIDEO_FORMAT		GDM_DSS_PF_YUV420P3
+#define VIDEO_FORMAT		GDMFB_YUV420P3
 
 struct ody_videofile {
 	int fd;		/* file handler */
@@ -218,8 +218,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->src.width = gplayer->video_info.width;
 	req->src.height = gplayer->video_info.height;
 	req->src.format = gplayer->video_info.format;
-	req->src.endian = 0;
-	req->src.swap = 0;
+	//req->src.endian = 0;
+	//req->src.swap = 0;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
 	req->src_rect.x = req->src_rect.y = 0;

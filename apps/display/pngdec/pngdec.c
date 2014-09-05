@@ -402,14 +402,14 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 	req->src.height = desc->height;
 
 	if(desc->pixelformat == DSPF_RGB24) {
-		req->src.format = GDM_DSS_PF_RGB888;
+		req->src.format = GDMFB_BGR888;
 		//req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
-		req->src.swap = GDM_DSS_PF_ORDER_BGR;
+		//req->src.swap = GDM_DSS_PF_ORDER_BGR;
 	}
 	else {
-		req->src.format = GDM_DSS_PF_ARGB8888;
-		req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
-		req->src.swap = GDM_DSS_PF_ORDER_BGR;
+		req->src.format = GDMFB_BGRA8888;
+		//req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
+		//req->src.swap = GDM_DSS_PF_ORDER_BGR;
 	}
 	req->pipe_type = GDM_DSS_PIPE_TYPE_GFX;
 

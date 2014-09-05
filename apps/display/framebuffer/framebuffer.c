@@ -52,6 +52,7 @@
 
 struct fb_context_t {
 	pthread_t renderer_worker;
+	pthread_t generator_worker;
 
 	int fb_fd;
 	struct fb_fix_screeninfo fi;
@@ -62,6 +63,9 @@ struct fb_context_t {
 	int bstop;
 	int release_fd;
 };
+
+static pthread_cond_t fb_ren;
+static pthread_mutex_t ren_mutex;
 
 #if 0
 
@@ -352,9 +356,9 @@ static void dss_overlay_default_fb_config(struct gdm_dss_overlay *req)
 	req->src.width = LCD_WIDTH;
 	req->src.height = LCD_HEIGHT;
 
-	req->src.format = GDM_DSS_PF_ARGB8888;
-	req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
-	req->src.swap = GDM_DSS_PF_ORDER_BGR;
+	req->src.format = GDMFB_RGBA8888;
+	//req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
+	//req->src.swap = GDM_DSS_PF_ORDER_BGR;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_GFX;
 
 	req->src_rect.x = req->src_rect.y = 0;
@@ -409,6 +413,28 @@ static int dss_overlay_commit(int sockfd)
 	return 0;
 }
 
+/* Decoding thread */
+void *framebuffer_generator(void *arg)
+{
+	int ret = 0;
+	int frame_count = 0;
+	int buf_ndx = 0;
+	unsigned val = 0;
+	struct fb_context_t *fb_ctx = (struct fb_context_t*)arg;
+
+	while(!fb_ctx->bstop) {
+		load_image(fb_ctx, fb_ctx->render_ndx, frame_count);
+
+		pthread_mutex_lock(&ren_mutex);
+		fb_ctx->render_ndx ^= 1;
+		frame_count ++;
+		pthread_cond_signal(&fb_ren);
+		pthread_mutex_unlock(&ren_mutex);
+	}
+
+	return NULL;
+}
+
 
 /* Decoding thread */
 void *framebuffer_renderer(void *arg)
@@ -441,23 +467,22 @@ void *framebuffer_renderer(void *arg)
 	//dss_overlay_default_fb_config(&req, gfx_ctx);
 
 	while(!fb_ctx->bstop) {
-
-		load_image(fb_ctx, fb_ctx->render_ndx, frame_count);
+		pthread_cond_wait(&fb_ren, &ren_mutex);
+		if(fb_ctx->bstop) {
+			break;
+		}
 
 		dss_overlay_commit(sockfd);
 		dss_get_fence_fd(sockfd, &fb_ctx->release_fd);
 
-		if(fb_ctx->release_fd != -1) {
-			//printf("wait frame done signal\n");
 
+		if(fb_ctx->release_fd != -1) {
 			ret = sync_wait(fb_ctx->release_fd, 1000);
 			close(fb_ctx->release_fd);
 			fb_ctx->release_fd = -1;
 		}
 
-		fb_ctx->render_ndx ^= 1;
-		frame_count++;
-
+		pthread_mutex_unlock(&ren_mutex);
 	}
 
 	close(sockfd);
@@ -474,11 +499,20 @@ int main(int argc, char **argv)
 	fb_context = (struct fb_context_t*)malloc(sizeof(struct fb_context_t));
 	memset(fb_context, 0x00, sizeof(struct fb_context_t));
 
+	pthread_mutex_init(&ren_mutex, NULL);
+
+	if(pthread_cond_init(&fb_ren, NULL) != 0) {
+		printf("could not initialize condition variable\n");
+		goto exit;
+	}
+
 	open_framebuffer_device(fb_context);
 
 	if(pthread_create(&fb_context->renderer_worker, NULL, framebuffer_renderer, fb_context) != 0)
 		goto exit;
 
+	if(pthread_create(&fb_context->generator_worker, NULL, framebuffer_generator, fb_context) != 0)
+		goto exit;
 
 	while(!fb_context->bstop) {
 		sleep(1);

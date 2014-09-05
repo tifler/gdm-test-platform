@@ -44,7 +44,7 @@
 
 #define VIDEO_WIDTH		1280
 #define VIDEO_HEIGHT		 720
-#define VIDEO_FORMAT		GDM_DSS_PF_YUV420P3
+#define VIDEO_FORMAT		GDMFB_YUV420P3
 
 #define FRAMEBUF_MAX_COUNT 2
 
@@ -95,13 +95,13 @@ private:
 
 	struct ody_player gplayer;
 	int m_buf_ndx;
-    
+
 	int m_luma_size;
 	int m_chroma_size;
 
 	struct gdm_dss_overlay_data m_req_data;
 	struct gdm_dss_overlay m_request;
-	
+
     FILE* m_fp_dump;
 
 protected:
@@ -116,8 +116,8 @@ public:
     virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
     virtual MMP_RESULT RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
     virtual MMP_RESULT RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
-    
-    
+
+
 };
 
 

@@ -115,10 +115,10 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
     struct ody_player *gplayer = &m_gplayer;
     struct ody_framebuffer *pfb;
 	struct ody_videofile *pvideo;
-   
+
 
     mmpResult=CMmpRenderer::Open();
-    
+
 	MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClient::Open] +++ W:%d H:%d "), m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight));
 
     /* STEP0. Alloc FrameBuffer */
@@ -155,10 +155,10 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
 	if(mmpResult == MMP_SUCCESS) {
 
 		struct sockaddr_un server_addr;
-	
+
 		m_sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 		if(m_sock_fd >= 0) {
-		
+
 			bzero(&server_addr, sizeof(server_addr));
 			server_addr.sun_family = AF_UNIX;
 			strcpy(server_addr.sun_path, UNIX_SOCKET_PATH);
@@ -179,7 +179,7 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
 
     // step-02: request overlay to display
     if(mmpResult == MMP_SUCCESS) {
-        
+
 	    dss_overlay_default_config(&m_req, gplayer);
 	    dss_overlay_set(m_sock_fd, &m_req);
     }
@@ -214,7 +214,7 @@ MMP_RESULT CMmpRenderer_OdyClient::Close()
 
 	free_video_memory(&m_gplayer.frame[0]);
 	free_video_memory(&m_gplayer.frame[1]);
-	
+
     return mmpResult;
 }
 
@@ -252,19 +252,19 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_
 typedef void (*vdi_memcpy_func)(void* param, void* dest_vaddr, void* src_paddr, int size);
 
 MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
-    
+
     FrameBuffer* pVPU_FrameBuffer;
 	int iret;
 	unsigned int t1, t2;
 
     pVPU_FrameBuffer = (FrameBuffer*)Y;
-	
-    MMPDEBUGMSG(0, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] +++ ION  fd=%d buf(0x%08x 0x%08x 0x%08x , 0x%08x) "), 
-                          pVPU_FrameBuffer->ion_shared_fd, 
+
+    MMPDEBUGMSG(0, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar] +++ ION  fd=%d buf(0x%08x 0x%08x 0x%08x , 0x%08x) "),
+                          pVPU_FrameBuffer->ion_shared_fd,
                           pVPU_FrameBuffer->bufY, pVPU_FrameBuffer->bufCb, pVPU_FrameBuffer->bufCr,
                           pVPU_FrameBuffer->ion_base_phyaddr));
-    
-	
+
+
 	memset(&m_req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 	m_req_data.id = 0;
 	m_req_data.num_plane = 1;
@@ -330,7 +330,7 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, 
             src_y = buf_addr.m_vir_addr;
             src_u = src_y + MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16)*MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
             src_v = src_u + MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16)*MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16)/4;
-            
+
             memcpy(dest_y, (void*)src_y, m_luma_size);
             memcpy(dest_u, (void*)src_u, m_chroma_size);
             memcpy(dest_v, (void*)src_v, m_chroma_size);
@@ -345,7 +345,7 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, 
         CMmpRenderer::EncodeAndMux(dest_y, dest_u, dest_v, buffer_width, buffer_height);
 #endif
 
-		
+
 	}
 
 	m_buf_idx ^= 1;
@@ -355,12 +355,12 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, 
 
 
 MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
-    
+
 	unsigned char *dest_y, *dest_u, *dest_v;
     int iret;
 
     MMPDEBUGMSG(0, (TEXT("[CMmpRenderer_OdyClient::RenderYUV420Planar_mem] +++ ")));
-#if 1    
+#if 1
 	dest_y = m_gplayer.frame[m_buf_idx].address[0];
 	dest_u = m_gplayer.frame[m_buf_idx].address[1];
 	dest_v = m_gplayer.frame[m_buf_idx].address[2];
@@ -414,7 +414,7 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* 
     if(m_gplayer.release_fd == -1) {
         dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
     }
-    
+
     if(m_gplayer.release_fd != -1) {
         //printf("wait frame done signal\n");
 		iret = sync_wait(m_gplayer.release_fd, 1000);
@@ -473,8 +473,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_p
 	req->src.width = gplayer->video_info.width;
 	req->src.height = gplayer->video_info.height;
 	req->src.format = gplayer->video_info.format;
-	req->src.endian = 0;
-	req->src.swap = 0;
+	//req->src.endian = 0;
+	//req->src.swap = 0;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
 	req->src_rect.x = req->src_rect.y = 0;

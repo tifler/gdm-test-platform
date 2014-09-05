@@ -56,28 +56,28 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components  = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_VYUY),
         .description = "YUV 4:2:2 packed, CrYCbY",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_YUYV),
         .description = "YUV 4:2:2 packed, YCbYCr",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_YVYU),
         .description = "YUV 4:2:2 packed, YCrYCb",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422I,
+        .dss_format = GDMFB_YUV422I,
     },
     // 422_2P
     {
@@ -86,14 +86,14 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 2,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422P2,
+        .dss_format = GDMFB_YUV422P2,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_NV61),
         .description = "YUV 4:2:2 planar, Y/CrCb",
         .planes = 1,
         .components = 2,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422P2,
+        .dss_format = GDMFB_YUV422P2,
     },
     // 422_3P
     {
@@ -102,7 +102,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 3,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_YUV422P3,
+        .dss_format = GDMFB_YUV422P3,
     },
     // 420_2P
     {
@@ -112,7 +112,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 2,
         .bitperpixel = { 12 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     },
     {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_NV21),
@@ -120,7 +120,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 2,
         .bitperpixel = { 12 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     },
     {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_NV12M),
@@ -128,7 +128,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 2,
         .components = 2,
         .bitperpixel = { 8, 4 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     }, {
 
 #ifndef V4L2_PIX_FMT_NV21M
@@ -140,7 +140,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 2,
         .components = 2,
         .bitperpixel = { 8, 4 },
-        .dss_format = GDM_DSS_PF_YUV420P2,
+        .dss_format = GDMFB_YUV420P2,
     },
     // 420_3P
     {
@@ -149,7 +149,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 3,
         .components = 3,
         .bitperpixel = { 8, 2, 2 },
-        .dss_format = GDM_DSS_PF_YUV420P3,
+        .dss_format = GDMFB_YUV420P3,
     },
     // ARGB
     {
@@ -158,14 +158,14 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 1,
         .bitperpixel = { 32 },
-        .dss_format = GDM_DSS_PF_ARGB8888,
+        .dss_format = GDMFB_ARGB8888,
     }, {
         MAKE_COLOR_FORMAT(V4L2_PIX_FMT_BGR32),
         .description = "XBGR-8888, 32 bpp",
         .planes = 1,
         .components = 1,
         .bitperpixel = { 32 },
-        .dss_format = GDM_DSS_PF_ARGB8888,
+        .dss_format = GDMFB_ABGR8888,
     },
     // RGB565
     {
@@ -174,7 +174,7 @@ static struct GDispPixelFormat pixelFormats[] = {
         .planes = 1,
         .components = 1,
         .bitperpixel = { 16 },
-        .dss_format = GDM_DSS_PF_RGB565,
+        .dss_format = GDMFB_RGB565,
     },
 };
 
@@ -226,7 +226,7 @@ static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req)
 
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
 
-	msg_data.app_id = APP_ID_MULTI_SAMPLE_PLAYER;
+	msg_data.app_id = APP_ID_CAMERA_PREVIEW;
 	msg_data.hwc_cmd = GDMFB_OVERLAY_SET;
 
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), 0);
@@ -248,7 +248,7 @@ static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), req_data->num_plane);
 
-	msg_data.app_id = APP_ID_MULTI_SAMPLE_PLAYER;
+	msg_data.app_id = APP_ID_CAMERA_PREVIEW;
 	msg_data.hwc_cmd = GDMFB_OVERLAY_PLAY;
 	memcpy(msg_data.data, req_data, sizeof(struct gdm_dss_overlay_data));
 	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
@@ -266,7 +266,7 @@ static int dss_overlay_unset(int sockfd)
 	struct gdm_msghdr *msg = NULL;
 
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
-	msg_data.app_id = APP_ID_MULTI_SAMPLE_PLAYER;
+	msg_data.app_id = APP_ID_CAMERA_PREVIEW;
 	msg_data.hwc_cmd = GDMFB_OVERLAY_UNSET;
 
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), 0);
@@ -341,8 +341,8 @@ int GDispSetFormat(struct GDMDisplay *d, const struct GDMDispFormat *fmt)
     overlay.src.width = fmt->width;
     overlay.src.height = fmt->height;
     overlay.src.format = V4LFmt2DSSFmt(fmt->pixelformat);
-    overlay.src.endian = 0;
-    overlay.src.swap = 0;
+//    overlay.src.endian = 0;
+//    overlay.src.swap = 0;
     overlay.pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
     overlay.src_rect.x = overlay.src_rect.y = 0;
@@ -350,9 +350,14 @@ int GDispSetFormat(struct GDMDisplay *d, const struct GDMDispFormat *fmt)
     overlay.src_rect.h = overlay.src.height;
 
     overlay.dst_rect.x = overlay.dst_rect.y = 0;
-    overlay.dst_rect.w = fmt->width;//d->screenInfo.xres;
-    overlay.dst_rect.h = fmt->height;//d->screenInfo.yres;
 
+#if 0
+    overlay.dst_rect.w = d->screenInfo.xres;
+    overlay.dst_rect.h = d->screenInfo.yres;
+#else
+    overlay.dst_rect.w = overlay.src_rect.w;
+    overlay.dst_rect.h = overlay.src_rect.h;
+#endif
     overlay.transp_mask = 0;
     overlay.flags = 0;//GDM_DSS_FLAG_SCALING;
     overlay.id = GDMFB_NEW_REQUEST;

@@ -50,7 +50,7 @@
 
 #define VIDEO_WIDTH		1280
 #define VIDEO_HEIGHT		 720
-#define VIDEO_FORMAT		GDM_DSS_PF_YUV420P3
+#define VIDEO_FORMAT		GDMFB_YUV420P3
 
 
 struct ody_videofile {
@@ -60,6 +60,8 @@ struct ody_videofile {
 	int format;
 	int interlace;
 
+	int src_x, src_y;
+	int src_w, src_h;
 	int out_x, out_y;
 	int out_w, out_h;
 
@@ -176,8 +178,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->src.width = gplayer->video_info.width;
 	req->src.height = gplayer->video_info.height;
 	req->src.format = gplayer->video_info.format;
-	req->src.endian = 0;
-	req->src.swap = 0;
+	//req->src.endian = 0;
+	//req->src.swap = 0;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
 	req->src_rect.x = req->src_rect.y = 0;
@@ -435,6 +437,12 @@ static void help(char *progname)
 			"\t\t 14: GDM_DSS_PF_YUV420P3 \n" \
             "  -ii interlace \n" \
             "  -iname [filename] \n" \
+            "  -ox x position of output \n" \
+            "  -oy y position of output \n" \
+            "  -ow width of output \n" \
+            "  -oh height of output \n" \
+            "  -ox x position of output \n" \
+            "  -oy y position of output \n" \
             "  -ow width of output \n" \
             "  -oh height of output \n" \
             "  -or rotation \n", progname);
@@ -464,7 +472,13 @@ int main(int argc, char **argv)
 	pvideo->height = VIDEO_HEIGHT;
 	pvideo->format = VIDEO_FORMAT;
 	pvideo->interlace = 0;
+
+	pvideo->src_x = pvideo->src_y = 0;
+	pvideo->src_w = pvideo->width;
+	pvideo->src_h = pvideo->height;
 	pvideo->out_x = pvideo->out_y = 0;
+
+	// if out_w or out_h is -1, this value is set LCD Width or Height.
 	pvideo->out_w = pvideo->out_h = -1;
 	pvideo->rotation = 0;
 
@@ -472,18 +486,22 @@ int main(int argc, char **argv)
 	while(1) {
 		int option_index = 0, c = 0;
 		static struct option long_options[] = {
-				{"h",	no_argument, 0, 0},
-				{"help", no_argument, 0, 0},
-				{"iw", required_argument, 0, 0},	//
-				{"ih", required_argument, 0, 0},
-				{"if", required_argument, 0, 0},
-				{"ii", required_argument, 0, 0},
-				{"iname", required_argument, 0, 0},
-				{"ox", required_argument, 0, 0},
-				{"oy", required_argument, 0, 0},
-				{"ow", required_argument, 0, 0},
-				{"oh", required_argument, 0, 0},
-				{"or", required_argument, 0, 0},
+				{"h",	no_argument, 0, 0},		// help
+				{"help", no_argument, 0, 0},		// help
+				{"iw", required_argument, 0, 0},	// input image width
+				{"ih", required_argument, 0, 0},	// input image height
+				{"if", required_argument, 0, 0},	// input image format
+				{"ii", required_argument, 0, 0},	// input image type - interlace
+				{"iname", required_argument, 0, 0},	// input file name
+				{"sx", required_argument, 0, 0},	// source x position
+				{"sy", required_argument, 0, 0},	// source y position
+				{"sw", required_argument, 0, 0},	// source width
+				{"sh", required_argument, 0, 0},	// source height
+				{"dx", required_argument, 0, 0},	// output x position
+				{"dy", required_argument, 0, 0},	// output y position
+				{"dw", required_argument, 0, 0},	// output width
+				{"dh", required_argument, 0, 0},	// output height
+				{"dr", required_argument, 0, 0},	// output rotation
 				{0, 0, 0, 0}
 			};
 
@@ -515,6 +533,7 @@ int main(int argc, char **argv)
 		case 4:
 			pvideo->format = atoi(optarg);
 			break;
+		/* interlace */
 		case 5:
 			pvideo->interlace = atoi(optarg);
 			break;
@@ -522,24 +541,40 @@ int main(int argc, char **argv)
 		case 6:
 			filename = strdup(optarg);
 		    	break;
-		/* output x-pos */
+		/* source x-pos */
 		case 7:
+			pvideo->src_x = atoi(optarg);
+			break;
+		/* source y-pos */
+		case 8:
+			pvideo->src_y = atoi(optarg);
+			break;
+		/* source width */
+		case 9:
+			pvideo->src_w = atoi(optarg);
+			break;
+		/* source height */
+		case 10:
+			pvideo->src_h = atoi(optarg);
+			break;
+		/* output x-pos */
+		case 11:
 			pvideo->out_x = atoi(optarg);
 			break;
 		/* output y-pos */
-		case 8:
+		case 12:
 			pvideo->out_y = atoi(optarg);
 			break;
 		/* output width */
-		case 9:
+		case 13:
 			pvideo->out_w = atoi(optarg);
 			break;
 		/* output height */
-		case 10:
+		case 14:
 			pvideo->out_h = atoi(optarg);
 			break;
 		/* rotation */
-		case 11:
+		case 15:
 			pvideo->rotation = atoi(optarg);
 			break;
 		default:
@@ -567,7 +602,6 @@ int main(int argc, char **argv)
 
 	printf("frame size: %d %d\n", gplayer.frame[0].size[0], gplayer.frame[1].size[0]);
 
-
 	for(i=0; i< 2; i++) {
 		if(alloc_video_memory(&gplayer.frame[i]) != 0) {/* front buffer */
 			goto exit;
@@ -581,6 +615,10 @@ int main(int argc, char **argv)
 	pthread_detach(decoding_worker);
 
 	while(!gplayer.stop) {
+		// 여기서 입력 받아서 설정을 변경?
+
+
+
 
 		sleep(1);
 

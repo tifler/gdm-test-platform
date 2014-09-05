@@ -172,8 +172,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->src.width = p_player->video_info.width;
 	req->src.height = p_player->video_info.height;
 	req->src.format = p_player->video_info.format;
-	req->src.endian = 0;
-	req->src.swap = 0;
+	//req->src.endian = 0;
+	//req->src.swap = 0;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
 	req->src_rect.x = req->src_rect.y = 0;
@@ -245,16 +245,16 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::Open()
     MMP_RESULT mmpResult = MMP_SUCCESS;
 
     mmpResult=CMmpRenderer::Open();
-    
+
 	MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::Open] +++ W:%d H:%d "), m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight));
-    
+
 	this->m_fd_framebuffer = open_framebuffer();
 	if(this->m_fd_framebuffer < 0) {
 		MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::Open] FAIL: open_framebuffer ")));
 		mmpResult = MMP_FAILURE;
 	}
 	else {
-	
+
 		struct ody_framebuffer *pfb;
 		struct ody_videofile *pvideo;
 
@@ -298,7 +298,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::Open()
 	if(mmpResult == MMP_SUCCESS) {
 
 		int ret = 0;
-		
+
 		MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::Open] ln=%d "), __LINE__ ));
 
 		dss_overlay_default_config(&m_request, &gplayer);
@@ -318,7 +318,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::Open()
 #if (MMPRENDERER_ODYFPGA_DUMP == 1)
         m_fp_dump = fopen("/mnt/dump.yuv", "wb");
 #endif
-	
+
 	}
 
 	MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::Open] ln=%d "), __LINE__ ));
@@ -368,7 +368,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U,
     MMP_RESULT mmpResult;
     unsigned int key=0xAAAA9829;
     unsigned int key1, key2;
-	
+
     key1 = *((unsigned int*)U);
     key2 = *((unsigned int*)V);
     if( (key1 == key) && (key2 == key) ) {
@@ -378,8 +378,8 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U,
         mmpResult = this->RenderYUV420Planar_Memory(Y, U, V, buffer_width, buffer_height);
     }
 
-    
-	
+
+
 
     return mmpResult;
 }
@@ -387,7 +387,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U,
 MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_mem] +++ ")));
-    
+
 	unsigned char *dest_y, *dest_u, *dest_v;
 
 	dest_y = gplayer.frame[m_buf_ndx].address;
@@ -413,7 +413,7 @@ MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_Memory(MMP_U8* Y, MMP
 	memset(dest_u, 128, m_chroma_size);
 	memset(dest_v, 128, m_chroma_size);
 #endif
-	
+
 	dss_overlay_play(gplayer.fb_info.fd, &m_req_data, &gplayer.frame[m_buf_ndx]);
 	dss_overlay_commit(gplayer.fb_info.fd);
 
@@ -438,27 +438,27 @@ static int dss_overlay_play(int fd, struct gdm_dss_overlay_data *req_data,
 #include "vpuapi.h"
 MMP_RESULT CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar_Ion(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
-    
+
     FrameBuffer* pVPU_FrameBuffer;
 	unsigned char *dest_y, *dest_u, *dest_v;
 
     pVPU_FrameBuffer = (FrameBuffer*)Y;
-	
-    MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar] +++ ION  fd=%d buf(0x%08x 0x%08x 0x%08x , 0x%08x) "), 
-                          pVPU_FrameBuffer->ion_shared_fd, 
+
+    MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyFpgaDisplay::RenderYUV420Planar] +++ ION  fd=%d buf(0x%08x 0x%08x 0x%08x , 0x%08x) "),
+                          pVPU_FrameBuffer->ion_shared_fd,
                           pVPU_FrameBuffer->bufY, pVPU_FrameBuffer->bufCb, pVPU_FrameBuffer->bufCr,
                           pVPU_FrameBuffer->ion_base_phyaddr));
-    
+
 	//dss_overlay_play(gplayer.fb_info.fd, &m_req_data, &gplayer.frame[m_buf_ndx]);
     m_req_data.num_plane = 1;
     m_req_data.data[0].memory_id = pVPU_FrameBuffer->ion_shared_fd;
 	m_req_data.data[0].offset = pVPU_FrameBuffer->bufY - pVPU_FrameBuffer->ion_base_phyaddr;
 	ioctl(gplayer.fb_info.fd, GDMFB_OVERLAY_PLAY, &m_req_data);
-	
-    
+
+
     dss_overlay_commit(gplayer.fb_info.fd);
 
-#if 0	
+#if 0
 	if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
 
 		dest_y = gplayer.frame[m_buf_ndx].address;

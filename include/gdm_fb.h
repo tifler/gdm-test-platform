@@ -24,42 +24,27 @@
 #define GDMFB_NEW_REQUEST 	(-1)
 #define GDMFB_BASE_REQUEST 	(-2)
 
-#ifndef __KERNEL__
-enum gdm_dss_pixel_format
-{
-	GDM_DSS_PF_RGB888 = 0,
-	GDM_DSS_PF_RGB565,
-	GDM_DSS_PF_ARGB1555,
-	GDM_DSS_PF_ARGB4444,
-	GDM_DSS_PF_ARGB8888,
-	GDM_DSS_PF_GRAY_X,
-	GDM_DSS_PF_INDEX,
-	GDM_DSS_PF_STREAM_X,
-	GDM_DSS_PF_YUV422I,
-	GDM_DSS_PF_YUV444I,
-	GDM_DSS_PF_YUV420P2,
-	GDM_DSS_PF_YUV422P2,
-	GDM_DSS_PF_YUV422P3,
-	GDM_DSS_PF_YUV422P3H_X,
-	GDM_DSS_PF_YUV420P3,
-	GDM_DSS_PF_YUV444_X,
-	GDM_DSS_PF_MAX,
-};
-
-enum gdm_dss_pixel_rgb_order
-{
-	GDM_DSS_PF_ORDER_RGB = 0,
-	GDM_DSS_PF_ORDER_RBG,
-	GDM_DSS_PF_ORDER_GRB,
-	GDM_DSS_PF_ORDER_GBR,
-	GDM_DSS_PF_ORDER_BRG,
-	GDM_DSS_PF_ORDER_BGR,
-};
-
-enum gdm_dss_pixel_endian
-{
-	GDM_DSS_PF_ENDIAN_LITTLE = 0,
-	GDM_DSS_PF_ENDIAN_BIG,
+enum gdm_fb_format {
+	GDMFB_RGB888 = 0,
+	GDMFB_BGR888,
+	GDMFB_RGB565,
+	GDMFB_BGR565,
+	GDMFB_ARGB1555,
+	GDMFB_BGRA1555,
+	GDMFB_RGBA1555,
+	GDMFB_ABGR1555,
+	GDMFB_ARGB8888,
+	GDMFB_BGRA8888,
+	GDMFB_RGBA8888,
+	GDMFB_ABGR8888,
+	GDMFB_YUV422I,
+	GDMFB_YUV444I,
+	GDMFB_YUV420P2,
+	GDMFB_YUV422P2,
+	GDMFB_YUV422P3,
+	GDMFB_YUV422P3H_X,
+	GDMFB_YUV420P3,
+	GDMFB_MAX,
 };
 
 enum gdm_dss_rotator_dir {
@@ -73,8 +58,6 @@ enum gdm_dss_rotator_dir {
 	GDM_DSS_ROTATOR_90_HOR_FLIP,
 	GDM_DSS_ROTATOR_DIR_MAX,
 };
-#endif
-
 
 /* flag values */
 #define GDM_DSS_ROT_NOP		0
@@ -192,8 +175,8 @@ struct gdm_dss_img {
 	uint32_t width;
 	uint32_t height;
 	uint32_t format;
-	uint32_t swap;
-	uint32_t endian;
+	//uint32_t swap;
+	//uint32_t endian;
 };
 
 struct gdm_dss_rect {

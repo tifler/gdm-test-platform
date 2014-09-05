@@ -128,10 +128,10 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
     struct ody_player *gplayer = &m_gplayer;
     struct ody_framebuffer *pfb;
 	struct ody_videofile *pvideo;
-   
+
 
     mmpResult=CMmpRenderer::Open();
-    
+
 	MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx1::Open] +++ W:%d H:%d "), m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight));
 
     /* STEP0. Alloc FrameBuffer */
@@ -141,7 +141,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 		pvideo = &gplayer->video_info;
         pvideo->width = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16);
         pvideo->height = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
-		pvideo->format = GDM_DSS_PF_YUV420P3;
+		pvideo->format = GDMFB_YUV420P3;
 
         gplayer->frame[0].size[0] = pvideo->width * pvideo->height;
     	gplayer->frame[0].size[1] = gplayer->frame[0].size[2] = pvideo->width * pvideo->height / 4;
@@ -163,7 +163,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 		m_sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 #endif
 		if(m_sock_fd >= 0) {
-		
+
 			bzero(&server_addr, sizeof(server_addr));
 			server_addr.sun_family = AF_UNIX;
 			strcpy(server_addr.sun_path, UNIX_SOCKET_PATH);
@@ -188,7 +188,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 
     // step-02: request overlay to display
     if(mmpResult == MMP_SUCCESS) {
-        
+
 	    dss_overlay_default_config(&m_req, gplayer);
 	    dss_overlay_set(m_sock_fd, &m_req);
     }
@@ -240,7 +240,7 @@ void CMmpRenderer_OdyClientEx1::SetFirstRenderer() {
 }
 
 MMP_RESULT CMmpRenderer_OdyClientEx1::Render_Ion(CMmpMediaSampleDecodeResult* pDecResult) {
-    
+
     int iret;
 	unsigned int t1, t2;
     MMP_S32 i;
@@ -248,17 +248,17 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render_Ion(CMmpMediaSampleDecodeResult* pD
     if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
         return MMP_SUCCESS;
     }
-    
-    MMPDEBUGMSG(0, (TEXT("[CMmpRenderer_OdyClientEx1::Render_Ion]  fd=(%d %d %d) offset(%d %d %d) "), 
-                          pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_Y], 
-                          pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_U], 
+
+    MMPDEBUGMSG(0, (TEXT("[CMmpRenderer_OdyClientEx1::Render_Ion]  fd=(%d %d %d) offset(%d %d %d) "),
+                          pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_Y],
+                          pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_U],
                           pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_V],
 
-                          pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y], 
-                          pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U], 
+                          pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y],
+                          pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U],
                           pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V]
     ));
-    	
+
 	memset(&m_req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 	m_req_data.id = (uint32_t)this;
 	m_req_data.num_plane = 3;
@@ -275,7 +275,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render_Ion(CMmpMediaSampleDecodeResult* pD
     if(m_gplayer.release_fd == -1) {
         dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
     }
-    
+
     if(m_gplayer.release_fd != -1) {
 		//printf("wait frame done signal\n");
 
@@ -309,7 +309,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
     if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
         return MMP_SUCCESS;
     }
-        	
+
 	memset(&m_req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 	m_req_data.id = (uint32_t)this;
 	m_req_data.num_plane = 3;
@@ -326,7 +326,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
     if(m_gplayer.release_fd == -1) {
         dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
     }
-    
+
     if(m_gplayer.release_fd != -1) {
 		//printf("wait frame done signal\n");
 
@@ -385,8 +385,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_p
 	req->src.width = gplayer->video_info.width;
 	req->src.height = gplayer->video_info.height;
 	req->src.format = gplayer->video_info.format;
-	req->src.endian = 0;
-	req->src.swap = 0;
+	//req->src.endian = 0;
+	//req->src.swap = 0;
 	req->pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
 	req->src_rect.x = req->src_rect.y = 0;
@@ -476,11 +476,11 @@ static int dss_overlay_unset(int sockfd)
 #if (MMP_OS == MMP_OS_WIN32)
 
 int CMmpRenderer_OdyClientEx1::dss_overlay_queue_win32(int sockfd, struct gdm_dss_overlay_data *req_data) {
-    
+
     class mmp_msg_packet* p_packet;
 
     p_packet = new class mmp_msg_packet(MSG_SEND_BUFFER);
-    
+
     return 0;
 
 }
@@ -489,13 +489,13 @@ void CMmpRenderer_OdyClientEx1::service_render_stub(void* parm) {
     CMmpRenderer_OdyClientEx1* p_obj = (CMmpRenderer_OdyClientEx1*)parm;
     p_obj->service_render();
 }
-    
+
 void CMmpRenderer_OdyClientEx1::service_render() {
 
     class mmp_msg_packet* p_packet;
     MMP_RESULT mmpResult;
     MMP_S32 picWidth, picHeight;
-    MMP_U8 *pImageBuffer; 
+    MMP_U8 *pImageBuffer;
     MMP_S32 shared_fd[MMP_MEDIASAMPLE_PLANE_COUNT];
     MMP_U32 offset[MMP_MEDIASAMPLE_PLANE_COUNT];
     MMP_U32 stride[MMP_MEDIASAMPLE_PLANE_COUNT];
@@ -509,8 +509,8 @@ void CMmpRenderer_OdyClientEx1::service_render() {
 
     if(m_pRendererProp->m_hRenderWnd != NULL) {
 
-        pMmpGL=new CMmpGL_MovieEx1((HWND)m_pRendererProp->m_hRenderWnd, 
-                                    ::GetDC((HWND)m_pRendererProp->m_hRenderWnd), 
+        pMmpGL=new CMmpGL_MovieEx1((HWND)m_pRendererProp->m_hRenderWnd,
+                                    ::GetDC((HWND)m_pRendererProp->m_hRenderWnd),
                                     m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight);
         if(pMmpGL==NULL)
         {
@@ -538,19 +538,19 @@ void CMmpRenderer_OdyClientEx1::service_render() {
 
 
     while(m_msg_res.is_run()) {
-    
+
         mmpResult = m_msg_res.readmsg_from_queue(&p_packet);
         if(mmpResult == MMP_SUCCESS) {
-            
+
             switch(p_packet->m_msg) {
-            
+
                 case MSG_SEND_BUFFER:
 
                     picWidth = pMmpGL->GetPicWidth();
                     picHeight = pMmpGL->GetPicHeight();
                     pImageBuffer= pMmpGL->GetImageBuffer();
                     //lumaSize=picWidth*picHeight;
-                    
+
                     shared_fd[MMP_MEDIASAMPLE_BUF_Y] = p_packet->m_int_parm[0];
                     shared_fd[MMP_MEDIASAMPLE_BUF_U] = p_packet->m_int_parm[1];
                     shared_fd[MMP_MEDIASAMPLE_BUF_V] = p_packet->m_int_parm[2];
@@ -575,7 +575,7 @@ void CMmpRenderer_OdyClientEx1::service_render() {
                     V=(MMP_U8*)(buf_addr[MMP_MEDIASAMPLE_BUF_V].m_vir_addr + offset[MMP_MEDIASAMPLE_BUF_V]);
                     y_stride = stride[MMP_MEDIASAMPLE_BUF_Y];
                     uv_stride = stride[MMP_MEDIASAMPLE_BUF_U];
-                        
+
                     (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
 				                    picWidth*3, //int x_stride,
 					                Y, //uint8_t * y_src,
@@ -589,15 +589,15 @@ void CMmpRenderer_OdyClientEx1::service_render() {
                                     );
 
 
-                
+
                    pMmpGL->Draw();
 
                    delete p_packet;
                    break;
             }
-        
+
         }
-        
+
     }
 
     if(pMmpGL)
