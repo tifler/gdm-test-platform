@@ -30,6 +30,10 @@
 #define DISPLAY_WIDTH                       (640)
 #define DISPLAY_HEIGHT                      (480)
 
+#define VIDEO_WIDTH                         (320)
+#define VIDEO_HEIGHT                        (240)
+#define VIDEO_PIXEL_FORMAT                  V4L2_PIX_FMT_NV16
+
 /*****************************************************************************/
 
 struct Option {
@@ -108,8 +112,17 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 {
     struct GDMDisplay *disp = (struct GDMDisplay *)param;
 
-    GDispSendFrame(disp, buffer, 1000);
+    if (disp)
+        GDispSendFrame(disp, buffer, 1000);
 
+    DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
+
+    return 0;
+}
+
+static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
+{
+    DBG("VIDEO CALLBACK: Buffer Index = %d", index);
     return 0;
 }
 
@@ -128,10 +141,12 @@ int main(int argc, char **argv)
     struct ISP *isp;
     struct SIF *sif;
     struct DXO *dxo;
-    struct STREAM *displayStream;
+    struct STREAM *displayStream = NULL;
+    struct STREAM *videoStream = NULL;
 
     parseOption(argc, argv);
 
+    // display stream
     displayStream = streamOpen(STREAM_PORT_DISPLAY);
     ASSERT(displayStream);
 
@@ -141,6 +156,7 @@ int main(int argc, char **argv)
     planes = streamGetBufferSize(displayStream, planeSizes);
 
     buffers = calloc(opt.buffers, sizeof(*buffers));
+    ASSERT(buffers);
 
     for (i = 0; i < opt.buffers; i++) {
         buffers[i] = allocContigMemory(planes, planeSizes, 0);
@@ -163,6 +179,33 @@ int main(int argc, char **argv)
 
         streamSetCallback(displayStream, displayCallback, display);
     }
+    else {
+        streamSetCallback(displayStream, displayCallback, NULL);
+    }
+    // end of display stream
+
+    // video stream
+    videoStream = streamOpen(STREAM_PORT_VIDEO);
+    ASSERT(videoStream);
+
+    streamSetFormat(videoStream,
+            VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_PIXEL_FORMAT);
+
+    planes = streamGetBufferSize(videoStream, planeSizes);
+
+    opt.buffers = 2;
+    buffers = calloc(opt.buffers, sizeof(*buffers));
+    ASSERT(buffers);
+
+    for (i = 0; i < opt.buffers; i++) {
+        buffers[i] = allocContigMemory(planes, planeSizes, 0);
+        ASSERT(buffers[i]);
+    }
+
+    streamSetBuffers(videoStream, opt.buffers, buffers);
+
+    streamSetCallback(videoStream, videoCallback, NULL);
+    // end of video stream
 
     memset(&conf, 0, sizeof(conf));
     conf.sysFreqMul = 32;
@@ -191,17 +234,32 @@ int main(int argc, char **argv)
     dxoFmt.pixelFormat = V4L2_PIX_FMT_UYVY;
     dxoFmt.crop.left = 0;
     dxoFmt.crop.top = 0;
-    dxoFmt.crop.right = DISPLAY_WIDTH - 1;
-    dxoFmt.crop.bottom = DISPLAY_HEIGHT - 1;
+    // XXX Crop and scalings are based on SENSOR size.
+    dxoFmt.crop.right = SENSOR_WIDTH - 1;
+    dxoFmt.crop.bottom = SENSOR_HEIGHT - 1;
     DXOSetOutputFormat(dxo, DXO_OUTPUT_DISPLAY, &dxoFmt);
 
+    dxoFmt.width = VIDEO_WIDTH;
+    dxoFmt.height = VIDEO_HEIGHT;
+    //dxoFmt.width = DISPLAY_WIDTH;
+    //dxoFmt.height = DISPLAY_HEIGHT;
+    dxoFmt.pixelFormat = V4L2_PIX_FMT_UYVY;
+    dxoFmt.crop.left = 0;
+    dxoFmt.crop.top = 0;
+    // XXX Crop and scalings are based on SENSOR size.
+    dxoFmt.crop.right = SENSOR_WIDTH - 1;
+    dxoFmt.crop.bottom = SENSOR_HEIGHT - 1;
+    DXOSetOutputFormat(dxo, DXO_OUTPUT_VIDEO, &dxoFmt);
+
     DXOSetOutputEnable(dxo, 1 << DXO_OUTPUT_DISPLAY, 1 << DXO_OUTPUT_DISPLAY);
+    DXOSetOutputEnable(dxo, 1 << DXO_OUTPUT_VIDEO, 1 << DXO_OUTPUT_VIDEO);
     DXORunState(dxo, DXO_STATE_PREVIEW, 0);
 
     if (!opt.v4l2)
         pause();
 
     streamStart(displayStream);
+    streamStart(videoStream);
 
     while (1)
         sleep (1);

@@ -13,8 +13,20 @@ static struct SENSOR *dxoSensors[SENSOR_ID_COUNT] = {
 
 /*****************************************************************************/
 
+#ifdef  DXO_SENSOR_DYNAMIC
+static int isDynamic = 0;
+#else
+static int isDynamic = 1;
+#endif  /*DXO_SENSOR_DYNAMIC*/
+
 static struct SENSOR *getSensor(uint8_t sensorId)
 {
+    if (isDynamic) {
+        if (!dxoSensors[sensorId]) {
+            // not loaded. load first
+        }
+    }
+
     return dxoSensors[sensorId];
 }
 
@@ -50,6 +62,7 @@ void DxOISP_SensorInitialize(uint8_t sensorId)
     struct SENSOR *sensor;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
+    ASSERT(sensor);
     ASSERT(sensor->api);
     ASSERT(sensor->api->init);
     sensor->api->init(sensor);

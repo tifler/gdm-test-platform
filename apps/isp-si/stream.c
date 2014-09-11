@@ -70,7 +70,7 @@ static void *streamThread(void *arg)
             exit(0);
         }
 
-        DBG("Buffer Index = %d", idx);
+        //DBG("Buffer Index = %d", idx);
 
         ret = 0;
         if (stream->callback)
@@ -165,6 +165,14 @@ int streamSetBuffers(
 
     stream->bufferCount = v4l2_reqbufs(stream->fd, bufferCount);
     ASSERT(stream->bufferCount >= 0);
+
+    if (stream->buffers)
+        free(stream->buffers);
+
+    if (stream->bufferCount > 0) {
+        stream->buffers = calloc(stream->bufferCount, sizeof(*buffers));
+        ASSERT(stream->buffers);
+    }
 
     for (i = 0; i < stream->bufferCount; i++) {
         stream->buffers[i] = buffers[i];

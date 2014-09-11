@@ -59,8 +59,6 @@ struct SIF *SIFInit(void)
 
     SIF_WRITE(0x300, 1);    // 0:  high resolution 1: front sensor
 
-#define IMAGE_WIDTH     640
-#define IMAGE_HEIGHT    480
     //SIF_WRITE(0x320, (IMAGE_HEIGHT<<16)|IMAGE_WIDTH);
     SIF_WRITE(0x310, 0x00); // eof = vsync rear sof=href start
 
