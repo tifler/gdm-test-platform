@@ -35,6 +35,7 @@
 #include <linux/types.h>
 #include <linux/stat.h>
 #include <signal.h>
+#include <poll.h>
 
 #include "android_wrapper.h"
 #include "gdm_dss_wrapper.h"
@@ -244,7 +245,7 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 		return -1;
 	}
 	else {
-//		struct gdm_dss_overlay_data req_tmp = cur_ov->ov_data_front;
+		//		struct gdm_dss_overlay_data req_tmp = cur_ov->ov_data_front;
 		for(i=0;i< 3;i++) {
 			if(cur_ov->ov_data_back.data[i].memory_id != -1 && cur_ov->ov_data_back.data[i].memory_id != 0) {
 				close(cur_ov->ov_data_back.data[i].memory_id);
@@ -303,7 +304,7 @@ void *commit_thread(void *argp)
 		pthread_cond_wait(&hwc_ctx->commit_cond, &hwc_ctx->ov_lock);
 
 		/* prepare */
-	//	pthread_mutex_lock(&hwc_ctx->ov_lock);
+		//	pthread_mutex_lock(&hwc_ctx->ov_lock);
 
 		if(hwc_ctx->is_update == 0) {
 			pthread_mutex_unlock(&hwc_ctx->ov_lock);
@@ -415,11 +416,13 @@ void *commit_thread(void *argp)
 
 static void *client_thread(void *arg)
 {
+	int ret;
 	struct gdm_msghdr *cmd_msg;
 	struct gdm_msghdr *resp_msg;
 	struct client *client = (struct client *)arg;
 	struct hwc_context_t *hwc_ctx = (struct hwc_context_t*)client->usr_data;;
 	struct gdm_hwc_msg *disp_message;
+	struct pollfd pollfd;
 
 	printf("Client %d launched.\n", getpid());
 
@@ -428,9 +431,33 @@ static void *client_thread(void *arg)
 	resp_msg->fds[0] = hwc_ctx->release_fence;
 	gdm_sendmsg(client->sockfd, resp_msg);
 
+	pollfd.fd = client->sockfd;
+	pollfd.events = POLLIN | POLLERR | POLLHUP;
+	pollfd.revents = 0;
+
 	while(1) {
+		ret = poll(&pollfd, 1, 1000);
+		if (ret < 0)  {
+			printf("error.\n");
+			break;
+		}
+		else if (ret == 0) {
+			printf("timeout.\n");
+			continue;
+		}
+
+		if (pollfd.revents & (POLLERR | POLLHUP)) {
+			printf("revents = 0x%x.\n", pollfd.revents);
+			break;
+		}
 		cmd_msg = gdm_recvmsg(client->sockfd);
-		ASSERT(cmd_msg);
+		//ASSERT(cmd_msg);
+
+		if(cmd_msg == NULL) {
+			unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
+			goto Exit;
+
+		}
 
 		//DBG("cmd_msg->buf = %s", cmd_msg->buf);
 		//DBG("cmd_msg->buflen = %d", (int)cmd_msg->buflen);
@@ -439,33 +466,33 @@ static void *client_thread(void *arg)
 		disp_message = (struct gdm_hwc_msg*)cmd_msg->buf;
 		pthread_mutex_lock(&hwc_ctx->ov_lock);
 		switch(disp_message->hwc_cmd) {
-		case GDMFB_OVERLAY_GET:
-			break;
-		case GDMFB_OVERLAY_SET:
-			register_overlay_cfg(hwc_ctx, disp_message->app_id,
-					(struct gdm_dss_overlay*)disp_message->data);
-			break;
-		case GDMFB_OVERLAY_UNSET:
-			unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
-			gdm_free_msghdr(cmd_msg);
-			hwc_ctx->is_update = 1;
-			pthread_mutex_unlock(&hwc_ctx->ov_lock);
-			printf("client_exit\n");
-			goto Exit;
+			case GDMFB_OVERLAY_GET:
+				break;
+			case GDMFB_OVERLAY_SET:
+				register_overlay_cfg(hwc_ctx, disp_message->app_id,
+						(struct gdm_dss_overlay*)disp_message->data);
+				break;
+			case GDMFB_OVERLAY_UNSET:
+				unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
+				gdm_free_msghdr(cmd_msg);
+				hwc_ctx->is_update = 1;
+				pthread_mutex_unlock(&hwc_ctx->ov_lock);
+				printf("client_exit\n");
+				goto Exit;
 
-		case GDMFB_OVERLAY_PLAY:
-			register_overlay_data(hwc_ctx, disp_message->app_id,
-					cmd_msg);
+			case GDMFB_OVERLAY_PLAY:
+				register_overlay_data(hwc_ctx, disp_message->app_id,
+						cmd_msg);
 
-			resp_msg = gdm_alloc_msghdr(10, 1);
-			resp_msg->fds[0] = hwc_ctx->release_fence;
-			gdm_sendmsg(client->sockfd, resp_msg);
-			break;
-		case GDMFB_DISPLAY_COMMIT:
-			resp_msg = gdm_alloc_msghdr(10, 1);
-			resp_msg->fds[0] = hwc_ctx->release_fence;
-			gdm_sendmsg(client->sockfd, resp_msg);
-			break;
+				resp_msg = gdm_alloc_msghdr(10, 1);
+				resp_msg->fds[0] = hwc_ctx->release_fence;
+				gdm_sendmsg(client->sockfd, resp_msg);
+				break;
+			case GDMFB_DISPLAY_COMMIT:
+				resp_msg = gdm_alloc_msghdr(10, 1);
+				resp_msg->fds[0] = hwc_ctx->release_fence;
+				gdm_sendmsg(client->sockfd, resp_msg);
+				break;
 		}
 		hwc_ctx->is_update = 1;
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
@@ -537,21 +564,21 @@ void *server_loop(void *argp)
 
 	for ( ; ; ) {
 		do {
-		    FD_ZERO(&selectfds);
+			FD_ZERO(&selectfds);
 
-		    if(server_sock != -1) {
-			FD_SET(server_sock, &selectfds);
+			if(server_sock != -1) {
+				FD_SET(server_sock, &selectfds);
 
-			if(server_sock > max_fds)
-			    max_fds = server_sock;
-		    }
+				if(server_sock > max_fds)
+					max_fds = server_sock;
+			}
 
-		    err = select(max_fds + 1, &selectfds, NULL, NULL, NULL);
+			err = select(max_fds + 1, &selectfds, NULL, NULL, NULL);
 
-		    if(err < 0 && errno != EINTR) {
-			perror("select");
-			exit(EXIT_FAILURE);
-		    }
+			if(err < 0 && errno != EINTR) {
+				perror("select");
+				exit(EXIT_FAILURE);
+			}
 		} while(err <= 0);
 
 		bzero(&client_addr, sizeof(client_addr));
@@ -577,7 +604,7 @@ void timer_handler(struct hwc_context_t *hwc_ctx)
 {
 	int status = 0;
 	int skip;
-//	printf("timer expired %d timers\n", ++ count);
+	//	printf("timer expired %d timers\n", ++ count);
 
 	pthread_mutex_lock(&hwc_ctx->ov_lock);
 	status = hwc_ctx->is_update;
