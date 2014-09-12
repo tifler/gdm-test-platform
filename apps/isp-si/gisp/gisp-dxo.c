@@ -493,7 +493,7 @@ void DXOSetControl(struct DXO *dxo, const struct DXOControl *ctrl)
     dxo->dxoCmd.stSync.stControl.isTNREnabled = ctrl->enableTNR ? 1 : 0;
     dxo->dxoCmd.stSync.stControl.usFrameRate =
         (ctrl->fpsMul << DxOISP_FPS_FRAC_PART) / ctrl->fpsDiv;
-    // FIXME Change to dynamic setup
+    // TODO Need to change for dynamic setup
     dxo->dxoCmd.stSync.stControl.ucInputDecimation = 1;
     dxo->dxoCmd.stSync.stControl.ucCalibrationSelection = 0;
     dxo->dxoCmd.stSync.stControl.ucNbCaptureFrame = 1;
@@ -530,7 +530,6 @@ int DXOSetOutputFormat(struct DXO *dxo,
         outFmt->usSizeX = fmt->width;
         outFmt->usSizeY = fmt->height;
     }
-    outFmt->isEnabled = fmt ? 1 : 0;
 
     dxo->configFlags |= DXO_CONFIG_FLAG_OUTPUT(output);
 

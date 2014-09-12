@@ -157,6 +157,6 @@ void freeContigMemory(struct GDMBuffer *buf)
 
     ion_close(ion->fd);
     free(ion);
-    buf->priv = NULL;
+    free(buf);
 }
 

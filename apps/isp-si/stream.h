@@ -6,25 +6,31 @@
 /*****************************************************************************/
 
 enum {
-    GISP_PORT_CAP,
-    GISP_PORT_VID,
-    GISP_PORT_DIS,
-    GISP_PORT_FD,
-    GISP_PORT_COUNT,
+    STREAM_PORT_CAPTURE,
+    STREAM_PORT_VIDEO,
+    STREAM_PORT_DISPLAY,
+    STREAM_PORT_FACEDETECT,
+    STREAM_PORT_COUNT,
 };
-
 
 /*****************************************************************************/
 
-struct STREAM {
-    int fd;
-    int port;
-    uint32_t width;
-    uint32_t height;
-    uint32_t pixelformat;
-    int bufferCount;
-    struct GDMBuffer **buffers;
-    struct v4l2_format fmt;
-}:
+struct STREAM;
+struct GDMBuffer;
+
+/*****************************************************************************/
+
+struct STREAM *streamOpen(int port);
+void streamClose(struct STREAM *stream);
+int streamSetFormat(struct STREAM *stream,
+        uint32_t width, uint32_t height, uint32_t pixelformat);
+int streamGetBufferSize(struct STREAM *stream, uint32_t planeSizes[3]);
+int streamSetBuffers(struct STREAM *stream,
+        uint32_t bufferCount, struct GDMBuffer **buffers);
+int streamSetCallback(struct STREAM *stream,
+        int (*callback)(void *param, struct GDMBuffer *buffer, int index),
+        void *callbackParam);
+int streamStart(struct STREAM *stream);
+void streamStop(struct STREAM *stream);
 
 #endif  /*__GISP_STREAM_H__*/
