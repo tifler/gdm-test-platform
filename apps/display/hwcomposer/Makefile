@@ -21,6 +21,7 @@ LOCAL_CFLAGS	:= -I$(BASEDIR)/libs/libhwc
 LOCAL_CFLAGS	+= -I$(BASEDIR)/libs/libion
 LOCAL_CFLAGS	+= -I$(BASEDIR)/libs/libmsgio
 LOCAL_CFLAGS	+= -I$(BASEDIR)/include
+LOCAL_CFLAGS	+= -g
 
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion

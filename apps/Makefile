@@ -14,7 +14,7 @@ BASEDIR	:= $(shell pwd)/..
 endif
 #------------------------------------------------------------------------------
 
-SUBDIRS	:= mscaler gmm msgio-test-x86 display multimedia isp
+SUBDIRS	:= mscaler gmm msgio-test-x86 display multimedia isp-si
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

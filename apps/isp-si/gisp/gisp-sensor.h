@@ -2,6 +2,7 @@
 #define __GISP_SENSOR_H__
 
 #include <stdint.h>
+#include "debug.h"
 #ifdef  DXO_SENSOR_DYNAMIC
 #include "list.h"
 #endif  /*DXO_SENSOR_DYNAMIC*/
@@ -13,6 +14,8 @@ enum {
     SENSOR_ID_BACK,
     SENSOR_ID_COUNT,
 };
+
+#define  ISP_PRINTF                         DBG
 
 /*****************************************************************************/
 

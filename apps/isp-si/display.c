@@ -181,7 +181,7 @@ static struct GDispPixelFormat pixelFormats[] = {
 /*****************************************************************************/
 
 static void dss_get_fence_fd(
-        int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
+        int sockfd, int *release_fd, struct fb_var_screeninfo *vi, int timeout)
 {
     int ret;
     struct pollfd pollfd;
@@ -192,11 +192,11 @@ static void dss_get_fence_fd(
     // hwcomposer 에서 fenceFd를 보내지 못하는 경우가 있음.
     // 1초간 대기후 받지 못하면 즉시 리턴하도록 처리
     pollfd.fd = sockfd;
-    pollfd.events = POLLIN;
+    pollfd.events = POLLIN | POLLERR | POLLHUP;
     pollfd.revents = 0;
 
     do {
-        ret = poll(&pollfd, 1, 1000);
+        ret = poll(&pollfd, 1, timeout);
         if (ret < 0) {
             perror("poll");
         }
@@ -204,6 +204,11 @@ static void dss_get_fence_fd(
             DBG("Timeout.");
             *release_fd = -1;
             return;
+        }
+
+        if (pollfd.revents & (POLLERR | POLLHUP)) {
+            ERR("Socket poll failed.(revents=0x%x)", pollfd.revents);
+            exit(EXIT_FAILURE);
         }
     } while (ret <= 0);
 
@@ -317,7 +322,7 @@ struct GDMDisplay *GDispOpen(const char *path, unsigned long flags)
 
     DBG("Client connected to server...");
 
-    dss_get_fence_fd(d->sockfd, &d->releaseFd, &d->screenInfo);
+    dss_get_fence_fd(d->sockfd, &d->releaseFd, &d->screenInfo, 1000);
 
     return d;
 }
@@ -388,7 +393,7 @@ int GDispSendFrame(struct GDMDisplay *d, struct GDMBuffer *frame, int timeout)
     }
 
     dss_overlay_queue(d->sockfd, &ov);
-    dss_get_fence_fd(d->sockfd, &releaseFd, NULL);
+    dss_get_fence_fd(d->sockfd, &releaseFd, NULL, timeout);
 
     if (releaseFd != -1) {
         //DBG("============> SYNC WAIT <===========");

@@ -38,6 +38,10 @@ struct STREAM {
     void *callbackParam;
 };
 
+static const char *streamName[] = {
+    "DISPLAY", "VIDEO", "CAPTURE", "FACEDETECT"
+};
+
 /*****************************************************************************/
 
 static void *streamThread(void *arg)
@@ -60,7 +64,7 @@ static void *streamThread(void *arg)
             exit(EXIT_FAILURE);
         }
         else if (ret == 0) {
-            DBG("Timeout.");
+            DBG("Timeout stream-%s.", streamName[stream->port]);
             continue;
         }
 

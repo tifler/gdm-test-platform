@@ -6,6 +6,7 @@
 /*****************************************************************************/
 
 enum {
+    // DO NOT CHANGE ORDER.(see gisp-port.h in driver)
     STREAM_PORT_CAPTURE,
     STREAM_PORT_VIDEO,
     STREAM_PORT_DISPLAY,

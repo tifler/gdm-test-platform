@@ -19,6 +19,7 @@ TARGET			:= server
 OBJS			:= server.o
 
 LOCAL_CFLAGS	:= -I$(BASEDIR)/libs/libmsgio-x86
+LOCAL_CFLAGS	+= -I$(BASEDIR)/include
 LOCAL_LFLAGS	:= -L$(BASEDIR)/libs/libmsgio-x86 -lmsgio -lpthread
 
 #------------------------------------------------------------------------------

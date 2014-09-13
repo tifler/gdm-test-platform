@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -36,6 +37,9 @@
 #define DxOISP_CommandSetAuto(v, m)       \
     DxOISP_CommandSet(DxOISP_CMD_OFFSET(m), sizeof(v.m), &(v.m))
 
+#define MAKE_PIXEL_FORMAT(fmt)          .name = #fmt, .v4l2PixelFormat = fmt
+#define ARRAY_SIZE(a)                   (sizeof(a) / sizeof(a[0]))
+
 /*****************************************************************************/
 
 struct DXOPortInfo {
@@ -44,14 +48,6 @@ struct DXOPortInfo {
     uint32_t hMax;
     uint32_t vMin;
     uint32_t vMax;
-};
-
-struct DXOPixelFormats {
-    const char *name;
-    uint32_t v4l2PixelFormat;
-    int format;
-    int order;
-    int encoding;
 };
 
 struct DXO {
@@ -106,82 +102,82 @@ static struct DXOPortInfo dxoPorts[] = {
     },
 };
 
-struct DXOPixelFormats dxoPixelFormats[] = {
+static struct DXOPixelFormat dxoPixelFormats[] = {
     // 422_1P
     {
-        .name = "YUV 4:2:2 packed, CbYCrY",
-        .v4l2PixelFormat = V4L2_PIX_FMT_UYVY,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_UYVY,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        MAKE_PIXEL_FORMAT(V4L2_PIX_FMT_UYVY),
+        .description = "YUV 4:2:2 packed, CbYCrY",
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_UYVY,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     }, {
-        .name = "YUV 4:2:2 packed, CrYCbY",
-        .v4l2PixelFormat = V4L2_PIX_FMT_VYUY,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_VYUY,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        MAKE_PIXEL_FORMAT(V4L2_PIX_FMT_VYUY),
+        .description = "YUV 4:2:2 packed, CrYCbY",
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_VYUY,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     }, {
-        .name = "YUV 4:2:2 packed, YCbYCr",
-        .v4l2PixelFormat = V4L2_PIX_FMT_YUYV,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_YUYV,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        MAKE_PIXEL_FORMAT(V4L2_PIX_FMT_YUYV),
+        .description = "YUV 4:2:2 packed, YCbYCr",
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_YUYV,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     }, {
-        .name = "YUV 4:2:2 packed, YCrYCb",
-        .v4l2PixelFormat = V4L2_PIX_FMT_YVYU,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_YVYU,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        MAKE_PIXEL_FORMAT(V4L2_PIX_FMT_YVYU),
+        .description = "YUV 4:2:2 packed, YCrYCb",
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_YVYU,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     },
     // 422_2P
     {
-        .name = "YUV 4:2:2 planar, Y/CbCr",
-        .v4l2PixelFormat = V4L2_PIX_FMT_NV16,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_YYVU,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        MAKE_PIXEL_FORMAT(V4L2_PIX_FMT_NV16),
+        .description = "YUV 4:2:2 planar, Y/CbCr",
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_YUYV,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     }, {
-        .name = "YUV 4:2:2 planar, Y/CrCb",
-        .v4l2PixelFormat = V4L2_PIX_FMT_NV61,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_YYUV,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        MAKE_PIXEL_FORMAT(V4L2_PIX_FMT_NV61),
+        .description = "YUV 4:2:2 planar, Y/CrCb",
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_YYUV,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     },
     // FIXME: How to support 422P3 in DxO ?
 #if 0
     // 422_3P
     {
-        .name = "YUV 4:2:2 3-planar, Y/Cb/Cr",
+        .description = "YUV 4:2:2 3-planar, Y/Cb/Cr",
         .v4l2PixelFormat = V4L2_PIX_FMT_YUV422P,
-        .format = DxOISP_FORMAT_YUV422,
-        .order = DxOISP_YUV422ORDER_YYUV,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        .dxoFormat = DxOISP_FORMAT_YUV422,
+        .dxoOrder = DxOISP_YUV422ORDER_YYUV,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     },
     // 420_2P
     // 주의: NV12와 NV12M의 차이는 2Plane이 연속이냐 아니냐의 차이이다.
     {
         // NV12의 경우 plane을 두개로 하지만 실제로는 하나로 할당 받도록 처리
-        .name = "YUV 4:2:0 contiguous 2-planar, Y/CbCr",
+        .description = "YUV 4:2:0 contiguous 2-planar, Y/CbCr",
         .v4l2PixelFormat = V4L2_PIX_FMT_NV12,
-        .format = DxOISP_FORMAT_YUV420,
-        .order = DxOISP_YUV422ORDER_YYUV,
-        .encoding = DxOISP_ENCODING_YUV_601FU,
+        .dxoFormat = DxOISP_FORMAT_YUV420,
+        .dxoOrder = DxOISP_YUV422ORDER_YYUV,
+        .dxoEncoding = DxOISP_ENCODING_YUV_601FU,
     },
     {
-        .name = "YUV 4:2:0 non-contiguous 2-planar, Y/CbCr",
+        .description = "YUV 4:2:0 non-contiguous 2-planar, Y/CbCr",
         .v4l2PixelFormat = V4L2_PIX_FMT_NV12M,
     },
     {
-        .name = "YUV 4:2:0 contiguous 2-planar, Y/CrCb",
+        .description = "YUV 4:2:0 contiguous 2-planar, Y/CrCb",
         .v4l2PixelFormat = V4L2_PIX_FMT_NV21,
     },
     {
-        .name = "YUV 4:2:0 non-contiguous 2-planar, Y/CrCb",
+        .description = "YUV 4:2:0 non-contiguous 2-planar, Y/CrCb",
         .v4l2PixelFormat = V4L2_PIX_FMT_NV21M,
     },
     // 420_3P
     {
-        .name = "YUV 4:2:0 non-contiguous 3-planar, Y/Cb/Cr",
+        .description = "YUV 4:2:0 non-contiguous 3-planar, Y/Cb/Cr",
         .v4l2PixelFormat = V4L2_PIX_FMT_YUV420M,
     },
 #endif  /*0*/
@@ -377,22 +373,18 @@ static void stopIRQHandler(struct DXO *dxo)
     ASSERT(ret == 0);
 }
 
-static int getFormat(uint32_t pixelFormat)
+static struct DXOPixelFormat *getPixelFormat(uint32_t pixelFormat)
 {
-    // TODO
-    return DxOISP_FORMAT_YUV422;
-}
+    int i;
 
-static int getOrder(uint32_t pixelFormat)
-{
-    // TODO
-    return DxOISP_YUV422ORDER_YUYV;
-}
+    for (i = 0; i < ARRAY_SIZE(dxoPixelFormats); i++) {
+        if (dxoPixelFormats[i].v4l2PixelFormat == pixelFormat) {
+            DBG("DXO Found PixelFormat = %s", dxoPixelFormats[i].name);
+            return &dxoPixelFormats[i];
+        }
+    }
 
-static int getEncoding(uint32_t pixelFormat)
-{
-    // TODO
-    return DxOISP_ENCODING_YUV_601FU;
+    return NULL;
 }
 
 /*****************************************************************************/
@@ -505,6 +497,7 @@ void DXOSetControl(struct DXO *dxo, const struct DXOControl *ctrl)
 int DXOSetOutputFormat(struct DXO *dxo,
         enum DXOOutput output, const struct DXOOutputFormat *fmt)
 {
+    struct DXOPixelFormat *pixelFormat;
     struct DXOPortInfo *port = &dxoPorts[output];
     typeof(dxo->dxoCmd.stSync.stControl.stOutput[0]) *outFmt;
 
@@ -520,9 +513,11 @@ int DXOSetOutputFormat(struct DXO *dxo,
             ERR("Port[%s] size limit exceeded.", port->name);
             return -1;
         }
-        outFmt->eFormat = getFormat(fmt->pixelFormat);
-        outFmt->eOrder = getOrder(fmt->pixelFormat);
-        outFmt->eEncoding = getEncoding(fmt->pixelFormat);
+        pixelFormat = getPixelFormat(fmt->pixelFormat);
+        ASSERT(pixelFormat);
+        outFmt->eFormat = pixelFormat->dxoFormat;
+        outFmt->eOrder = pixelFormat->dxoOrder;
+        outFmt->eEncoding = pixelFormat->dxoEncoding;
         outFmt->stCrop.usXAddrStart = fmt->crop.left;
         outFmt->stCrop.usXAddrEnd = fmt->crop.right;
         outFmt->stCrop.usYAddrStart = fmt->crop.top;
@@ -585,4 +580,16 @@ void DXORunState(struct DXO *dxo, enum DXOState state, int captureCount)
                 sizeof(mode), &mode);
 		DxOISP_StatusGroupClose();
 	} while(mode != state);
+}
+
+const struct DXOPixelFormat *DXOGetPixelFormatByName(const char *name)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(dxoPixelFormats); i++) {
+        if (strcmp(dxoPixelFormats[i].name, name) == 0)
+            return &dxoPixelFormats[i];
+    }
+
+    return NULL;
 }

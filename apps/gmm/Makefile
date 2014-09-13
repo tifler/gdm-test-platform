@@ -17,7 +17,7 @@ endif
 TARGET			:= gmm
 OBJS			:= gmm.o
 
-LOCAL_CFLAGS	:=
+LOCAL_CFLAGS	:= -I$(BASEDIR)/include
 LOCAL_LFLAGS	:=
 
 #------------------------------------------------------------------------------

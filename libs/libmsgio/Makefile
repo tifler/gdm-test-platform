@@ -18,6 +18,7 @@ TARGET			:= libmsgio.so
 OBJS			:= gdm-msgio.o
 
 LOCAL_CFLAGS	:= -fPIC
+LOCAL_CFLAGS	+= -I$(BASEDIR)/include
 LOCAL_LFLAGS	:= -shared
 
 #------------------------------------------------------------------------------

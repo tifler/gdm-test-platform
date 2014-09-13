@@ -107,6 +107,4 @@
 #define __CHECK_LINE__          TRACE_LINE
 #define __CHECK_FUNC__          TRACE_FUNC
 
-#define ISP_PRINTF              __dbg_output_nonl
-
 #endif  /*__DEBUG_H__*/
