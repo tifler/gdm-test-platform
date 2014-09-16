@@ -1605,7 +1605,6 @@ static inline void  setStaticSensorConfiguration ( int nbLanes ) {
 
             break;
 
-#if 1
 		case INPUTMODE_OV2715_640x480_8FPS :
 
 			ov2715_write2( 0x4740, 0x00);
@@ -1720,8 +1719,15 @@ static inline void  setStaticSensorConfiguration ( int nbLanes ) {
 			ov2715_write2( 0x4708, 0x03);	//Vsync Polarity Inversion
 			ov2715_write2( 0x3500, 0x00);	//Exposure Time High
 			ov2715_write2( 0x3503, 0x07);	// Manual Framerate, Manual Exposure
+
+            //[[tifler:20140916 To remove StuckHandler Error]]
+#if 0
 			ov2715_write2( 0x350C, 0x01);//15);	// Manaul Frame Length High
+			//ov2715_write2( 0x350D, 0x00);	// Manual Frame Length Low
+#else
+			ov2715_write2( 0x350C, 0x02);//15);	// Manaul Frame Length High
 			ov2715_write2( 0x350D, 0x00);	// Manual Frame Length Low
+#endif
 
 			ov2715_write2( 0x3501, 0x20);	//Exposure Time Mid
 			
@@ -1731,7 +1737,6 @@ static inline void  setStaticSensorConfiguration ( int nbLanes ) {
 			ov2715_write2( 0x3012, 0x01);
 
 		break;
-#endif  /*0*/
 
 
 		case INPUTMODE_OV2715_1920x1080_10FPS :
