@@ -185,7 +185,7 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->dst_rect.h = 272;//(req->src.height * req->dst_rect.w) / req->src.width;
 
 	req->transp_mask = 0;
-	req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_ROTATOR_HOR_FLIP);//GDM_DSS_FLAG_ROTATION_90);
+	req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_HFLIP);//GDM_DSS_FLAG_ROTATION_90);
 	req->id = GDMFB_NEW_REQUEST;
 
 }
