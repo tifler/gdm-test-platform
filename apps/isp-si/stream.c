@@ -36,10 +36,14 @@ struct STREAM {
     pthread_t thread;
     int (*callback)(void *callbackParam, struct GDMBuffer *buffer, int index);
     void *callbackParam;
+
+    // for debugging
+    uint32_t frames;
+    time_t lastSec;
 };
 
 static const char *streamName[] = {
-    "DISPLAY", "VIDEO", "CAPTURE", "FACEDETECT"
+    "CAPTURE", "VIDEO", "DISPLAY", "FACEDETECT"
 };
 
 /*****************************************************************************/
@@ -48,6 +52,7 @@ static void *streamThread(void *arg)
 {
     int ret;
     int idx;
+    time_t sec;
     struct pollfd pollfd;
     struct STREAM *stream = (struct STREAM *)arg;
 
@@ -89,6 +94,14 @@ static void *streamThread(void *arg)
 
         if (ret) {
             DBG("=====> QBUF(%d) FAILED <=====", idx);
+        }
+
+        stream->frames++;
+        time(&sec);
+        if (sec != stream->lastSec) {
+            DBG("Stream-%s: %d FPS", streamName[stream->port], stream->frames);
+            stream->lastSec = sec;
+            stream->frames = 0;
         }
     }
 

@@ -38,11 +38,11 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
     struct GDMDisplay *disp = (struct GDMDisplay *)param;
 
     if (disp) {
-        DBG("DISPLAY CALLBACK: Buffer Index = %d, Send Frame.", index);
+        //DBG("DISPLAY CALLBACK: Buffer Index = %d, Send Frame.", index);
         GDispSendFrame(disp, buffer, 1000);
     }
     else {
-        DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
+        //DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
     }
 
     return 0;
@@ -50,19 +50,19 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 
 static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    DBG("VIDEO CALLBACK: Buffer Index = %d", index);
+    //DBG("VIDEO CALLBACK: Buffer Index = %d", index);
     return 0;
 }
 
 static int captureCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    DBG("CAPTURE CALLBACK: Buffer Index = %d", index);
+    //DBG("CAPTURE CALLBACK: Buffer Index = %d", index);
     return 0;
 }
 
 static int faceDetectCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    DBG("FD CALLBACK: Buffer Index = %d", index);
+    //DBG("FD CALLBACK: Buffer Index = %d", index);
     return 0;
 }
 
@@ -112,11 +112,16 @@ static struct STREAM *createStream(
     dxoFmt.width = port->width;
     dxoFmt.height = port->height;
     dxoFmt.pixelFormat = port->pixelFormat;
-    dxoFmt.crop.left = 0;
-    dxoFmt.crop.top = 0;
-    // XXX Crop and scalings are based on SENSOR size.
-    dxoFmt.crop.right = opt->sensor.width - 1;
-    dxoFmt.crop.bottom = opt->sensor.height - 1;
+    dxoFmt.crop.left = port->cropLeft;
+    dxoFmt.crop.top = port->cropTop;
+    dxoFmt.crop.right = port->cropRight;
+    dxoFmt.crop.bottom = port->cropBottom;
+    DBG("dxoFmt = (%dx%d) (%d, %d, %d, %d)",
+            dxoFmt.width, dxoFmt.height,
+            dxoFmt.crop.left,
+            dxoFmt.crop.top,
+            dxoFmt.crop.right,
+            dxoFmt.crop.bottom);
     DXOSetOutputFormat(dxo, dxoPortId, &dxoFmt);
     DXOSetOutputEnable(dxo, 1 << dxoPortId, 1 << dxoPortId);
 
@@ -187,19 +192,25 @@ int main(int argc, char **argv)
     opt = createOption(argv[1]);
     ASSERT(opt);
 
-    memset(&conf, 0, sizeof(conf));
-    conf.sysFreqMul = 32;
-    conf.sysFreqDiv = 1;
-    conf.frmTimeMul = 4;
-    conf.frmTimeDiv = 1;
-
     isp = ISPInit();
     sif = SIFInit();
-    dxo = DXOInit(&conf);
 
+    sifConf.id = opt->sensor.id;
     sifConf.width = opt->sensor.width;
     sifConf.height = opt->sensor.height;
+    sifConf.fps = opt->sensor.fps;
+    DBG("SIF = (%d x %d x %d FPS)", sifConf.width, sifConf.height, sifConf.fps);
     SIFSetConfig(sif, &sifConf);
+
+    memset(&conf, 0, sizeof(conf));
+    conf.sysFreqMul = opt->global.sysClkMul;
+    conf.sysFreqDiv = opt->global.sysClkDiv;
+    conf.frmTimeMul = 4;
+    conf.frmTimeDiv = 1;
+    conf.needPostEvent = opt->global.needPostEvent;
+    conf.estimateIRQ = opt->global.estimateIRQ;
+
+    dxo = DXOInit(&conf);
 
     ctrl.input = DXO_INPUT_SOURCE_FRONT;
     ctrl.hMirror = 0;

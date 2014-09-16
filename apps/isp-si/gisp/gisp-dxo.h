@@ -37,6 +37,8 @@ struct DXOSystemConfig {
     uint32_t sysFreqDiv;
     uint32_t frmTimeMul;
     uint32_t frmTimeDiv;
+    int needPostEvent;
+    int estimateIRQ;
 
     // callback functions & params
     int (*printf)(const char *, ...);

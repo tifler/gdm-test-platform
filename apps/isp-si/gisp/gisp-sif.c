@@ -10,6 +10,7 @@
 #include <linux/videodev2.h>
 
 #include "gisp-sif.h"
+#include "gisp-sensor.h"
 #include "gisp-iodev.h"
 #include "debug.h"
 
@@ -71,6 +72,22 @@ struct SIF *SIFInit(void)
 
 void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf)
 {
+    int i;
+    struct SENSOR_MODE mode;
+
+    for (i = 0; ; i++) {
+        if (SensorGetMode(conf->id, i, &mode) < 0) {
+            ASSERT(! "Sensor Not Found.");
+        }
+
+        if (mode.width == conf->width &&
+                mode.height == conf->height && mode.fps == conf->fps) {
+            DBG("Sensor Found.");
+            break;
+        }
+    }
+
+    SensorSetMode(conf->id, i);
     SIF_WRITE(0x320, (conf->height << 16) | conf->width);
 }
 

@@ -19,6 +19,7 @@ CALIB_OBJS		:= gisp/calibData/data.o gisp/calibData/calibDataTabSelection.o
 CALIB_OBJS		+= gisp/calibData/ccParams.o gisp/calibData/ccParamsTabSelection.o
 CALIB_OBJS		+= gisp/calibData/ctlParams.o
 SENSOR_OBJS		:= gisp/OV2715/sensorOVT2715.o
+SENSOR_OBJS		+= gisp/VIGEN/vigen.o
 #OBJS			:= main.o DxOISP_ahblAccess.o dxo.o isp-io.o ioctl.o v4l2.o \
 #	$(CALIB_OBJS) $(SENSOR_OBJS)
 GISP_OBJS		:= gisp/gisp-isp.o gisp/gisp-dxo.o gisp/gisp-sif.o
