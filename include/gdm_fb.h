@@ -95,6 +95,15 @@ enum gdm_dss_rotator_dir {
 #define GDM_DSS_SECURE_DISPLAY_OVERLAY_SESSION	0x00008000
 #define GDM_DSS_DISPLAY_OVERLAY_ID		0x10000000
 
+enum gdm_fb_zorder {
+	GDM_FB_ZORDER_0 = 0,
+	GDM_FB_ZORDER_1,
+	GDM_FB_ZORDER_2,
+	GDM_FB_ZORDER_3,
+	GDM_FB_ZORDER_4,
+	GDM_FB_ZORDER_5,
+};
+
 
 enum gdm_fb_blending {
 	GDM_FB_BLENDING_NONE = 0,

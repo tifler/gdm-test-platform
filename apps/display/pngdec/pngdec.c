@@ -444,8 +444,8 @@ static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screenin
 
 //	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
-
-		memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
+		if(vi)
+			memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
 //		printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
