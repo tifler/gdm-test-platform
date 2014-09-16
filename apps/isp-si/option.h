@@ -8,15 +8,21 @@
 
 struct Option {
     struct OptionGlobal {
-        int runState;
+        int sysClkMul;
+        int sysClkDiv;
         int display;
         int videoEncode;
         int captureEncode;
+        int runState;
+        int needPostEvent;
+        int estimateIRQ;
     } global;
 
     struct OptionSensor {
+        uint32_t id;
         uint32_t width;
         uint32_t height;
+        uint32_t fps;
     } sensor;
 
     struct OptionPort {

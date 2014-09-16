@@ -34,20 +34,29 @@ static uint32_t str2State(const char *name)
 static void parseGlobal(dictionary *dict, struct Option *option)
 {
     char *state;
+    option->global.sysClkMul = iniparser_getint(dict, "Global:SysClkMul", 32);
+    option->global.sysClkDiv = iniparser_getint(dict, "Global:SysClkDiv", 0);
     option->global.display = iniparser_getint(dict, "Global:Display", 0);
     option->global.videoEncode = iniparser_getint(dict, "Global:VideoEncode", 0);
     option->global.captureEncode = iniparser_getint(dict, "Global:CaptureEncode", 0);
+    option->global.needPostEvent = iniparser_getint(dict, "Global:NeedPostEvent", 0);
+    option->global.estimateIRQ = iniparser_getint(dict, "Global:EstimateIRQ", 0);
     state = iniparser_getstring(dict, "Global:RunState", "preview");
     option->global.runState = str2State(state);
 }
 
 static void parseSensor(dictionary *dict, struct Option *option)
 {
+    option->sensor.id = iniparser_getint(dict, "Sensor:Id", 0);
+
     option->sensor.width = iniparser_getint(dict, "Sensor:Width", 0);
     ASSERT(option->sensor.width > 0);
     
     option->sensor.height = iniparser_getint(dict, "Sensor:Height", 0);
     ASSERT(option->sensor.height > 0);
+
+    option->sensor.fps = iniparser_getint(dict, "Sensor:FPS", 0);
+    ASSERT(option->sensor.fps > 0);
 }
 
 static void parsePort(dictionary *dict, struct Option *option, int index)
@@ -68,10 +77,10 @@ static void parsePort(dictionary *dict, struct Option *option, int index)
         return;
 
     snprintf(key, sizeof(key) - 1, "Port-%s:Width", portName[index]);
-    port->width = iniparser_getint(dict, key, 0);
+    port->width = iniparser_getint(dict, key, option->sensor.width);
 
     snprintf(key, sizeof(key) - 1, "Port-%s:Height", portName[index]);
-    port->height = iniparser_getint(dict, key, 0);
+    port->height = iniparser_getint(dict, key, option->sensor.height);
 
     snprintf(key, sizeof(key) - 1, "Port-%s:CropTop", portName[index]);
     port->cropTop = iniparser_getint(dict, key, 0);
@@ -86,7 +95,7 @@ static void parsePort(dictionary *dict, struct Option *option, int index)
     ASSERT(port->cropRight < option->sensor.width);
 
     ASSERT(option->sensor.height > 0);
-    snprintf(key, sizeof(key) - 1, "Port-%s:CropRight", portName[index]);
+    snprintf(key, sizeof(key) - 1, "Port-%s:CropBottom", portName[index]);
     port->cropBottom = iniparser_getint(dict, key, option->sensor.height - 1);
     ASSERT(port->cropBottom > 0);
     ASSERT(port->cropBottom < option->sensor.height);

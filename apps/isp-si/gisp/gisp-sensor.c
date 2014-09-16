@@ -19,7 +19,7 @@ static int isDynamic = 0;
 static int isDynamic = 1;
 #endif  /*DXO_SENSOR_DYNAMIC*/
 
-static struct SENSOR *getSensor(uint8_t sensorId)
+static inline struct SENSOR *getSensor(uint8_t sensorId)
 {
     if (isDynamic) {
         if (!dxoSensors[sensorId]) {
@@ -31,31 +31,6 @@ static struct SENSOR *getSensor(uint8_t sensorId)
 }
 
 /*****************************************************************************/
-
-#ifdef  DXO_SENSOR_DYNAMIC
-// *NOT* Completed
-typedef void (*ModuleInitFunc_t)(struct SENSOR *sensor);
-
-void LoadSensorModule(uint8_t sensorId, const char *path)
-{
-    struct SENSOR *sensor;
-    ModuleInitFunc_t initFunc;
-
-    ASSERT(sensorId < SENSOR_ID_COUNT);
-
-    sensor = dxoSensors[sensorId];
-    ASSERT(sensor);
-
-    sensor->id = sensorId;
-    sensor->module = dlopen(path, RTLD_LAZY);
-    ASSERT(sensor->module);
-
-    initFunc = (ModuleInitFunc_t)dlsym(sensor->module, "initSensorModule");
-    ASSERT(initFunc);
-
-    initFunc(sensor);
-}
-#endif  /*DXO_SENSOR_DYNAMIC*/
 
 void DxOISP_SensorInitialize(uint8_t sensorId)
 {
@@ -149,4 +124,51 @@ void DxOISP_SensorFire(uint8_t sensorId)
     ASSERT(sensor->api->fire);
     sensor->api->fire(sensor);
 }
+
+/*****************************************************************************/
+
+int SensorGetMode(uint8_t sensorId, uint32_t modeId, struct SENSOR_MODE *mode)
+{
+    struct SENSOR *sensor;
+    ASSERT(sensorId < SENSOR_ID_COUNT);
+    sensor = getSensor(sensorId);
+    ASSERT(sensor->api);
+    ASSERT(sensor->api->getSensorMode);
+    return sensor->api->getSensorMode(modeId, mode);
+}
+
+void SensorSetMode(uint8_t sensorId, uint32_t modeId)
+{
+    struct SENSOR *sensor;
+    ASSERT(sensorId < SENSOR_ID_COUNT);
+    sensor = getSensor(sensorId);
+    ASSERT(sensor->api);
+    ASSERT(sensor->api->setSensorMode);
+    sensor->api->setSensorMode(modeId);
+}
+
+#ifdef  DXO_SENSOR_DYNAMIC
+// *NOT* Completed
+typedef void (*ModuleInitFunc_t)(struct SENSOR *sensor);
+
+void LoadSensorModule(uint8_t sensorId, const char *path)
+{
+    struct SENSOR *sensor;
+    ModuleInitFunc_t initFunc;
+
+    ASSERT(sensorId < SENSOR_ID_COUNT);
+
+    sensor = dxoSensors[sensorId];
+    ASSERT(sensor);
+
+    sensor->id = sensorId;
+    sensor->module = dlopen(path, RTLD_LAZY);
+    ASSERT(sensor->module);
+
+    initFunc = (ModuleInitFunc_t)dlsym(sensor->module, "initSensorModule");
+    ASSERT(initFunc);
+
+    initFunc(sensor);
+}
+#endif  /*DXO_SENSOR_DYNAMIC*/
 

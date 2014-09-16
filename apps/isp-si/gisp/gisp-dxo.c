@@ -61,6 +61,9 @@ struct DXO {
     ts_DxOIspCmd dxoCmd;
     ts_DxOIspStatus dxoStatus;
 
+    int needPostEvent;
+    int estimateIRQ;
+
     int (*irqCallback)(void *);
     void *irqCallbackParam;
 };
@@ -267,7 +270,8 @@ int DxOISP_Printf(const char *format, ...)
 
 void DxOISP_PixelStuckHandler(void)
 {
-    DxOISP_DumpStatus();
+    DBG("Sensor Error.");
+    //DxOISP_DumpStatus();
 }
 
 /*****************************************************************************/
@@ -289,11 +293,28 @@ static void *irqHandlerThread(void *arg)
     uint8_t i2c_data;
     struct DXO *dxo = (struct DXO *)arg;
     extern int initdone;
+    struct timeval prevIRQTime;
+    struct timeval currIRQTime;
+    unsigned int diff;
+
+    memset(&prevIRQTime, 0, sizeof(prevIRQTime));
 
     do {
         userRet = 0;
 
         ret = waitIRQ(dxo, DEFAULT_IRQ_TIMEOUT);
+
+        if (dxo->estimateIRQ) {
+            gettimeofday(&currIRQTime, (struct timezone *)0);
+
+            if (prevIRQTime.tv_sec > 0) {
+                diff = (currIRQTime.tv_sec - prevIRQTime.tv_sec) * 1000000;
+                diff += (currIRQTime.tv_usec - prevIRQTime.tv_usec);
+                DBG("IRQ Interval = %u usec", diff);
+            }
+            prevIRQTime = currIRQTime;
+        }
+
         if (ret < 0) {
             break;
         }
@@ -318,7 +339,14 @@ static void *irqHandlerThread(void *arg)
             }
 #endif  /*0*/
 
-            DxOISP_Event();
+            if (dxo->estimateIRQ) {
+                ESTIMATE_START("DxOISP_Event()");
+                DxOISP_Event();
+                ESTIMATE_STOP();
+            }
+            else {
+                DxOISP_Event();
+            }
 
 #if 0
             if (initdone && event_cnt < 2) {
@@ -334,11 +362,13 @@ static void *irqHandlerThread(void *arg)
                 event_cnt++;
             }
 #endif  /*0*/
-        }
 
-        // If you turn on next statement, you will catch floating point
-        // exception.(tifler:2014.09.03)
-        //DxOISP_PostEvent();
+            if (dxo->needPostEvent) {
+                // If you turn on next statement, you will catch floating point
+                // exception.(tifler:2014.09.03)
+                //DxOISP_PostEvent();
+            }
+        }
 
         // user callback
         if (dxo->irqCallback)
@@ -402,6 +432,9 @@ struct DXO *DXOInit(const struct DXOSystemConfig *conf)
     dxo->io = openIODevice(DXO_IODEV_PATH);
     DXOBase = dxo->io->mapBase;
     DXOFd = dxo->io->fd;
+
+    dxo->needPostEvent = (conf->needPostEvent ? 1 : 0);
+    dxo->estimateIRQ = (conf->estimateIRQ ? 1 : 0);
 
     startIRQHandler(dxo);
 

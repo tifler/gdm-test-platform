@@ -6,38 +6,75 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include "registerMapOVT2715.h"
+#include "vigen.h"
 #include "gisp-sensor.h"
 #include "DxOISP_SensorAPI.h"
 #include "gisp-ioctl.h"
 #include "gisp-i2c.h"
 #include "debug.h"
 
+/*****************************************************************************/
+
 #define	I2C_BUF_LENGTH	512
-static char		gI2C_buf[I2C_BUF_LENGTH];
+#define gI2C_buf                        (priv->i2cBuffer)
+
+// XXX tifler
+// Each sensor has slave address and can be accessed via unified i2c bus or
+// individual one.
+// So, we must distinguish access method by fd and slave address.
+//
+// Ex-1)
+//  Front Sensor: i2c-0 attached, slave addr is 0x30
+//  Back  Sensor: i2c-1 attached, slave addr is 0x40
+// Ex-2)
+//  Front Sensor: i2c-0 attached, slave addr is 0x30
+//  Back  Sensor: i2c-0 attached, slave addr is 0x40
+struct VIGENPrivate {
+    int fd;         // i2c master device
+    int slaveAddr;  // i2c slave address for sensor.
+    int inputMode;
+    int inputModeDevice;
+    char i2cBuffer[I2C_BUF_LENGTH];
+};
+
+// XXX We *MUST* remove this variable.!!!!
+//     REENTRANCY is an art. But this variable heads REENTRANCY off.
+static struct SENSOR *THIS_SENSOR;
+static struct VIGENPrivate defaultPrivate = {
+    .inputMode = INPUTMODE_VIGEN_640x480,
+    .inputModeDevice = INPUTMODE_VIGEN,
+};
+
+/*****************************************************************************/
+
+//extern int gIspDev;
+//extern int priv->inputMode;	// For setting different input mode : OV2715, VIGEN, VSENSOR
+//extern int priv->inputModeDevice;
+
+//#define	I2C_BUF_LENGTH	512
+//static char		gI2C_buf[I2C_BUF_LENGTH];
+
 
 //#define FLASH_ENABLE   0
 //#undef FLASH_ENABLE
 
-#undef FORCE_FULL_FRAME
 //#define FORCE_FULL_FRAME
 
-#undef I2C_DEBUG_ENABLE
 //#define I2C_DEBUG_ENABLE
-
-//#define PJO_DEBUG_ENABLE
+//#define SENSOR_DEBUG_ENABLE
 
 #define USE_SENSOR_GAIN
 //#undef USE_SENSOR_GAIN  //use the real gain model
 
-#define OV8820_DevAddr      (0x6c)
-#define CCIC_TWSI_PORT_IDX      3
+//del #define OV8820_DevAddr      (0x6c)
+//del #define CCIC_TWSI_PORT_IDX      3
 
 #ifndef NDEBUG
 #define CHECK_SENSOR_BEFORE_START
@@ -153,15 +190,15 @@ static uint16_t            S_usFlashPower;
 /*****************************************************************************/
 /* Static functions prototype declaration                                    */
 /*****************************************************************************/
-uint32_t        I2C_Write                    ( uint16_t usOffset, uint8_t* ptucData, uint8_t ucSize );
-uint32_t        I2C_Read                     ( uint16_t usOffset, uint8_t* ptucData, uint8_t ucSize );
+static uint32_t        I2C_Write                    ( uint16_t usOffset, uint8_t* ptucData, uint8_t ucSize );
+static uint32_t        I2C_Read                     ( uint16_t usOffset, uint8_t* ptucData, uint8_t ucSize );
 static void            writeDevice                  ( uint16_t offset, uint16_t usValue, uint8_t size                );
 static void            writeDevice2                  ( uint16_t offset, uint16_t usValue, uint8_t size                );
 static void            writeCacheDevice             ( uint16_t offset, uint16_t usValue, uint8_t size, uint8_t ucIdx );
 static uint16_t        readDevice                   ( uint16_t offset, uint8_t  size                                 );
 static uint16_t        readCacheDevice              ( uint16_t offset, uint8_t  size                 , uint8_t ucIdx );
 static inline void     initSensorCmd                ( ts_SENSOR_Cmd* pttsCmd, ts_SENSOR_Status* pttsStatus );
-static inline void     setStaticSensorConfiguration ( int                      sel                         );
+static inline void     setStaticSensorConfiguration ( int sel                                              );
 static uint32_t        computePixelClock            ( void                                                 );
 static inline void     applySettingsToSensor        ( void                                                 );
 static void            setFlash                     ( uint16_t usPower                                     );
@@ -229,53 +266,14 @@ static void assertf2(int a, char *p, unsigned int i, unsigned int j)
 }
 
 
-uint32_t I2C_Write ( uint16_t usOffset, uint8_t* ptucData, uint8_t ucSize ) {
-	//Call I2C driver
-	ioctl_i2cm_info	*pi2cm_info;
-
-	if(ucSize >= (I2C_BUF_LENGTH-sizeof(ioctl_i2cm_info)))
-	{
-		printf("i2c write data overflow %d\n", ucSize);
-		return 1;
-	}
-
-	pi2cm_info = (ioctl_i2cm_info *)gI2C_buf;
-
-	pi2cm_info->id		= 0x6c;
-	pi2cm_info->addr	= usOffset;
-	pi2cm_info->length	= ucSize;
-
-	memcpy(&gI2C_buf[sizeof(ioctl_i2cm_info)], ptucData, ucSize);
-
-	I2C_WRITE(gI2C_buf);
+static uint32_t I2C_Write ( uint16_t usOffset, uint8_t* ptucData, uint8_t ucSize ) {
 
 	return 0;
 }
 
-uint32_t I2C_Read ( uint16_t usOffset,uint8_t* ptucData, uint8_t ucSize ) {
-	//Call I2C driver
-	ioctl_i2cm_info	*pi2cm_info;
-
-	if(ucSize >= (I2C_BUF_LENGTH-sizeof(ioctl_i2cm_info)))
-	{
-		printf("i2c read data overflow %d\n", ucSize);
-		return 1;
-	}
-
-	pi2cm_info = (ioctl_i2cm_info *)gI2C_buf;
-
-	pi2cm_info->id		= 0x6c;
-	pi2cm_info->addr	= usOffset;
-	pi2cm_info->length	= ucSize;
-
-//	memcpy(ptucData, &gI2C_buf[sizeof(ioctl_i2cm_info)], ucSize);
-
-	I2C_READ(gI2C_buf);
-
-	memcpy(ptucData, &gI2C_buf[sizeof(ioctl_i2cm_info)], ucSize);
+static uint32_t I2C_Read ( uint16_t usOffset,uint8_t* ptucData, uint8_t ucSize ) {
 
 	return 0;
-
 }
 
 
@@ -297,7 +295,8 @@ static void writeDevice( uint16_t usOffset, uint16_t usValue, uint8_t ucSize ) {
 			break;
 	}
 	uiError = I2C_Write( usOffset, ptucData, ucSize );
-	#ifdef PJO_DEBUG_ENABLE
+	
+	#ifdef I2C_DEBUG_ENABLE
 		if(ucSize == 1) {
 			PRINTF_I2C("0x%04X=0x%02X\n", usOffset, ptucData[0]);
 		}	
@@ -332,10 +331,10 @@ static void writeDevice2( uint16_t usOffset, uint16_t usValue, uint8_t ucSize ) 
 
 	while(1)
 	{
-		I2C_Read(usOffset, rdbuf, ucSize);
+		I2C_Read( usOffset, rdbuf, ucSize);
 		if(ucSize==1)
 		{
-			if(ptucData[0]!=rdbuf[0])I2C_Write(usOffset, ptucData, ucSize);
+			if(ptucData[0]!=rdbuf[0])I2C_Write( usOffset, ptucData, ucSize);
 			if(ptucData[0]==rdbuf[0])break;
 		}
 		else if(ucSize==2)
@@ -353,7 +352,7 @@ static uint16_t readDevice( uint16_t usOffset, uint8_t ucSize ) {
 	uint8_t  ptucData[2];
 
 	uiError = I2C_Read( usOffset, ptucData, ucSize );
-	#ifdef PJO_DEBUG_ENABLE
+	#ifdef I2C_DEBUG_ENABLE
 		PRINTF_I2C("I2C READ: [0x%04X]:[%02X|%02X]\n", usOffset, ucSize==1?0x00:ptucData[0], ucSize==1?ptucData[0]:ptucData[1]); 
 	#endif
 	assertf2(!uiError,"reading device error (err=%lu (0x%08x))", uiError , uiError ); 
@@ -412,44 +411,134 @@ static uint16_t readCacheDevice( uint16_t usOffset, uint8_t ucSize, uint8_t ucId
 
 
 static inline void getCapabilities( ts_SENSOR_Status* pttsStatus ) {
-	pttsStatus->stCapabilities.stImageFeature.ucMaxHorDownsamplingFactor  = 4; //Only binning is used as the frame rate is enough
-	pttsStatus->stCapabilities.stImageFeature.ucMaxVertDownsamplingFactor = 4;
-	pttsStatus->stCapabilities.stImageFeature.usBayerWidth                = X_OUTPUT_SIZE_MAX>>1;	//p X_OUTPUT_SIZE_MAX   >> 1;
-	pttsStatus->stCapabilities.stImageFeature.usBayerHeight               = Y_OUTPUT_SIZE_MAX>>1;   //p Y_OUTPUT_SIZE_MAX   >> 1;
-	pttsStatus->stCapabilities.stShootingParam.usMaxAGain                 = 16<<GAIN_FRAC_PART;	//p 62<<GAIN_FRAC_PART;
-	pttsStatus->stCapabilities.stShootingParam.usIso                      = 64;
-	pttsStatus->stCapabilities.stShootingParam.usMaxDGain                 = (0xfff<<GAIN_FRAC_PART)/0x400;
-	pttsStatus->stCapabilities.stImageFeature.usMinHorBlanking            = MIN_LINE_BLANKING_PCK;  
-	pttsStatus->stCapabilities.stImageFeature.usMinVertBlanking           = MIN_FRAME_BLANKING_LINE;  
-	pttsStatus->stCapabilities.stImageFeature.ucPixelWidth                = 10;
-	pttsStatus->stCapabilities.stImageFeature.ePhase                      = DxOISP_SENSOR_PHASE_GRBG;
-	pttsStatus->stCapabilities.stImageFeature.eNaturalOrientation         = DxOISP_FLIP_OFF_MIRROR_OFF;
-	pttsStatus->stCapabilities.stImageFeature.isPhaseStatic               = 1;
-	pttsStatus->stCapabilities.stImageFeature.ucMaxDelayImageFeature      = NB_FRAME_TO_IGNORE;
-	pttsStatus->stCapabilities.stImageFeature.ucNbUpperDummyLines         = 0;
-	pttsStatus->stCapabilities.stImageFeature.ucNbLeftDummyColumns        = 0;
-	pttsStatus->stCapabilities.stImageFeature.ucNbLowerDummyLines         = 0;
-	pttsStatus->stCapabilities.stImageFeature.ucNbRightDummyColumns       = 0;
-	pttsStatus->usPedestal                                                = 0;
-	pttsStatus->stCapabilities.stAf.usMin                                 = MIN_AF_POSITION;
-	pttsStatus->stCapabilities.stAf.usMax                                 = MAX_AF_POSITION;
-	pttsStatus->stCapabilities.stAf.stPerUnit.usMinDefocus                = 0;
-	pttsStatus->stCapabilities.stAf.stPerUnit.usMidDefocus                = 0;
-	pttsStatus->stCapabilities.stAf.stPerUnit.usMaxDefocus                = 0;
-	pttsStatus->stCapabilities.stAperture.usMin                           =
-	pttsStatus->stCapabilities.stAperture.usMax                           = 2007;
-	pttsStatus->stCapabilities.stZoomFocal.usMin                          = 
-	pttsStatus->stCapabilities.stZoomFocal.usMax                          = 0; 
-#if FLASH_ENABLE
-	pttsStatus->stCapabilities.stFlash.usMaxPower                         = 0xffff;
-#else
-	pttsStatus->stCapabilities.stFlash.usMaxPower                         = 0;
-#endif
-	pttsStatus->stCapabilities.enableInterframeCmdOnly                    = 0;
-	pttsStatus->isImageQualityStable                                      = 1;
-	pttsStatus->isFrameInvalid                                            = 0;
-	pttsStatus->stAppliedCmd.usAperture                                   = 2007; //Fixed aperture
-	pttsStatus->eCurrentPhase                                             = DxOISP_SENSOR_PHASE_GRBG;
+
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
+
+	switch(priv->inputMode)
+	{
+		case INPUTMODE_VIGEN_640x480:
+
+			pttsStatus->stCapabilities.stImageFeature.ucMaxHorDownsamplingFactor  = 1; //Only binning is used as the frame rate is enough
+			pttsStatus->stCapabilities.stImageFeature.ucMaxVertDownsamplingFactor = 1;
+			pttsStatus->stCapabilities.stImageFeature.usBayerWidth				  = 640>>1;	//p X_OUTPUT_SIZE_MAX	>> 1;
+			pttsStatus->stCapabilities.stImageFeature.usBayerHeight 			  = 480>>1;	//p Y_OUTPUT_SIZE_MAX	>> 1;
+			pttsStatus->stCapabilities.stShootingParam.usMaxAGain				  = 1<<GAIN_FRAC_PART; //p 62<<GAIN_FRAC_PART;
+			pttsStatus->stCapabilities.stShootingParam.usIso					  = 100;
+			pttsStatus->stCapabilities.stShootingParam.usMaxDGain				  = (0xfff<<GAIN_FRAC_PART)/0x400;
+			pttsStatus->stCapabilities.stImageFeature.usMinHorBlanking			  = 100;	
+			pttsStatus->stCapabilities.stImageFeature.usMinVertBlanking 		  = 10;  
+			pttsStatus->stCapabilities.stImageFeature.ucPixelWidth				  = 10;
+			pttsStatus->stCapabilities.stImageFeature.ePhase					  = DxOISP_SENSOR_PHASE_GRBG;
+			pttsStatus->stCapabilities.stImageFeature.eNaturalOrientation		  = DxOISP_FLIP_OFF_MIRROR_OFF;
+			pttsStatus->stCapabilities.stImageFeature.isPhaseStatic 			  = 1;
+			pttsStatus->stCapabilities.stImageFeature.ucMaxDelayImageFeature	  = NB_FRAME_TO_IGNORE;
+			pttsStatus->stCapabilities.stImageFeature.ucNbUpperDummyLines		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbLeftDummyColumns		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbLowerDummyLines		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbRightDummyColumns 	  = 0;
+			pttsStatus->usPedestal												  = 0;
+			pttsStatus->stCapabilities.stAf.usMin								  = 0;
+			pttsStatus->stCapabilities.stAf.usMax								  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMinDefocus				  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMidDefocus				  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMaxDefocus				  = 0;
+			pttsStatus->stCapabilities.stAperture.usMin 						  =
+			pttsStatus->stCapabilities.stAperture.usMax 						  = 0;
+			pttsStatus->stCapabilities.stZoomFocal.usMin						  = 
+			pttsStatus->stCapabilities.stZoomFocal.usMax						  = 0; 
+			pttsStatus->stCapabilities.stFlash.usMaxPower						  = 0;
+			pttsStatus->stCapabilities.enableInterframeCmdOnly					  = 0;
+			pttsStatus->isImageQualityStable									  = 1;
+			pttsStatus->isFrameInvalid											  = 0;
+			pttsStatus->stAppliedCmd.usAperture 								  = 0; //Fixed aperture
+			pttsStatus->eCurrentPhase											  = DxOISP_SENSOR_PHASE_GRBG;
+
+		break;
+
+		case INPUTMODE_VIGEN_1920x1080:
+
+			pttsStatus->stCapabilities.stImageFeature.ucMaxHorDownsamplingFactor  = 1; //Only binning is used as the frame rate is enough
+			pttsStatus->stCapabilities.stImageFeature.ucMaxVertDownsamplingFactor = 1;
+			pttsStatus->stCapabilities.stImageFeature.usBayerWidth				  = 1920>>1;	//p X_OUTPUT_SIZE_MAX	>> 1;
+			pttsStatus->stCapabilities.stImageFeature.usBayerHeight 			  = 1080>>1;	//p Y_OUTPUT_SIZE_MAX	>> 1;
+			pttsStatus->stCapabilities.stShootingParam.usMaxAGain				  = 1<<GAIN_FRAC_PART; //p 62<<GAIN_FRAC_PART;
+			pttsStatus->stCapabilities.stShootingParam.usIso					  = 100;
+			pttsStatus->stCapabilities.stShootingParam.usMaxDGain				  = (0xfff<<GAIN_FRAC_PART)/0x400;
+			pttsStatus->stCapabilities.stImageFeature.usMinHorBlanking			  = 100;	
+			pttsStatus->stCapabilities.stImageFeature.usMinVertBlanking 		  = 10;  
+			pttsStatus->stCapabilities.stImageFeature.ucPixelWidth				  = 10;
+			pttsStatus->stCapabilities.stImageFeature.ePhase					  = DxOISP_SENSOR_PHASE_GRBG;
+			pttsStatus->stCapabilities.stImageFeature.eNaturalOrientation		  = DxOISP_FLIP_OFF_MIRROR_OFF;
+			pttsStatus->stCapabilities.stImageFeature.isPhaseStatic 			  = 1;
+			pttsStatus->stCapabilities.stImageFeature.ucMaxDelayImageFeature	  = NB_FRAME_TO_IGNORE;
+			pttsStatus->stCapabilities.stImageFeature.ucNbUpperDummyLines		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbLeftDummyColumns		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbLowerDummyLines		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbRightDummyColumns 	  = 0;
+			pttsStatus->usPedestal												  = 0;
+			pttsStatus->stCapabilities.stAf.usMin								  = 0;
+			pttsStatus->stCapabilities.stAf.usMax								  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMinDefocus				  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMidDefocus				  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMaxDefocus				  = 0;
+			pttsStatus->stCapabilities.stAperture.usMin 						  =
+			pttsStatus->stCapabilities.stAperture.usMax 						  = 0;
+			pttsStatus->stCapabilities.stZoomFocal.usMin						  = 
+			pttsStatus->stCapabilities.stZoomFocal.usMax						  = 0; 
+			pttsStatus->stCapabilities.stFlash.usMaxPower						  = 0;
+			pttsStatus->stCapabilities.enableInterframeCmdOnly					  = 0;
+			pttsStatus->isImageQualityStable									  = 1;
+			pttsStatus->isFrameInvalid											  = 0;
+			pttsStatus->stAppliedCmd.usAperture 								  = 2007; //Fixed aperture
+			pttsStatus->eCurrentPhase											  = DxOISP_SENSOR_PHASE_GRBG;
+
+		break;
+
+		case INPUTMODE_VIGEN_4208x3120:
+
+			pttsStatus->stCapabilities.stImageFeature.ucMaxHorDownsamplingFactor  = 1; //Only binning is used as the frame rate is enough
+			pttsStatus->stCapabilities.stImageFeature.ucMaxVertDownsamplingFactor = 1;
+			pttsStatus->stCapabilities.stImageFeature.usBayerWidth				  = 4208>>1;	//p X_OUTPUT_SIZE_MAX	>> 1;
+			pttsStatus->stCapabilities.stImageFeature.usBayerHeight 			  = 3120>>1;	//p Y_OUTPUT_SIZE_MAX	>> 1;
+			pttsStatus->stCapabilities.stShootingParam.usMaxAGain				  = 1<<GAIN_FRAC_PART; //p 62<<GAIN_FRAC_PART;
+			pttsStatus->stCapabilities.stShootingParam.usIso					  = 100;
+			pttsStatus->stCapabilities.stShootingParam.usMaxDGain				  = (0xfff<<GAIN_FRAC_PART)/0x400;
+			pttsStatus->stCapabilities.stImageFeature.usMinHorBlanking			  = 100;	
+			pttsStatus->stCapabilities.stImageFeature.usMinVertBlanking 		  = 10;  
+			pttsStatus->stCapabilities.stImageFeature.ucPixelWidth				  = 10;
+			pttsStatus->stCapabilities.stImageFeature.ePhase					  = DxOISP_SENSOR_PHASE_RGGB;//DxOISP_SENSOR_PHASE_GRBG;
+			pttsStatus->stCapabilities.stImageFeature.eNaturalOrientation		  = DxOISP_FLIP_OFF_MIRROR_OFF;
+			pttsStatus->stCapabilities.stImageFeature.isPhaseStatic 			  = 1;
+			pttsStatus->stCapabilities.stImageFeature.ucMaxDelayImageFeature	  = NB_FRAME_TO_IGNORE;
+			pttsStatus->stCapabilities.stImageFeature.ucNbUpperDummyLines		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbLeftDummyColumns		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbLowerDummyLines		  = 0;
+			pttsStatus->stCapabilities.stImageFeature.ucNbRightDummyColumns 	  = 0;
+			pttsStatus->usPedestal												  = 0;
+			pttsStatus->stCapabilities.stAf.usMin								  = 0;
+			pttsStatus->stCapabilities.stAf.usMax								  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMinDefocus				  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMidDefocus				  = 0;
+			pttsStatus->stCapabilities.stAf.stPerUnit.usMaxDefocus				  = 0;
+			pttsStatus->stCapabilities.stAperture.usMin 						  =
+			pttsStatus->stCapabilities.stAperture.usMax 						  = 0;
+			pttsStatus->stCapabilities.stZoomFocal.usMin						  = 
+			pttsStatus->stCapabilities.stZoomFocal.usMax						  = 0; 
+			pttsStatus->stCapabilities.stFlash.usMaxPower						  = 0;
+			pttsStatus->stCapabilities.enableInterframeCmdOnly					  = 0;
+			pttsStatus->isImageQualityStable									  = 1;
+			pttsStatus->isFrameInvalid											  = 0;
+			pttsStatus->stAppliedCmd.usAperture 								  = 0; //Fixed aperture
+			pttsStatus->eCurrentPhase											  = DxOISP_SENSOR_PHASE_RGGB;
+
+		    break;
+
+		default:
+            ASSERT(! "Unknown VIGEN input mode");
+		    break;
+
+	}
+		
 }
 
 
@@ -466,6 +555,7 @@ static inline void getDigitalGain( ts_SENSOR_Status* pttsStatus ) {
 
 static void setGain(ts_sensorRegister* pstRegister, uint16_t usAGain[], uint16_t usDGain[]) 
 {
+
 	int i;
 	unsigned int uiMult2 = 0;
 	uint32_t uiTotalGain[DxOISP_NB_CHANNEL];
@@ -487,33 +577,36 @@ static void setGain(ts_sensorRegister* pstRegister, uint16_t usAGain[], uint16_t
 	}
 	
 	//Compute Analog gain
-#ifdef USE_SENSOR_GAIN
-	usGainTmp = uiTotalGainMin>>4;
-	while(usGainTmp > 31) {
-		uiMult2++;
-		usGainTmp>>=1;
-	}
-	if(uiMult2>5) { //Saturation to max analog gain
-		uiMult2   = 5;
-		usGainTmp = 31;
-	}
-	pstRegister->usAG = (MSK(uiMult2) << 4) + (usGainTmp-16);
-	
-	//compute real analog gain applied
-	usAgain = ((1<<uiMult2) * usGainTmp)<<4; //8.8
-	
-#else
-	pstRegister->usAG = MIN(uiTotalGainMin>>4, 0x3FF);
-	usAgain = pstRegister->usAG << 4;
-#endif
+	#ifdef USE_SENSOR_GAIN
+		usGainTmp = uiTotalGainMin>>4;
+		while(usGainTmp > 31) {
+			uiMult2++;
+			usGainTmp>>=1;
+		}
+		if(uiMult2>5) { //Saturation to max analog gain
+			uiMult2   = 5;
+			usGainTmp = 31;
+		}
+		pstRegister->usAG = (MSK(uiMult2) << 4) + (usGainTmp-16);
+		
+		//compute real analog gain applied
+		usAgain = ((1<<uiMult2) * usGainTmp)<<4; //8.8
+		
+	#else
+		pstRegister->usAG = MIN(uiTotalGainMin>>4, 0x3FF);
+		usAgain = pstRegister->usAG << 4;
+	#endif
 
-	uiInvGain = (1 << (GAIN_FRAC_PART * 2)) / usAgain;
-	for (i=0; i<DxOISP_NB_CHANNEL; i++) {
-		pstRegister->usDG[i] = SHIFT_RND(uiTotalGain[i] * uiInvGain, (GAIN_FRAC_PART-2));
-	}
+		uiInvGain = (1 << (GAIN_FRAC_PART * 2)) / usAgain;
+		for (i=0; i<DxOISP_NB_CHANNEL; i++) {
+			pstRegister->usDG[i] = SHIFT_RND(uiTotalGain[i] * uiInvGain, (GAIN_FRAC_PART-2));
+		}
+
 }
 
 static inline void getAnalogGain( ts_SENSOR_Status* pttsStatus ) {
+
+
 	unsigned int i;
 	uint16_t usReg = S_usAppliedAG;
 	uint16_t usAgainA0 = 0;	//p..
@@ -523,44 +616,45 @@ static inline void getAnalogGain( ts_SENSOR_Status* pttsStatus ) {
 	uint16_t usAgainB4 = 0;
 	uint16_t usAgainB3_0 = 0;	//..p
 	
-#ifdef USE_SENSOR_GAIN
-	#if 0
-	uint8_t ucBitField = (uint8_t)(usReg>>4);
-	uint8_t ucMult    = 0;
-	for(i=0;i<5;i++) {
-		if(ucBitField&(1<<i)) ucMult++;
-	}
-	
-	if(ucMult==0)
-		ucMult = 1;
-	else
-		ucMult = 1<<ucMult;
+	#ifdef USE_SENSOR_GAIN
+		#if 0
+		uint8_t ucBitField = (uint8_t)(usReg>>4);
+		uint8_t ucMult    = 0;
+		for(i=0;i<5;i++) {
+			if(ucBitField&(1<<i)) ucMult++;
+		}
 		
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GR] = 
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_B]  = 
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_R]  =
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GB] = (((usReg&0x000f) + 16) *  ucMult)<<4;
+		if(ucMult==0)
+			ucMult = 1;
+		else
+			ucMult = 1<<ucMult;
+			
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GR] = 
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_B]  = 
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_R]  =
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GB] = (((usReg&0x000f) + 16) *  ucMult)<<4;
+		#endif
+		usAgainA0 = (usReg) >> 8;
+		usAgainB7 = ((usReg)&0x00FF) >> 7;
+		usAgainB6 = ((usReg)&0x007F) >> 6;
+		usAgainB5 = ((usReg)&0x003F) >> 5;
+		usAgainB4 = ((usReg)&0x001F) >> 4;
+		usAgainB3_0 = (usReg)&0x000F;
+
+		usReg = (usAgainA0+1)*(usAgainB7+1)*(usAgainB6+1)*(usAgainB5+1)*(usAgainB4+1)*(usAgainB3_0/16+1);
+
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GR] = 
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_B]  = 
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_R]  =
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GB] = usReg;
+	#else
+
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GR] = 
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_B]  = 
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_R]  =
+		pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GB] = usReg<<4;
 	#endif
-	usAgainA0 = (usReg) >> 8;
-	usAgainB7 = ((usReg)&0x00FF) >> 7;
-	usAgainB6 = ((usReg)&0x007F) >> 6;
-	usAgainB5 = ((usReg)&0x003F) >> 5;
-	usAgainB4 = ((usReg)&0x001F) >> 4;
-	usAgainB3_0 = (usReg)&0x000F;
 
-	usReg = (usAgainA0+1)*(usAgainB7+1)*(usAgainB6+1)*(usAgainB5+1)*(usAgainB4+1)*(usAgainB3_0/16+1);
-
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GR] = 
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_B]  = 
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_R]  =
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GB] = usReg;
-#else
-
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GR] = 
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_B]  = 
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_R]  =
-	pttsStatus->stAppliedCmd.stShootingParam.usAGain[DxOISP_CHANNEL_GB] = usReg<<4;
-#endif	
 }
 
 
@@ -579,84 +673,44 @@ static void setCrop( ts_sensorRegister* pstRegister ) {
 
 static void setOrientation(ts_sensorRegister* pstRegister, uint8_t ucOrientation ) {
 
-#if 0	//p old code
-	assertf1( ucOrientation <= 3, "unexpected orientation (%d)", ucOrientation );
-	if(ucOrientation&0x01)
-		pstRegister->ucTimingRegX |= 0x6;
-	else
-		pstRegister->ucTimingRegX &= ~0x6;
 
-	if(ucOrientation&0x02)
-		pstRegister->ucTimingRegY |= 0x6;
-	else
-		pstRegister->ucTimingRegY &= ~0x6;
-#endif
 }
 
 
 static uint32_t computePixelClock( void ) {
-	// calculate PCLK
-	int PCLK, temp1, temp2;
-	int Div_cnt5b, Pre_Div_sp2x, R_div_sp, Div124_sp, div12_sp, Sdiv_sp, pll2;
-	int Pre_div02x, Div124, Div_cnt7b, Sdiv0, Sdiv1, R_seld52x, VCO, pllsysclk;
-	int Pre_Div_sp2x_map[] = { 2, 3, 4, 6 };
-	int Pre_div02x_map[] = { 2, 3, 4, 5, 6, 8, 12, 16 };
-	int Div124_map[] = {1, 1, 2, 4};
-	int R_seld52x_map[] = {2, 3, 4, 5, 6, 7, 8, 10};
 
-#if 0
-	temp1 = ov2715_read(0x3007);
-	Div_cnt5b = temp1>>3;
-	temp2 = temp1 & 0x03;
-	Pre_Div_sp2x = Pre_Div_sp2x_map[temp2];
-	if (temp1 & 0x04)
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
+
+uint32_t PCLK = 0;
+
+/* Define input pixel clock */
+
+	switch(priv->inputMode)
 	{
-		R_div_sp= 2;
-	}
-	else
-	{
-		R_div_sp = 1;
-	}
-	temp1 = ov2715_read(0x3012);
-	Div124_sp = temp1 >> 6;
-	div12_sp = (temp1>>4) & 0x03;
-	Sdiv_sp = temp1 & 0x0f;
-	pll2 = (PLATFORM_CCIC_SENSOR_MCLK * 1000) * 2 / Pre_Div_sp2x * R_div_sp * (32 - Div_cnt5b ) / (Sdiv_sp + 1);
-	temp1 = ov2715_read(0x3003);
-	temp2 = temp1 & 0x07;
-	Pre_div02x = Pre_div02x_map[temp2];
-	temp2 = temp1>>6;
-	Div124 = Div124_map[temp2];
-	temp1 = ov2715_read(0x3005);
-	Sdiv0 = temp1 & 0x0f;
-	temp1 = ov2715_read(0x3006);
-	Sdiv1 = temp1 & 0x0f;
-	temp2 = (temp1>>4) & 0x07;
-	R_seld52x = R_seld52x_map[temp2];
-	temp1 = ov2715_read(0x3004);
-	Div_cnt7b = temp1 & 0x7f;
-	VCO = (PLATFORM_CCIC_SENSOR_MCLK * 1000) * 2 / Pre_div02x * Div124 * (129 - Div_cnt7b);
-	if (temp1 & 0x80)
-	{
-		pllsysclk = pll2 / (Sdiv1 + 1) * 2 / R_seld52x;
-	}
-	else
-	{
-		pllsysclk = VCO / (Sdiv0 +1) / (Sdiv1 + 1) * 2 / R_seld52x;
-	}
-	temp1 = ov2715_read(0x3104);
-	if (temp1 & 0x20)
-	{
-		PCLK = pllsysclk;
-	}
-	else
-	{
-		PCLK = pll2;
+		case INPUTMODE_VIGEN_640x480 :
+
+			PCLK = 18<<4;
+
+			break;
+
+
+		case INPUTMODE_VIGEN_1920x1080 :
+
+			PCLK = 18<<4;
+
+			break;
+
+		case INPUTMODE_VIGEN_4208x3120 :
+
+			PCLK = 18<<4;
+
+			break;
+
+        default:
+            ASSERT(! "Unknown VIGEN input mode");
+            break;
 	}
 
-	return DIV_UP( (PCLK<<DXOSENSOR_EXT_CLK), 1000);
-#endif
-	PCLK = 448;
 	return PCLK;
 		
 
@@ -664,38 +718,103 @@ static uint32_t computePixelClock( void ) {
 
 
 static inline void getImageFeature( ts_SENSOR_Status* pttsStatus ) {
+
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
 	ts_SENSOR_Cmd *pCmd = &pttsStatus->stAppliedCmd;
 
-	pCmd->stImageFeature.usXBayerStart = 0;//READ_BY_CACHE( Offset_x_addr_start ) / 2;
-	pCmd->stImageFeature.usYBayerStart = 0;//READ_BY_CACHE( Offset_y_addr_start ) / 2;
+	switch(priv->inputMode)
+	{
+		case INPUTMODE_VIGEN_640x480 :
 
-	pCmd->stImageFeature.eOrientation  = DxOISP_FLIP_OFF_MIRROR_OFF;
-	
-	pCmd->stImageFeature.usMinVertBlanking = 28; //READ_BY_CACHE( Offset_frame_length_lines ) - READ_BY_CACHE( Offset_y_output_size );
-	pCmd->stImageFeature.uiMinHorBlanking  = 20; //READ_BY_CACHE( Offset_line_length_pck )    - READ_BY_CACHE( Offset_x_output_size );
+			pCmd->stImageFeature.usXBayerStart = 0;//READ_BY_CACHE( Offset_x_addr_start ) / 2;
+			pCmd->stImageFeature.usYBayerStart = 0;//READ_BY_CACHE( Offset_y_addr_start ) / 2;
 
-	pttsStatus->ucHorSkippingFactor                                  =
-	pCmd->stImageFeature.ucHorDownsamplingFactor  = 1; //((READ_BY_CACHE(Offset_x_odd_even_inc)>>4) + 1 ) / 2;
-	pttsStatus->ucVertSkippingFactor                                 =
-	pCmd->stImageFeature.ucVertDownsamplingFactor = 1; //((READ_BY_CACHE(Offset_y_odd_even_inc)>>4) + 1 ) / 2;
+			pCmd->stImageFeature.eOrientation  = DxOISP_FLIP_OFF_MIRROR_OFF;
+			
+			pCmd->stImageFeature.usMinVertBlanking = 10; //READ_BY_CACHE( Offset_frame_length_lines ) - READ_BY_CACHE( Offset_y_output_size );
+			pCmd->stImageFeature.uiMinHorBlanking  = 10; //READ_BY_CACHE( Offset_line_length_pck )    - READ_BY_CACHE( Offset_x_output_size );
 
-	pCmd->stImageFeature.usXBayerEnd   = 319;//pCmd->stImageFeature.usXBayerStart + READ_BY_CACHE(Offset_x_output_size) * pCmd->stImageFeature.ucHorDownsamplingFactor  / 2 - 1;
-	pCmd->stImageFeature.usYBayerEnd   = 239;//pCmd->stImageFeature.usYBayerStart + READ_BY_CACHE(Offset_y_output_size) * pCmd->stImageFeature.ucVertDownsamplingFactor / 2 - 1;
+			pttsStatus->ucHorSkippingFactor                                  =
+			pCmd->stImageFeature.ucHorDownsamplingFactor  = 1; //((READ_BY_CACHE(Offset_x_odd_even_inc)>>4) + 1 ) / 2;
+			pttsStatus->ucVertSkippingFactor                                 =
+			pCmd->stImageFeature.ucVertDownsamplingFactor = 1; //((READ_BY_CACHE(Offset_y_odd_even_inc)>>4) + 1 ) / 2;
+
+			pCmd->stImageFeature.usXBayerEnd   = 319;//pCmd->stImageFeature.usXBayerStart + READ_BY_CACHE(Offset_x_output_size) * pCmd->stImageFeature.ucHorDownsamplingFactor  / 2 - 1;
+			pCmd->stImageFeature.usYBayerEnd   = 239;//pCmd->stImageFeature.usYBayerStart + READ_BY_CACHE(Offset_y_output_size) * pCmd->stImageFeature.ucVertDownsamplingFactor / 2 - 1;
+
+		#if 0	//pjo no use for OV2715
+			if ( READ_BY_CACHE(Offset_timing_tc_reg21)&0x01) {
+				pttsStatus->ucHorSkippingFactor  >>= 1;
+				pttsStatus->ucVertSkippingFactor >>= 1;
+			}
+		#endif
+			pttsStatus->eCurrentPhase = DxOISP_SENSOR_PHASE_GRBG;
+
+		break;
+
+		case INPUTMODE_VIGEN_1920x1080:
 
 
-//	ISP_PRINTF("pCmd->stImageFeature.ucHorDownsamplingFactor = %d\n", (unsigned int)pCmd->stImageFeature.ucHorDownsamplingFactor);
-//	ISP_PRINTF("pCmd->stImageFeature.ucVertDownsamplingFactor = %d\n", (unsigned int)pCmd->stImageFeature.ucVertDownsamplingFactor);
+			pCmd->stImageFeature.usXBayerStart = 0;//READ_BY_CACHE( Offset_x_addr_start ) / 2;
+			pCmd->stImageFeature.usYBayerStart = 0;//READ_BY_CACHE( Offset_y_addr_start ) / 2;
+
+			pCmd->stImageFeature.eOrientation  = DxOISP_FLIP_OFF_MIRROR_OFF;
+			
+			pCmd->stImageFeature.usMinVertBlanking = 10; //READ_BY_CACHE( Offset_frame_length_lines ) - READ_BY_CACHE( Offset_y_output_size );
+			pCmd->stImageFeature.uiMinHorBlanking  = 10; //READ_BY_CACHE( Offset_line_length_pck )    - READ_BY_CACHE( Offset_x_output_size );
+
+			pttsStatus->ucHorSkippingFactor                                  =
+			pCmd->stImageFeature.ucHorDownsamplingFactor  = 1; //((READ_BY_CACHE(Offset_x_odd_even_inc)>>4) + 1 ) / 2;
+			pttsStatus->ucVertSkippingFactor                                 =
+			pCmd->stImageFeature.ucVertDownsamplingFactor = 1; //((READ_BY_CACHE(Offset_y_odd_even_inc)>>4) + 1 ) / 2;
+
+			pCmd->stImageFeature.usXBayerEnd   = 959;//pCmd->stImageFeature.usXBayerStart + READ_BY_CACHE(Offset_x_output_size) * pCmd->stImageFeature.ucHorDownsamplingFactor  / 2 - 1;
+			pCmd->stImageFeature.usYBayerEnd   = 539;//pCmd->stImageFeature.usYBayerStart + READ_BY_CACHE(Offset_y_output_size) * pCmd->stImageFeature.ucVertDownsamplingFactor / 2 - 1;
+
+		#if 0	//pjo no use for OV2715
+			if ( READ_BY_CACHE(Offset_timing_tc_reg21)&0x01) {
+				pttsStatus->ucHorSkippingFactor  >>= 1;
+				pttsStatus->ucVertSkippingFactor >>= 1;
+			}
+		#endif
+			pttsStatus->eCurrentPhase = DxOISP_SENSOR_PHASE_GRBG;
+
+		break;
+
+		case INPUTMODE_VIGEN_4208x3120:
 
 
+			pCmd->stImageFeature.usXBayerStart = 0;//READ_BY_CACHE( Offset_x_addr_start ) / 2;
+			pCmd->stImageFeature.usYBayerStart = 0;//READ_BY_CACHE( Offset_y_addr_start ) / 2;
 
-#if 0	//pjo no use for OV2715
-	if ( READ_BY_CACHE(Offset_timing_tc_reg21)&0x01) {
-		pttsStatus->ucHorSkippingFactor  >>= 1;
-		pttsStatus->ucVertSkippingFactor >>= 1;
+			pCmd->stImageFeature.eOrientation  = DxOISP_FLIP_OFF_MIRROR_OFF;
+			
+			pCmd->stImageFeature.usMinVertBlanking = 10; //READ_BY_CACHE( Offset_frame_length_lines ) - READ_BY_CACHE( Offset_y_output_size );
+			pCmd->stImageFeature.uiMinHorBlanking  = 10; //READ_BY_CACHE( Offset_line_length_pck )    - READ_BY_CACHE( Offset_x_output_size );
+
+			pttsStatus->ucHorSkippingFactor                                  =
+			pCmd->stImageFeature.ucHorDownsamplingFactor  = 1; //((READ_BY_CACHE(Offset_x_odd_even_inc)>>4) + 1 ) / 2;
+			pttsStatus->ucVertSkippingFactor                                 =
+			pCmd->stImageFeature.ucVertDownsamplingFactor = 1; //((READ_BY_CACHE(Offset_y_odd_even_inc)>>4) + 1 ) / 2;
+
+			pCmd->stImageFeature.usXBayerEnd   = 2103;//pCmd->stImageFeature.usXBayerStart + READ_BY_CACHE(Offset_x_output_size) * pCmd->stImageFeature.ucHorDownsamplingFactor  / 2 - 1;
+			pCmd->stImageFeature.usYBayerEnd   = 1559;//pCmd->stImageFeature.usYBayerStart + READ_BY_CACHE(Offset_y_output_size) * pCmd->stImageFeature.ucVertDownsamplingFactor / 2 - 1;
+
+		#if 0	//pjo no use for OV2715
+			if ( READ_BY_CACHE(Offset_timing_tc_reg21)&0x01) {
+				pttsStatus->ucHorSkippingFactor  >>= 1;
+				pttsStatus->ucVertSkippingFactor >>= 1;
+			}
+		#endif
+			pttsStatus->eCurrentPhase = DxOISP_SENSOR_PHASE_RGGB;
+
+		break;
+
+        default:
+            ASSERT(! "Unknown VIGEN input mode");
+            break;
 	}
-#endif
 
-	pttsStatus->eCurrentPhase = DxOISP_SENSOR_PHASE_GRBG;
 }
 
 
@@ -705,42 +824,48 @@ static uint16_t computeFps(uint16_t usLineLenght, uint16_t usFrameLenght) {
 }
 
 static inline void getFrameRate( ts_SENSOR_Status* pttsStatus ) {
-	pttsStatus->stAppliedCmd.stImageFeature.usFrameRate = computeFps(READ_BY_CACHE( Offset_line_length_pck ), READ_BY_CACHE( Offset_frame_length_lines ));
+
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
+
+    pttsStatus->stAppliedCmd.stImageFeature.usFrameRate = 6 << DxOISP_FPS_FRAC_PART;
 }
 
 
 static inline void setFrameRate(ts_sensorRegister* pstRegister, uint16_t usNewFrameRate ) {
 	uint32_t uiResult;
 	assertf0( usNewFrameRate!=0, "unexpected frame rate set to 0!!!" );
-	
+
 	uiResult = 1000 * DIV_UP( 1000 * (uint64_t)S_uiSensorPixelClock << 8, pstRegister->usLineLength * usNewFrameRate ) >> 8;
 	pstRegister->usFrameLength = MIN(MAX_FRAME_LENGTH_LINE, MAX(MIN_FRAME_LENGTH_LINE, uiResult));
 }
 
 
 static inline void getExposureTime( ts_SENSOR_Status* pttsStatus ) { 
-	uint32_t uiLineLenghtPixClk = READ_BY_CACHE(Offset_line_length_pck);
-	uint32_t uiLineLength       = uiLineLenghtPixClk << 12;
-	uint64_t uiLineTime         = ((uint64_t)uiLineLength<<4) / S_uiSensorPixelClock;        //in ns expressed in 52.12
 
-	pttsStatus->stAppliedCmd.stShootingParam.uiExpoTime = (((uint64_t)S_uiAppliedIT * uiLineTime)/1000);
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
+    pttsStatus->stAppliedCmd.stShootingParam.uiExpoTime = 30<<EXPO_TIME_FRAC_PART;
 }
 
 
 static inline void setBinning (ts_sensorRegister* pstRegister, uint8_t isBinning ) {
-	pstRegister->ucTimingRegX = isBinning ? (pstRegister->ucTimingRegX|0x01) : (pstRegister->ucTimingRegX&(~0x01));
-	pstRegister->ucTimingRegY = isBinning ? (pstRegister->ucTimingRegY|0x01) : (pstRegister->ucTimingRegY&(~0x01));
-	pstRegister->ucPsRamCtrl0  = 0;	//(!isBinning) << 1;	//pjo no use for OV2715
+
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
+
+    pstRegister->ucTimingRegX = 0;
+    pstRegister->ucTimingRegY = 0;
+    pstRegister->ucPsRamCtrl0  = 0;	//(!isBinning) << 1;	//pjo no use for OV2715
 }
 
-
 static inline ts_Decim setSkipping(ts_sensorRegister* pstRegister, uint8_t ucNewSkipX,uint8_t ucNewSkipY ) {
+	
 	ts_Decim stSkip;
+	
 	stSkip.ucX = MIN( S_stStatus.stCapabilities.stImageFeature.ucMaxHorDownsamplingFactor,  ucNewSkipX );
 	stSkip.ucY = MIN( S_stStatus.stCapabilities.stImageFeature.ucMaxVertDownsamplingFactor, ucNewSkipY );
 
 	pstRegister->ucIncX  = ((2 * stSkip.ucX - 1)<<4) + 1;
 	pstRegister->ucIncY  = ((2 * stSkip.ucY - 1)<<4) + 1;
+
 
 	return stSkip;
 }
@@ -768,20 +893,69 @@ typedef struct {
 	uint16_t isbBinning;
 } ts_CropConfig;
 
-static const ts_CropConfig S_stCropConf[] = {
+
+
+static ts_CropConfig S_stCropConf[] = {
 	{0  , 0  , 640, 480,   0,   0, 640, 480, 0} //
 ,	{0  , 0  , 640, 480,   0,   0, 640, 480, 0} //
 ,	{0  , 0  , 640, 480,   0,   0, 640, 480, 0} //
 ,	{0  , 0  , 640, 480,   0,   0, 640, 480, 0} //
 };
-
 static inline void setOutputSize(ts_sensorRegister* pstRegister, ts_Decim stSkip ) {
+
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
 	unsigned int i;
 	uint8_t isBinning = stSkip.ucX == 2;
 	uint8_t ucIsResultOk[sizeof(S_stCropConf)/sizeof(ts_CropConfig)];
 	uint16_t usDist     [sizeof(S_stCropConf)/sizeof(ts_CropConfig)];
 	uint16_t usTmpOutSizeX = DIV_UP(pstRegister->usXstop  - pstRegister->usXstart +1, stSkip.ucX) ;
 	uint16_t usTmpOutSizeY = DIV_UP(pstRegister->usYstop  - pstRegister->usYstart +1, stSkip.ucY) ;
+
+	switch(priv->inputMode)
+	{
+		case INPUTMODE_VIGEN_640x480 :
+
+			for(i=0;i<sizeof(S_stCropConf)/sizeof(ts_CropConfig);i++) {
+
+					S_stCropConf[i].usStopX    = 640;
+					S_stCropConf[i].usStopY    = 480;
+					S_stCropConf[i].usOutSizeX = 640;
+					S_stCropConf[i].usOutSizeY = 480;
+				}
+
+
+			break;
+
+		case INPUTMODE_VIGEN_1920x1080 :
+
+			for(i=0;i<sizeof(S_stCropConf)/sizeof(ts_CropConfig);i++) {
+
+					S_stCropConf[i].usStopX    = 1920;
+					S_stCropConf[i].usStopY    = 1080;
+					S_stCropConf[i].usOutSizeX = 1920;
+					S_stCropConf[i].usOutSizeY = 1080;
+				}
+
+			break;
+
+		case INPUTMODE_VIGEN_4208x3120 :
+
+			for(i=0;i<sizeof(S_stCropConf)/sizeof(ts_CropConfig);i++) {
+
+					S_stCropConf[i].usStopX    = 4208;
+					S_stCropConf[i].usStopY    = 3120;
+					S_stCropConf[i].usOutSizeX = 4208;
+					S_stCropConf[i].usOutSizeY = 3120;
+				}
+
+
+			break;
+
+		default :
+            ASSERT(! "Unknown VIGEN input mode");
+			break;
+
+	}
 
 	for(i=0;i<sizeof(S_stCropConf)/sizeof(ts_CropConfig);i++) {
 		ucIsResultOk[i] = 0;
@@ -838,13 +1012,8 @@ static void setFlash( uint16_t usPower ) {
 
 static inline void getMode ( ts_SENSOR_Status* pttsStatus ) {
 
-	uint8_t usStreamingMode = 0;
-	usStreamingMode = READ_BY_CACHE(Offset_mode_select);
-
-	if(usStreamingMode == 0x42)
-		pttsStatus->stAppliedCmd.isSensorStreaming = 0;
-	else
-		pttsStatus->stAppliedCmd.isSensorStreaming = 1;
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)THIS_SENSOR->priv;
+    pttsStatus->stAppliedCmd.isSensorStreaming = 1;
 }
 
 static void setMinimalBlanking(ts_sensorRegister* pstRegister, uint16_t usMinVertBlk, uint32_t uiMinHorBlk ) {
@@ -918,7 +1087,7 @@ static inline void getPixelClock ( ts_SENSOR_Status* pttsStatus ) {
 }
 
 #if defined(CHECK_SENSOR_BEFORE_START)
-static void inline autoCheckPluggedSensor ( void )  {
+static void inline autoCheckPluggedSensor (void)  {
 	uint16_t usRevNumber   = readDevice(0x302A, 1);
 //	assertf2( REG_REVISION_NUMBER == usRevNumber, "unexpected rev nb   (0x%04X instead of 0x%04X", usRevNumber, REG_REVISION_NUMBER );
 }
@@ -952,233 +1121,14 @@ static inline void initSensorCmd ( ts_SENSOR_Cmd*  pttsCmd, ts_SENSOR_Status* pt
 	pttsCmd->stImageFeature.uiMinHorBlanking         = pttsStatus->stCapabilities.stImageFeature.usMinHorBlanking;
 
 	pttsCmd->stShootingParam.uiExpoTime              = DEFAULT_EXPOSURE_TIME; 
-	pttsCmd->stImageFeature.usFrameRate              = DEFAULT_FRAMERATE;
+    //[[tifler:test]]
+	//pttsCmd->stImageFeature.usFrameRate              = DEFAULT_FRAMERATE;
+	pttsCmd->stImageFeature.usFrameRate              = 5 << 4;
 	pttsCmd->usAfPosition                            = MIN_AF_POSITION;
+
 }
 
 static inline void  setStaticSensorConfiguration ( int nbLanes ) {
-
-#if 1 // 640 x 480 setting
-
-	ov2715_write2( 0x4740, 0x00);
-	ov2715_write2( 0x3103, 0x93);
-	ov2715_write( 0x3008, 0x82);
-	ov2715_write2( 0x3017, 0x7f);
-	ov2715_write2( 0x3018, 0xfc);
-	ov2715_write2( 0x3706, 0x61);
-	ov2715_write2( 0x3712, 0x0c);
-	ov2715_write2( 0x3630, 0x6d);
-
-	ov2715_write2( 0x3621, 0x04);
-	ov2715_write2( 0x3604, 0x60);
-	ov2715_write2( 0x3603, 0xa7);
-	ov2715_write2( 0x3631, 0x26);
-	ov2715_write2( 0x3600, 0x04);
-	ov2715_write2( 0x3620, 0x37);
-	ov2715_write2( 0x3623, 0x00);
-	ov2715_write2( 0x3702, 0x9e);
-	ov2715_write2( 0x3703, 0x5c);
-	ov2715_write2( 0x3704, 0x40);
-	ov2715_write2( 0x370d, 0x0f);
-	ov2715_write2( 0x3713, 0x9f);
-	ov2715_write2( 0x3714, 0x4c);
-	ov2715_write2( 0x3710, 0x9e);
-
-	ov2715_write2( 0x3605, 0x05);
-	ov2715_write2( 0x3606, 0x3f);
-	ov2715_write2( 0x302d, 0x90);
-	ov2715_write2( 0x370b, 0x40);
-	ov2715_write2( 0x3716, 0x31);
-	ov2715_write2( 0x3707, 0x52);
-
-	ov2715_write2( 0x5181, 0x20);
-	ov2715_write2( 0x518f, 0x00);
-	ov2715_write2( 0x4301, 0xff);
-	ov2715_write2( 0x4303, 0x00);
-	ov2715_write2( 0x3a00, 0x78);
-	ov2715_write2( 0x300f, 0x88);  
-	ov2715_write2( 0x3011, 0x16);
-	ov2715_write2( 0x3a1a, 0x06);
-	ov2715_write2( 0x3a18, 0x00);
-	ov2715_write2( 0x3a19, 0x7a);
-	ov2715_write2( 0x3a13, 0x54);
-	ov2715_write2( 0x382e, 0x0f);
-	ov2715_write2( 0x381a, 0x1a);
-	ov2715_write2( 0x401d, 0x02);
-	
-	ov2715_write2( 0x3a0f, 0x40);
-	ov2715_write2( 0x3a10, 0x38);
-	ov2715_write2( 0x3a1b, 0x48);
-	ov2715_write2( 0x3a1e, 0x30);
-	ov2715_write2( 0x3a11, 0x90);
-	ov2715_write2( 0x3a1f, 0x10);
-
-	ov2715_write2( 0x5680, 0x05);
-	ov2715_write2( 0x5681, 0x00);
-	ov2715_write2( 0x5682, 0x07);
-	ov2715_write2( 0x5683, 0x80);
-	ov2715_write2( 0x5684, 0x02);
-	ov2715_write2( 0x5685, 0x58);
-	ov2715_write2( 0x5686, 0x04);
-	ov2715_write2( 0x5687, 0x38);
-
-
-	ov2715_write2( 0x3800, 0x01);
-	ov2715_write2( 0x3801, 0xBe);
-	
-#if 1
-	ov2715_write2( 0x3802, 0x00);
-	ov2715_write2( 0x3803, 0x0a);
-	ov2715_write2( 0x3804, 0x02);
-	ov2715_write2( 0x3805, 0x80);
-	ov2715_write2( 0x3806, 0x01);
-	ov2715_write2( 0x3807, 0xe0);
-#endif
-	ov2715_write2( 0x3808, 0x02);
-	ov2715_write2( 0x3809, 0x80);
-	ov2715_write2( 0x380A, 0x01);
-	ov2715_write2( 0x380B, 0xE0);
-#if	0
-	ov2715_write2( 0x380C, 0x09);
-	ov2715_write2( 0x380D, 0x74);
-	ov2715_write2( 0x380E, 0x04);
-	ov2715_write2( 0x380F, 0x50);
-#endif
-
-	ov2715_write2( 0x3a00, 0x5c);
-	ov2715_write2( 0x5001, 0x4f);
-	ov2715_write2( 0x3406, 0x01);
-	
-	ov2715_write2( 0x3400, 0x03);
-	ov2715_write2( 0x3401, 0x40);
-	ov2715_write2( 0x3402, 0x04);
-	ov2715_write2( 0x3403, 0x00);
-	ov2715_write2( 0x3404, 0x05);
-	ov2715_write2( 0x3405, 0xa0);
-
-	ov2715_write2( 0x3818, 0xA0);	//Vertical Flip
-	ov2715_write2( 0x370d, 0x0f);
-	ov2715_write2( 0x3621, 0xc4);
-	ov2715_write2( 0x4708, 0x03);	//Vsync Polarity Inversion
-	ov2715_write2( 0x3500, 0x00);	//Exposure Time High
-	ov2715_write2( 0x3501, 0x20);	//Exposure Time Mid
-	ov2715_write2( 0x3503, 0x07);	// Manual Framerate, Manual Exposure
-	ov2715_write2( 0x350C, 0x03);//15);	// Manaul Frame Length High
-	ov2715_write2( 0x350D, 0x00);	// Manual Frame Length Low
-			 
-	ov2715_write2( 0x300F, 0x88);
-	ov2715_write2( 0x3010, 0x20);
-	ov2715_write2( 0x3011, 0x36);
-	ov2715_write2( 0x3012, 0x01);
-
-#endif
-
-#if 0 // 1920 x 1080 setting
-	ov2715_write(0x0103, 0x01);  //SOFT_RST
-//	ov2715_write(0x0100, 0x00);  // Streaming Off
-
-//	usleep(100000); //wait for 100ms after reset
-
-	ov2715_write( 0x4740, 0x00);
-	ov2715_write( 0x3103, 0x93);
-	ov2715_write( 0x3008, 0x82);
-	ov2715_write( 0x3017, 0x7f);
-	ov2715_write( 0x3018, 0xfc);
-	ov2715_write( 0x3706, 0x61);
-	ov2715_write( 0x3712, 0x0c);
-	ov2715_write( 0x3630, 0x6d);
-
-	ov2715_write( 0x3621, 0x04);
-	ov2715_write( 0x3604, 0x60);
-	ov2715_write( 0x3603, 0xa7);
-	ov2715_write( 0x3631, 0x26);
-	ov2715_write( 0x3600, 0x04);
-	ov2715_write( 0x3620, 0x37);
-	ov2715_write( 0x3623, 0x00);
-	ov2715_write( 0x3702, 0x9e);
-	ov2715_write( 0x3703, 0x5c);
-	ov2715_write( 0x3704, 0x40);
-	ov2715_write( 0x370d, 0x0f);
-	ov2715_write( 0x3713, 0x9f);
-	ov2715_write( 0x3714, 0x4c);
-	ov2715_write( 0x3710, 0x9e);
-
-	ov2715_write( 0x3605, 0x05);
-	ov2715_write( 0x3606, 0x3f);
-	ov2715_write( 0x302d, 0x90);
-	ov2715_write( 0x370b, 0x40);
-	ov2715_write( 0x3716, 0x31);
-	ov2715_write( 0x3707, 0x52);
-
-	ov2715_write( 0x5181, 0x20);
-	ov2715_write( 0x518f, 0x00);
-	ov2715_write( 0x4301, 0xff);
-	ov2715_write( 0x4303, 0x00);
-	ov2715_write( 0x3a00, 0x78);
-	ov2715_write( 0x300f, 0x88);  
-	ov2715_write( 0x3011, 0x16);
-	ov2715_write( 0x3a1a, 0x06);
-	ov2715_write( 0x3a18, 0x00);
-	ov2715_write( 0x3a19, 0x7a);
-	ov2715_write( 0x3a13, 0x54);
-	ov2715_write( 0x382e, 0x0f);
-	ov2715_write( 0x381a, 0x1a);
-	ov2715_write( 0x401d, 0x02);
-	
-	ov2715_write( 0x3a0f, 0x40);
-	ov2715_write( 0x3a10, 0x38);
-	ov2715_write( 0x3a1b, 0x48);
-	ov2715_write( 0x3a1e, 0x30);
-	ov2715_write( 0x3a11, 0x90);
-	ov2715_write( 0x3a1f, 0x10);
-
-	ov2715_write( 0x5680, 0x00);
-	ov2715_write( 0x5681, 0x00);
-	ov2715_write( 0x5682, 0x07);
-	ov2715_write( 0x5683, 0x8C);
-	ov2715_write( 0x5684, 0x00);
-	ov2715_write( 0x5685, 0x80);
-	ov2715_write( 0x5686, 0x03);
-	ov2715_write( 0x5687, 0x38);
-
-
-	ov2715_write( 0x3800, 0x01);
-	ov2715_write( 0x3801, 0xB8);
-	
-#if 0
-	ov2715_write( 0x3802, 0x00);
-	ov2715_write( 0x3803, 0x00);
-	ov2715_write( 0x3804, 0x07);
-	ov2715_write( 0x3805, 0x80);
-	ov2715_write( 0x3806, 0x04);
-	ov2715_write( 0x3807, 0x38);
-
-	ov2715_write( 0x3808, 0x02);
-	ov2715_write( 0x3809, 0x80);
-	ov2715_write( 0x380A, 0x01);
-	ov2715_write( 0x380B, 0xE0);
-
-	ov2715_write( 0x380C, 0x09);
-	ov2715_write( 0x380D, 0x74);
-	ov2715_write( 0x380E, 0x04);
-	ov2715_write( 0x380F, 0x50);
-#endif
-
-
-	ov2715_write( 0x3818, 0xA0);	//Vertical Flip
-	ov2715_write( 0x4708, 0x03);	//Vsync Polarity Inversion
-	ov2715_write( 0x3500, 0x00);	//Exposure Time High
-	ov2715_write( 0x3501, 0x25);	//Exposure Time Mid
-	ov2715_write( 0x3503, 0x04);	// Manual Framerate, Manual Exposure
-	ov2715_write( 0x350C, 0x0F);	// Manaul Frame Length High
-	ov2715_write( 0x350D, 0x00);	// Manual Frame Length Low
-			 
-	ov2715_write( 0x300F, 0x88);
-	ov2715_write( 0x3010, 0x20);
-	ov2715_write( 0x3011, 0x18);
-	ov2715_write( 0x3012, 0x01);
-#endif
-
 
 }
 
@@ -1187,6 +1137,7 @@ static uint8_t S_isNewGrpCreated = 0;
 
 static inline void openSensorGroup(void)
 {
+
 	if(	S_isNewGrpCreated == 0 && 
 	(	S_ucCropConfigIdx                    != S_ucAppliedCropConfigIdx
 	||	S_stRegister.ucPsRamCtrl0            != 0	//READ_BY_CACHE(Offset_psram_ctrl0)	//pjo no use for OV2715
@@ -1199,10 +1150,12 @@ static inline void openSensorGroup(void)
 		WRITE_DEVICE(Offset_group_access, S_ucGrpIdx);
 		S_isNewGrpCreated = 1;
 	}
+
 }
 
 static inline void closeSensorGroup(void)
 {
+
 	if(S_isNewGrpCreated) {
 		S_isNewGrpCreated = 0;
 		WRITE_DEVICE(Offset_group_access, (0x10 + S_ucGrpIdx));
@@ -1210,6 +1163,7 @@ static inline void closeSensorGroup(void)
 		S_uiCmdSendToFrameIdx = S_stCmd.uiFrameCount;
 		//S_ucGrpIdx = (S_ucGrpIdx+1)%3; Omnivision says we can use the same group every time
 	}
+
 }
 
 static inline uint8_t canSendCmdToSensor(void) {
@@ -1272,7 +1226,11 @@ static inline void applySettingsToSensor( void )
 	
 	if(!ucMode && S_stRegister.isStreaming) {
 		S_stStatus.isSensorFireNeeded = 1;
+
+#ifdef SENSOR_DEBUG_ENABLE
 		ISP_PRINTF("Sensor Fire Needed Set!\n");
+#endif
+
 	}else {
 		if(!S_stRegister.isStreaming && ucMode) {
 			S_uiCmdSendToFrameIdx = (uint32_t)-1;
@@ -1282,9 +1240,10 @@ static inline void applySettingsToSensor( void )
 			WRITE_BY_CACHE( Offset_mode_select , 0x42 );
 		
 	}
+#ifdef SENSOR_DEBUG_ENABLE
+	ISP_PRINTF("Sensor streaming mode = %d\n",S_stRegister.isStreaming);
+#endif
 
-	//ISP_PRINTF("Sensor streaming mode = %d\n",S_stRegister.isStreaming);
-	
 	S_ucAppliedCropConfigIdx = S_ucCropConfigIdx;
 	historyMngt(ucMode);
 }
@@ -1339,6 +1298,7 @@ static inline void historyMngt(uint8_t ucMode)
 	||	 S_stRegister.usOutSizeY  != S_usOldOutputSizeY 
 	||	 S_stRegister.usLineLength!= S_usOldLineLength )) {
 
+#ifdef SENSOR_DEBUG_ENABLE
 		ISP_PRINTF("S_stRegister.usOutSizeX = %d\n", S_stRegister.usOutSizeX);
 		ISP_PRINTF("S_usOldOutputSizeX = %d\n", S_usOldOutputSizeX);
 		
@@ -1347,24 +1307,33 @@ static inline void historyMngt(uint8_t ucMode)
 
 		ISP_PRINTF("S_stRegister.usLineLength = %d\n", S_stRegister.usLineLength);
 		ISP_PRINTF("S_usOldLineLength = %d\n", S_usOldLineLength);
-
+#endif
 	
 		S_isStartIgnoringFrame = 1;
 	}
 	else if(S_stStatus.isSensorFireNeeded) {
+
+#ifdef SENSOR_DEBUG_ENABLE
 		ISP_PRINTF("isSensorFireNeeded = 0x%x\n", (unsigned int)S_stStatus.isSensorFireNeeded);
+#endif
 		S_isStartIgnoringFrame = 1;
 	}
 
 	if(S_isStartIgnoringFrame && S_uiOldFrameCount != S_stCmd.uiFrameCount) {
 
+#ifdef SENSOR_DEBUG_ENABLE
+
 		ISP_PRINTF("S_isStartIgnoringFrame = 0x%x\n", (unsigned int)S_isStartIgnoringFrame);
 		ISP_PRINTF("S_uiOldFrameCount = 0x%x\n", S_uiOldFrameCount);
 		ISP_PRINTF("S_stCmd.uiFrameCount = 0x%x\n", S_stCmd.uiFrameCount);
-
+#endif
 		S_ignoreFrameCnt++;
 		S_stStatus.isFrameInvalid = 1;
+
+#ifdef SENSOR_DEBUG_ENABLE
 		ISP_PRINTF("FrameInvalid = %d\n", S_stStatus.isFrameInvalid);
+#endif
+
 		if(S_ignoreFrameCnt == NB_FRAME_TO_IGNORE) {
 			S_ignoreFrameCnt = 0;
 			S_isStartIgnoringFrame = 0;
@@ -1372,9 +1341,6 @@ static inline void historyMngt(uint8_t ucMode)
 	} else {
 		S_stStatus.isFrameInvalid = 0;
 	}
-
-
-
 
 	S_uiOldFrameCount  = S_stCmd.uiFrameCount;
 	S_usOldLineLength  = S_stRegister.usLineLength;
@@ -1392,25 +1358,13 @@ static inline void getFrameValidTime ( ts_SENSOR_Status* pttsStatus ) {
 /* Exported functions definition                                             */
 /*****************************************************************************/
 
-// XXX tifler
-// Each sensor has slave address and can be accessed via unified i2c bus or
-// individual one.
-// So, we must distinguish access method by fd and slave address.
-//
-// Ex-1)
-//  Front Sensor: i2c-0 attached, slave addr is 0x30
-//  Back  Sensor: i2c-1 attached, slave addr is 0x40
-// Ex-2)
-//  Front Sensor: i2c-0 attached, slave addr is 0x30
-//  Back  Sensor: i2c-0 attached, slave addr is 0x40
-struct OVT2715Private {
-    int fd;         // i2c master device
-    int slaveAddr;  // i2c slave address for sensor.
-};
+void DxOSensor_VIGEN_Initialize (struct SENSOR *sensor) {
 
-static void DxOSensor_OVT2715_Initialize(struct SENSOR *sensor)
-{
-    struct OVT2715Private *priv;
+    struct VIGENPrivate *priv;
+
+    ASSERT(!THIS_SENSOR);
+
+    THIS_SENSOR = sensor;
 
     priv = calloc(1, sizeof(*priv));
     ASSERT(priv);
@@ -1420,6 +1374,9 @@ static void DxOSensor_OVT2715_Initialize(struct SENSOR *sensor)
 
     sensor->priv = priv;
 
+    priv->inputMode = defaultPrivate.inputMode;
+	priv->inputModeDevice = defaultPrivate.inputModeDevice;
+	
 	// Init all the global varibles
 	memset( &S_stCmd,      0, sizeof(S_stCmd) );
 	memset( &S_stStatus,   0, sizeof(S_stStatus) );
@@ -1439,7 +1396,7 @@ static void DxOSensor_OVT2715_Initialize(struct SENSOR *sensor)
 	S_usFlashPower           = 0;
 #endif
 	initCache();
-	setStaticSensorConfiguration ( NB_MIPI_LANES);
+	setStaticSensorConfiguration (NB_MIPI_LANES);
 	getCapabilities    ( &S_stStatus);
 	S_uiSensorPixelClock = computePixelClock(); 
 	
@@ -1456,9 +1413,8 @@ static void DxOSensor_OVT2715_Initialize(struct SENSOR *sensor)
 	setAF              ( &S_stRegister );
 	applySettingsToSensor();
 
-	//#ifdef PJO_DEBUG_ENABLE
-		ISP_PRINTF("Sensor Init Done\n");
-	//#endif
+	ISP_PRINTF("Sensor Init Done\n");
+
 
 #ifdef FLASH_ENABLE
 	setFlash(0);
@@ -1466,24 +1422,23 @@ static void DxOSensor_OVT2715_Initialize(struct SENSOR *sensor)
 #endif
 }
 
-static void DxOSensor_OVT2715_Uninitialize(struct SENSOR *sensor)
-{
-    struct OVT2715Private *priv = (struct OVT2715Private *)sensor->priv;
+void DxOSensor_VIGEN_Uninitialize (struct SENSOR *sensor) {
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)sensor->priv;
     //close(priv->fd);
     free(priv);
     sensor->priv = NULL;
+    THIS_SENSOR = (struct SENSOR *)NULL;
 	//DeviceDeinit();
 	return;
 }
 
-static void DxOSensor_OVT2715_SetStartGrp(struct SENSOR *sensor)
-{
+void DxOSensor_VIGEN_SetStartGrp (struct SENSOR *sensor) {
 	return;
 }
 
 
-static void DxOSensor_OVT2715_Set(
-        struct SENSOR *sensor, uint16_t usOffset, uint16_t usSize, void* pBuf)
+void DxOSensor_VIGEN_Set (
+        struct SENSOR *sensor, uint16_t usOffset, uint16_t usSize, void* pBuf )
 {
 	uint16_t usTmpSize = usSize;
 	if ( (usOffset + usSize)  > sizeof(S_stCmd)) {
@@ -1493,7 +1448,7 @@ static void DxOSensor_OVT2715_Set(
 	memcpy((uint8_t*)&S_stCmd + usOffset,pBuf, usTmpSize );
 }
 
-static void DxOSensor_OVT2715_SetEndGrp(struct SENSOR *sensor)
+void DxOSensor_VIGEN_SetEndGrp(struct SENSOR *sensor)
 {
 	setMode              ( &S_stRegister, S_stCmd.isSensorStreaming                      );
 	setCrop              ( &S_stRegister);
@@ -1520,12 +1475,12 @@ static void DxOSensor_OVT2715_SetEndGrp(struct SENSOR *sensor)
 	}
 #endif
 
+
 	applySettingsToSensor();
 }
 
-static void DxOSensor_OVT2715_Get (
-        struct SENSOR *sensor, uint16_t usOffset, uint16_t usSize, void* pBuf )
-{
+void DxOSensor_VIGEN_Get (
+        struct SENSOR *sensor, uint16_t usOffset, uint16_t usSize, void* pBuf) {
 	uint16_t usTmpSize = usSize;
 	if ( (usOffset + usSize)  > sizeof(S_stStatus)) {
 		assertf1(( (usOffset + usSize) <= sizeof(S_stStatus)), " uncorrect offset (%d)", (usOffset + usSize) );
@@ -1534,12 +1489,11 @@ static void DxOSensor_OVT2715_Get (
 	memcpy(pBuf,(uint8_t *)&S_stStatus+usOffset,usTmpSize);
 }
 
-static void DxOSensor_OVT2715_GetEndGrp(struct SENSOR *sensor)
-{
+void DxOSensor_VIGEN_GetEndGrp (struct SENSOR *sensor) {
 	return;
 }
 
-static void DxOSensor_OVT2715_GetStartGrp(struct SENSOR *sensor)
+void DxOSensor_VIGEN_GetStartGrp (struct SENSOR *sensor)
 {
 	S_stStatus.uiPixelClock         = S_uiSensorPixelClock<<12;
 
@@ -1560,66 +1514,89 @@ static void DxOSensor_OVT2715_GetStartGrp(struct SENSOR *sensor)
 #endif
 }
 
-static void DxOSensor_OVT2715_Fire(struct SENSOR *sensor)
+void DxOSensor_VIGEN_Fire (struct SENSOR *sensor)
 {
-	ISP_PRINTF("Jung Sung Ryong\n");
-
-#if 1
-//	if(initdone==0)
-	{
-	if(S_stRegister.isStreaming){
-		WRITE_BY_CACHE( Offset_mode_select, 0x02 );	
-	}
-	else {
-		WRITE_BY_CACHE( Offset_mode_select, 0x42 );
-	}
-	}
-#else
-	if(S_stRegister.isStreaming == 0){
-		WRITE_BY_CACHE( Offset_mode_select, 0x42 );
-		ISP_PRINTF("Sensor OFF\n");
-	}
-#endif
-
-	
+    struct VIGENPrivate *priv = (struct VIGENPrivate *)sensor->priv;
 	S_stStatus.isSensorFireNeeded = 0;
 }
 
-static int DxOSensor_OVT2715_GetSensorInfo(
-        uint32_t index, struct SENSOR_INFO *info)
-{
-    static struct SENSOR_INFO thisSensorInfo = {
-        .width = 640,
-        .height = 480,
-        .fps = 6,
-    };
+/*****************************************************************************/
 
-    if (index > 0)
+#define ARRAY_SIZE(a)                       (sizeof(a) / sizeof(a[0]))
+
+struct VIGEN_SENSOR_MODE {
+    struct SENSOR_MODE mode;
+    uint32_t inputMode;
+    uint32_t inputModeDevice;
+};
+
+static struct VIGEN_SENSOR_MODE VIGEN_Modes[] = {
+    {
+        .mode = {
+            .width = 640,
+            .height = 480,
+            .fps = 6,
+        },
+        .inputMode = INPUTMODE_VIGEN_640x480,
+        .inputModeDevice = INPUTMODE_VIGEN,
+    },
+    {
+        .mode = {
+            .width = 1920,
+            .height = 1080,
+            .fps = 6,
+        },
+        .inputMode = INPUTMODE_VIGEN_1920x1080,
+        .inputModeDevice = INPUTMODE_VIGEN,
+    },
+    {
+        .mode = {
+            .width = 4208,
+            .height = 3120,
+            .fps = 6,
+        },
+        .inputMode = INPUTMODE_VIGEN_4208x3120,
+        .inputModeDevice = INPUTMODE_VIGEN,
+    },
+};
+
+static int DxOSensor_VIGEN_GetSensorMode(
+        uint32_t modeId, struct SENSOR_MODE *mode)
+{
+    if (modeId >= ARRAY_SIZE(VIGEN_Modes))
         return -1;
 
-    memcpy(info, &thisSensorInfo, sizeof(*info));
+    memcpy(mode, &VIGEN_Modes[modeId].mode, sizeof(*mode));
 
     return 0;
 }
 
+static void DxOSensor_VIGEN_SetSensorMode(uint32_t modeId)
+{
+    ASSERT(modeId < ARRAY_SIZE(VIGEN_Modes));
+    defaultPrivate.inputMode = VIGEN_Modes[modeId].inputMode;
+    defaultPrivate.inputModeDevice = VIGEN_Modes[modeId].inputModeDevice;
+}
+
 /*****************************************************************************/
 
-static struct SENSOR_API OVT2715_SensorAPI = {
-    .init = DxOSensor_OVT2715_Initialize,
-    .exit = DxOSensor_OVT2715_Uninitialize,
-    .commandGroupOpen = DxOSensor_OVT2715_SetStartGrp,
-    .commandSet = DxOSensor_OVT2715_Set,
-    .commandGroupClose = DxOSensor_OVT2715_SetEndGrp,
-    .statusGroupOpen = DxOSensor_OVT2715_GetStartGrp,
-    .statusGet = DxOSensor_OVT2715_Get,
-    .statusGroupClose = DxOSensor_OVT2715_GetEndGrp,
-    .fire = DxOSensor_OVT2715_Fire,
-    .getSensorInfo = DxOSensor_OVT2715_GetSensorInfo,
+static struct SENSOR_API VIGEN_SensorAPI = {
+    .init = DxOSensor_VIGEN_Initialize,
+    .exit = DxOSensor_VIGEN_Uninitialize,
+    .commandGroupOpen = DxOSensor_VIGEN_SetStartGrp,
+    .commandSet = DxOSensor_VIGEN_Set,
+    .commandGroupClose = DxOSensor_VIGEN_SetEndGrp,
+    .statusGroupOpen = DxOSensor_VIGEN_GetStartGrp,
+    .statusGet = DxOSensor_VIGEN_Get,
+    .statusGroupClose = DxOSensor_VIGEN_GetEndGrp,
+    .fire = DxOSensor_VIGEN_Fire,
+    .getSensorMode = DxOSensor_VIGEN_GetSensorMode,
+    .setSensorMode = DxOSensor_VIGEN_SetSensorMode,
 };
 
 /*****************************************************************************/
 
-struct SENSOR OVT2715_Sensor = {
-    .name = "OVT2715 2M-Sensor",
-    .api = &OVT2715_SensorAPI,
+struct SENSOR VIGEN_Sensor = {
+    .name = "VIGEN Sensor",
+    .api = &VIGEN_SensorAPI,
 };

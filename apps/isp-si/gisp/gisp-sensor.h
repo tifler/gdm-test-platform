@@ -19,6 +19,14 @@ enum {
 
 /*****************************************************************************/
 
+struct SENSOR_MODE {
+    uint32_t width;
+    uint32_t height;
+    uint32_t fps;
+};
+
+/*****************************************************************************/
+
 struct SENSOR;
 
 struct SENSOR_API {
@@ -33,6 +41,9 @@ struct SENSOR_API {
             uint16_t offset, uint16_t size, void *buffer);
     void (*statusGroupClose)(struct SENSOR *sensor);
     void (*fire)(struct SENSOR *sensor);
+    // statically called
+    int (*getSensorMode)(uint32_t modeId, struct SENSOR_MODE *mode);
+    void (*setSensorMode)(uint32_t modeId);
 };
 
 struct SENSOR {
@@ -44,5 +55,8 @@ struct SENSOR {
     struct list_head entry;
 #endif  /*DXO_SENSOR_DYNAMIC*/
 };
+
+int SensorGetMode(uint8_t sensorId, uint32_t modeId, struct SENSOR_MODE *mode);
+void SensorSetMode(uint8_t sensorId, uint32_t index);
 
 #endif  /*__GISP_SENSOR_H__*/
