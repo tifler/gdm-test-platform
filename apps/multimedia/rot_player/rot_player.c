@@ -380,12 +380,12 @@ void *decoding_thread(void *arg)
 	for(buf_ndx = 0; buf_ndx< 2; buf_ndx++) {
 		for(i=0;i<3;i++) {
 			if(gplayer->frame[buf_ndx].shared_fd[i] > 0) {
-				munmap(gplayer->frame[buf_ndx].shared_fd[i], gplayer->frame[buf_ndx].size[i]);
+				munmap(gplayer->frame[buf_ndx].address[i], gplayer->frame[buf_ndx].size[i]);
 				close(gplayer->frame[buf_ndx].shared_fd[i]);
 			}
 		}
 		if(gplayer->frame[buf_ndx].rot_shared_fd > 0) {
-			munmap(gplayer->frame[buf_ndx].rot_shared_fd, gplayer->frame[buf_ndx].size[0] * 4);
+			munmap(gplayer->frame[buf_ndx].rot_address, gplayer->frame[buf_ndx].size[0] * 4);
 			close(gplayer->frame[buf_ndx].rot_shared_fd);
 		}
 	}

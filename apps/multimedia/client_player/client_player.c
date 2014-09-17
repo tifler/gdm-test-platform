@@ -72,6 +72,10 @@ struct ody_videoframe {
 	int shared_fd[3];
 	unsigned char *address[3];	/* virtual address */
 	int size[3];
+
+
+	int rot_shared_fd;
+	unsigned char *rot_address;
 };
 
 struct ody_framebuffer {
@@ -131,6 +135,15 @@ static int alloc_video_memory(struct ody_videoframe *pframe)
 		if (pframe->address == MAP_FAILED) {
 			goto cleanup;
 		}
+	}
+
+	ret = ion_alloc_fd(fd, (pframe->size[0] * 4), 0, ION_HEAP_CARVEOUT_MASK,
+			0, &pframe->rot_shared_fd);
+
+	pframe->rot_address = mmap(NULL, pframe->size[0] * 4,
+		(PROT_READ | PROT_WRITE), MAP_SHARED, pframe->rot_shared_fd, 0);
+	if (pframe->address == MAP_FAILED) {
+		goto cleanup;
 	}
 
 cleanup:
@@ -212,9 +225,16 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 
 
 	req->transp_mask = 0;
-	req->flags = GDM_DSS_FLAG_SCALING;
+
+	if(req->src_rect.w != req->dst_rect.w
+		|| req->src_rect.h != req->dst_rect.h)
+		req->flags = GDM_DSS_FLAG_SCALING;
+	else
+		req->flags = 0;
 
 	if(gplayer->video_info.rotation) {
+
+		req->flags |= GDM_DSS_FLAG_ROTATION;
 		switch(gplayer->video_info.rotation) {
 		case GDM_DSS_ROTATOR_HOR_FLIP:
 			req->flags |= GDM_DSS_FLAG_ROTATION_HFLIP;
@@ -292,27 +312,38 @@ static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req)
 }
 
 
-
 static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 {
 	struct gdm_hwc_msg msg_data;
 	struct gdm_msghdr *msg = NULL;
 	int i = 0;
+	int fd_cnt = 0;
+
+	fd_cnt = req_data->num_plane;
+	if(req_data->dst_data.memory_id)
+		fd_cnt++;
+
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
 
-	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), req_data->num_plane);
+	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), fd_cnt);
 
 	msg_data.app_id = APP_ID_MULTI_SAMPLE_PLAYER;
 	msg_data.hwc_cmd = GDMFB_OVERLAY_PLAY;
-	memcpy(msg_data.data, req_data, sizeof(struct gdm_dss_overlay_data));
+
+	if(req_data)
+		memcpy(msg_data.data, req_data, sizeof(struct gdm_dss_overlay_data));
 	memcpy(msg->buf, &msg_data, sizeof(struct gdm_hwc_msg));
 
 	for(i = 0 ; i < req_data->num_plane ; i++)
 		msg->fds[i] = req_data->data[i].memory_id;
+
+	if(req_data->dst_data.memory_id)
+		msg->fds[req_data->num_plane] = req_data->dst_data.memory_id;
 	gdm_sendmsg(sockfd, msg);
 
 	return 0;
 }
+
 
 static int dss_overlay_unset(int sockfd)
 {
@@ -398,6 +429,14 @@ void *decoding_thread(void *arg)
 		req_data.data[2].memory_id = gplayer->frame[buf_ndx].shared_fd[2];
 		req_data.data[2].offset = 0;
 
+		if(req.flags & GDM_DSS_FLAG_ROTATION) {
+			// Rotator Output
+			req_data.dst_data.memory_id = gplayer->frame[buf_ndx].rot_shared_fd;
+			req_data.dst_data.offset = 0;
+		}
+		else {
+			req_data.dst_data.memory_id = 0;
+		}
 		dss_overlay_queue(sockfd, &req_data);
 		dss_get_fence_fd(sockfd, &gplayer->release_fd, NULL);
 
@@ -425,7 +464,8 @@ void *decoding_thread(void *arg)
 	for(buf_ndx = 0; buf_ndx< 2; buf_ndx++) {
 		for(i=0;i<3;i++) {
 			if(gplayer->frame[buf_ndx].shared_fd[i] > 0) {
-				munmap(gplayer->frame[buf_ndx].shared_fd[i], gplayer->frame[buf_ndx].size[i]);
+				munmap(gplayer->frame[buf_ndx].address[i],
+					gplayer->frame[buf_ndx].size[i]);
 				close(gplayer->frame[buf_ndx].shared_fd[i]);
 			}
 		}
