@@ -591,6 +591,7 @@ void *gfx_renderer(void *arg)
 			//printf("wait frame done signal\n");
 			ret = sync_wait(gfx_ctx->release_fd, 10000);
 			close(gfx_ctx->release_fd);
+			gfx_ctx->release_fd = -1;
 		}
 
 		gfx_ctx->render_ndx ^= 1;
@@ -618,15 +619,11 @@ void *gfx_renderer(void *arg)
 	// unset
 	dss_overlay_unset(sockfd);
 
-	if(gfx_ctx->release_fd != -1) {
-		//printf("wait frame done signal\n");
-		ret = sync_wait(gfx_ctx->release_fd, 10000);
-		close(gfx_ctx->release_fd);
-	}
-
 	if(gfx_ctx->release_fd != -1)
 		close(gfx_ctx->release_fd);
 
+
+	sleep(1);
 
 	for(i = 0; i< 2; i++) {
 		if(gfx_ctx->desc[i].shared_fd > 0) {
@@ -634,6 +631,7 @@ void *gfx_renderer(void *arg)
 			close(gfx_ctx->desc[i].shared_fd);
 		}
 	}
+
 	close(sockfd);
 	gfx_ctx->bstop = 1;
 	return NULL;
@@ -658,7 +656,6 @@ int main(int argc, char **argv)
 	while(!gfx_context->bstop) {
 		sleep(1);
 	}
-	sleep(1);
 exit:
 	free(gfx_context);
 

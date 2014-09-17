@@ -14,7 +14,7 @@
 #include <string.h>
 #include <pthread.h> // for POSIX threads
 #include <ctype.h>
-
+#include <signal.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <time.h>
@@ -194,15 +194,15 @@ static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screenin
 {
 	struct gdm_msghdr *msg = NULL;
 
-	printf("dss_get_fence_fd - start\n");
+	//printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-	printf("received msg: %0x\n", (unsigned int)msg);
+	//printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
 
 		if(vi)
 			memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
-		printf("msg->fds[0]: %d\n", msg->fds[0]);
+		//printf("msg->fds[0]: %d\n", msg->fds[0]);
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
@@ -288,7 +288,7 @@ void *decoding_thread(void *arg)
 {
 	int ret = 0;
 	int frame_num = 0;
-	int buf_ndx = 0;
+	int buf_ndx = 0, i;
 
 	int sockfd;
 	struct sockaddr_un server_addr;
@@ -322,7 +322,7 @@ void *decoding_thread(void *arg)
 
 	// step-03: send framebuffer to display
 	buf_ndx = 0;
-	while(!gplayer->stop) {
+	while(!gplayer->stop && frame_num < 20) {
 
 		int i = 0;
 
@@ -332,6 +332,7 @@ void *decoding_thread(void *arg)
 				gplayer->frame[buf_ndx].size[i]);
 			if(ret == -1) {
 				gplayer->stop = 1;
+				printf("rotation player is stopped !!!!\n");
 				break;
 			}
 		}
@@ -359,17 +360,35 @@ void *decoding_thread(void *arg)
 			//printf("wait frame done signal\n");
 			ret = sync_wait(gplayer->release_fd, 1000);
 			close(gplayer->release_fd);
+			gplayer->release_fd = -1;
 		}
 		buf_ndx ^= 1;
 
 		//usleep(50*1000);
 	}
 
+	gplayer->stop = 1;
 	// unset
-	dss_overlay_unset(sockfd);
 
+	printf("overlay unset\n");
+	dss_overlay_unset(sockfd);
 	if(gplayer->release_fd != -1)
 		close(gplayer->release_fd);
+
+	sleep(1);
+
+	for(buf_ndx = 0; buf_ndx< 2; buf_ndx++) {
+		for(i=0;i<3;i++) {
+			if(gplayer->frame[buf_ndx].shared_fd[i] > 0) {
+				munmap(gplayer->frame[buf_ndx].shared_fd[i], gplayer->frame[buf_ndx].size[i]);
+				close(gplayer->frame[buf_ndx].shared_fd[i]);
+			}
+		}
+		if(gplayer->frame[buf_ndx].rot_shared_fd > 0) {
+			munmap(gplayer->frame[buf_ndx].rot_shared_fd, gplayer->frame[buf_ndx].size[0] * 4);
+			close(gplayer->frame[buf_ndx].rot_shared_fd);
+		}
+	}
 
 	close(sockfd);
 
@@ -377,14 +396,34 @@ void *decoding_thread(void *arg)
 }
 
 
+void sigHandler(int signum, siginfo_t *info, void *ptr)
+{
+	struct ody_player *player = (struct ody_player *)ptr;
+	printf("sigHandler: %08x\n", signum);
+
+	printf("ody_player: %d %d\n", player->frame[0].size[0], player->stop);
+	player->stop = 1;
+}
+
 int main(int argc, char **argv)
 {
 	struct ody_player gplayer;
 	struct ody_videofile *pvideo;
+	struct sigaction act;
+
+
+	memset(&act, 0, sizeof(act));
+
 	memset(&gplayer, 0x00, sizeof(struct ody_player));
 	//pfb = &gplayer.fb_info;
 	pvideo = &gplayer.video_info;
 	/* initialize */
+
+	//act.sa_sigaction = sigHandler;
+	//act.sa_flags = SA_SIGINFO;
+
+	//sigaction(SIGINT, &act, &gplayer);
+	//signal(SIGINT, sigHandler);
 
 	if(open_video(argv[1], pvideo) == -1) {
 		close(pvideo->fd);
@@ -415,9 +454,7 @@ int main(int argc, char **argv)
 	pthread_detach(decoding_worker);
 
 	while(!gplayer.stop) {
-
 		sleep(1);
-
 	}
 
 exit:

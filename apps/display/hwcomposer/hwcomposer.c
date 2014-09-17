@@ -442,7 +442,7 @@ static void *client_thread(void *arg)
 			break;
 		}
 		else if (ret == 0) {
-			printf("timeout.\n");
+			//printf("timeout.\n");
 			continue;
 		}
 
@@ -451,19 +451,8 @@ static void *client_thread(void *arg)
 			break;
 		}
 		cmd_msg = gdm_recvmsg(client->sockfd);
-		//ASSERT(cmd_msg);
-
-		if(cmd_msg == NULL) {
-			unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
-			goto Exit;
-
-		}
-
-		//DBG("cmd_msg->buf = %s", cmd_msg->buf);
-		//DBG("cmd_msg->buflen = %d", (int)cmd_msg->buflen);
-		//DBG("cmd_msg->fdcount = %d", (int)cmd_msg->fdcount);
-
 		disp_message = (struct gdm_hwc_msg*)cmd_msg->buf;
+
 		pthread_mutex_lock(&hwc_ctx->ov_lock);
 		switch(disp_message->hwc_cmd) {
 			case GDMFB_OVERLAY_GET:

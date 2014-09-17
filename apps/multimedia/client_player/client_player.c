@@ -337,7 +337,7 @@ void *decoding_thread(void *arg)
 {
 	int ret = 0;
 	int frame_num = 0;
-	int buf_ndx = 0;
+	int buf_ndx = 0, i;
 
 	int sockfd;
 	struct sockaddr_un server_addr;
@@ -405,6 +405,7 @@ void *decoding_thread(void *arg)
 		//	printf("sync_wait - in \n");
 			ret = sync_wait(gplayer->release_fd, 1000);
 			close(gplayer->release_fd);
+			gplayer->release_fd = -1;
 		//	printf("sync_wait - out\n");
 		}
 		buf_ndx ^= 1;
@@ -417,6 +418,18 @@ void *decoding_thread(void *arg)
 
 	if(gplayer->release_fd != -1)
 		close(gplayer->release_fd);
+
+	sleep(1);
+
+
+	for(buf_ndx = 0; buf_ndx< 2; buf_ndx++) {
+		for(i=0;i<3;i++) {
+			if(gplayer->frame[buf_ndx].shared_fd[i] > 0) {
+				munmap(gplayer->frame[buf_ndx].shared_fd[i], gplayer->frame[buf_ndx].size[i]);
+				close(gplayer->frame[buf_ndx].shared_fd[i]);
+			}
+		}
+	}
 
 	close(sockfd);
 
