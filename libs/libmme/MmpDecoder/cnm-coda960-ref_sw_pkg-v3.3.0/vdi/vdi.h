@@ -42,7 +42,6 @@ typedef struct vpu_buffer_t {
 #endif
 	unsigned long virt_addr;
     unsigned int firmware_code_reuse; // vpu_code_write flag		
-    unsigned int ion_shared_fd;    // ion fd buffer index value
 } vpu_buffer_t;
 
 #ifdef CNM_HISI_PLATFORM
@@ -99,9 +98,15 @@ extern "C" {
 #endif
 	int vdi_probe(unsigned long core_idx);
 	int vdi_init(unsigned long core_idx);
+#ifdef __VPU_PLATFORM_MME
+    int vdi_init_shm(unsigned long core_idx);
+#endif
 	int vdi_release(unsigned long core_idx);	//this function may be called only at system off.
 
 	vpu_instance_pool_t * vdi_get_instance_pool(unsigned long core_idx);
+#ifdef __VPU_PLATFORM_MME
+    vpu_instance_pool_t * vdi_get_instance_pool_shm(unsigned long core_idx);
+#endif
 	int vdi_get_common_memory(unsigned long core_idx, vpu_buffer_t *vb);
 	int vdi_allocate_dma_memory(unsigned long core_idx, vpu_buffer_t *vb);
 	int vdi_attach_dma_memory(unsigned long core_idx, vpu_buffer_t *vb);

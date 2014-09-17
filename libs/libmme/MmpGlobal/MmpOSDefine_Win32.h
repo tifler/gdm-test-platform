@@ -30,8 +30,6 @@
 #include <wchar.h>
 #include <errno.h>
 
-
-
 #define MMP_ALIGN_8 
 #define MMP_DLL_EXPORT extern _declspec(dllexport)
 
@@ -60,6 +58,7 @@ typedef TCHAR MMPCHAR;
 #define SETREG32(reg, mask) (*(volatile unsigned long * const)(reg) |=  mask)
 #define CLRREG32(reg, mask) (*(volatile unsigned long * const)(reg) &= ~mask)
 
+#define MMP_FILE_DEVIDER '\\'
 
 /* linux driver io */
 #define MMP_DRIVER_OPEN  kernel_driver_open

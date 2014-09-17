@@ -26,8 +26,9 @@
 class member
 **********************************************************/
 
-mmp_buffer_videoframe::mmp_buffer_videoframe() :
-m_pic_width(0)
+mmp_buffer_videoframe::mmp_buffer_videoframe() : mmp_buffer_media(VIDEO_FRAME)
+
+,m_pic_width(0)
 ,m_pic_height(0)
 ,m_plane_count(0)
 ,m_format(0)
@@ -64,6 +65,17 @@ MMP_U8* mmp_buffer_videoframe::get_buf_vir_addr(MMP_S32 frame_id) {
     }
     
     return p_addr;
+}
+
+MMP_U32 mmp_buffer_videoframe::get_buf_phy_addr(MMP_S32 frame_id) {
+
+    MMP_U32 addr = 0;
+
+    if( (frame_id >= 0) && (frame_id < m_plane_count) ) {
+        addr = this->m_p_mmp_buffer[frame_id]->get_phy_addr();
+    }
+    
+    return addr;
 }
 
 MMP_S32 mmp_buffer_videoframe::get_buf_shared_fd(MMP_S32 frame_id) {

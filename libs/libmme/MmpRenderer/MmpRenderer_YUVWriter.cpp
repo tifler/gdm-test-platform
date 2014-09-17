@@ -50,10 +50,15 @@ MMP_RESULT CMmpRenderer_YUVWriter::Open()
     MMP_RESULT mmpResult = MMP_SUCCESS;
     MMP_CHAR filename[64];
 
-    sprintf(filename, "%sdump_%d_%dx%d.yuv", FILE_PATH, CMmpRenderer_YUVWriter::m_render_file_id, m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight);
-    m_fp = fopen(filename, "wb");
-    if(m_fp == NULL) {
-        mmpResult = MMP_FAILURE;
+    mmpResult = CMmpRenderer::Open();
+
+    if(mmpResult == MMP_SUCCESS) {
+
+        sprintf(filename, "%sdump_%08x_%d_%dx%d.yuv", FILE_PATH, this, CMmpRenderer_YUVWriter::m_render_file_id, m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight);
+        m_fp = fopen(filename, "wb");
+        if(m_fp == NULL) {
+            mmpResult = MMP_FAILURE;
+        }
     }
     
     CMmpRenderer_YUVWriter::m_render_file_id++;
@@ -79,9 +84,12 @@ MMP_RESULT CMmpRenderer_YUVWriter::Close()
         m_fp = NULL;
     }
 
+    CMmpRenderer::Close();
+
     return MMP_SUCCESS;
 }
 
+#if 0
 MMP_RESULT CMmpRenderer_YUVWriter::Render_Ion(CMmpMediaSampleDecodeResult* pDecResult) {
 
     MMP_S32 i;
@@ -101,6 +109,7 @@ MMP_RESULT CMmpRenderer_YUVWriter::Render_Ion(CMmpMediaSampleDecodeResult* pDecR
 
     return MMP_SUCCESS;
 }
+#endif
 
 MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
 
@@ -112,11 +121,15 @@ MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_videoframe* p_buf_vid
         fwrite((void*)buf_addr.m_vir_addr, 1, buf_addr.m_size, m_fp);
     }
 
+    CMmpRenderer::EncodeAndMux(p_buf_videoframe);
+
     return MMP_SUCCESS;
 }
 
+#if 0
 MMP_RESULT CMmpRenderer_YUVWriter::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_YUVWriter::RenderYUV420Planar] +++ ")));
     return MMP_SUCCESS;
 }
+#endif

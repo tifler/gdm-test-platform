@@ -236,7 +236,6 @@ void CMmpPlayerService::Service_AV_Simple(CMmpDemuxer* pDemuxer,
     CMmpMediaSample *pMediaSample = &MediaSampleObj;
     CMmpMediaSampleDecodeResult* pDecResult = &DecResultObj;
     
-    MMP_U32 stream_buf_size;
     MMP_U32 stream_buf_max_size = 1024*1024;
     MMP_U8* stream_buf;
 
@@ -297,7 +296,8 @@ void CMmpPlayerService::Service_AV_Simple(CMmpDemuxer* pDemuxer,
             
                 pDecoderVideo->DecodeAu(pMediaSample, pDecResult);
             }
-                    
+      
+#if 0
             if(pDecResult->uiDecodedSize > 0) {
                 if(pMediaSample->uiMediaType == MMP_MEDIATYPE_AUDIO) {
                     pRendererAudio->RenderPCM(decoded_buf, pDecResult->uiDecodedSize);
@@ -306,6 +306,7 @@ void CMmpPlayerService::Service_AV_Simple(CMmpDemuxer* pDemuxer,
                     pRendererVideo->RenderYUV420Planar(Y, U, V, buffer_width, buffer_height);
                 }
             }
+#endif
         }
 
         frame_count++;

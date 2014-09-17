@@ -583,7 +583,7 @@ MMP_RESULT CMmpDecoderMfc::DecodeAu_NonBlock(CMmpMediaSample* pMediaSample, CMmp
         unsigned int cacheable = 1;
         
         
-        if( MMP_YV12_FRAME_SIZE(m_MFCImgResol.width, m_MFCImgResol.height) <= pDecResult->uiDecodedBufferMaxSize) {
+        if( MMP_YV12_FRAME_SIZE(m_MFCImgResol.width, m_MFCImgResol.height) <= (int)pDecResult->uiDecodedBufferMaxSize) {
             
                 int buffer_width, buffer_height;
 

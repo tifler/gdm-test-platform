@@ -46,6 +46,10 @@ int main_mmeplayer(int argc, char* argv[]) {
 	
     CMmpOAL::CreateInstance();
 
+    if(argc == 2) {
+        printf("[mmeplayer] Help KILL Command : >>kill -INT [pid] \n\r");
+    }
+
 	mme_shell_main(argc, argv);
 
     CMmpOAL::DestroyInstance();

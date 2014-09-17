@@ -51,23 +51,14 @@ typedef char* MMPSTR;
 typedef char MMPCHAR;
 typedef char WCHAR;
 typedef char TCHAR;
-//#define __func__ "__FUNC__"
-
-//#define HKEY_DRIVER_ROOT HKEY_CURRENT_USER
-//#define REGKEY_OPEN_DESIRED_VALUE   KEY_ALL_ACCESS
 
 #define __MmpApiCall  //__stdcall //__stdcall __cdecl __fastcall
 
-//#define MMP_CPU MMP_CPU_ZENITH1
-//#define MMP_CPU MMP_CPU_MV8770
-//#define MMP_DEVCONFIG MMP_DEVCONFIG_DRIVER
 
 #define TEXT(x) (char*)x
 
-//#define INREG32(reg) (*(volatile unsigned long * const)(reg))
-//#define SETREG32(reg, mask) (*(volatile unsigned long * const)(reg) |=  mask)
-//#define CLRREG32(reg, mask) (*(volatile unsigned long * const)(reg) &= ~mask)
 
+#define MMP_FILE_DEVIDER '/'
 
 #ifdef __cplusplus
 #define MMP_DRIVER_OPEN    ::open

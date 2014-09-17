@@ -41,12 +41,18 @@ public:
 };
 
 
-struct mmp_buffer_create_object {
+struct mmp_buffer_create_config {
     MMP_U32 type;
     
     MMP_S32 size;
     MMP_S32 pic_width;
     MMP_S32 pic_height;
+
+    /*attach info */
+    MMP_S32 attach_shared_fd;
+    MMP_U32 attach_phy_addr;
+    MMP_U32 attach_vir_addr;
+    MMP_S32 attach_offset;
 };
 
 class CLASS_BUFFER_MGR;
@@ -54,20 +60,37 @@ class mmp_buffer {
 
 friend class CLASS_BUFFER_MGR;
 
+public:
+    enum {
+        ION = 0,
+        ION_ATTACH,
+        HEAP,
+        HEAP_ATTACH,
+        EXT,
+        TYPE_MAX
+    };
+
+protected:
+    static MMP_U32 s_instance_index; 
+
 private:
-    static class mmp_buffer* create_object(struct mmp_buffer_create_object *p_create_object);
+    static class mmp_buffer* create_object(struct mmp_buffer_create_config *p_create_config);
     static MMP_RESULT destroy_object(class mmp_buffer* p_obj);
 
 protected:
-    struct mmp_buffer_create_object m_create_object;
+    struct mmp_buffer_create_config m_create_config;
     class mmp_buffer_addr m_buf_addr;
     
 protected:
-    mmp_buffer(struct mmp_buffer_create_object *p_create_object);
+    mmp_buffer(struct mmp_buffer_create_config *p_create_config);
     virtual ~mmp_buffer();
 
     virtual MMP_RESULT open() = 0;
     virtual MMP_RESULT close() = 0;
+
+protected:
+    MMP_U32 get_phy_addr_from_shared_fd(MMP_S32 shared_fd);
+    MMP_U32 get_vir_addr_from_phy_addr(MMP_U32 phy_addr, MMP_S32 size);
 
 public:
     virtual MMP_U32 get_phy_addr() { return m_buf_addr.m_phy_addr;}

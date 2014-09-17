@@ -281,3 +281,17 @@ void mmp_vpu_if_ana::leave_critical_section() {
 
     mmp_vpu_dev::get_instance()->leave_critical_section();
 }
+
+class mmp_oal_mutex* mmp_vpu_if_ana::get_external_mutex() {
+    return mmp_vpu_dev::get_instance()->get_external_mutex();
+}
+
+MMP_S32 mmp_vpu_if_ana::VPU_GetCodecInstanceIndex(void* CodecHdl) {
+
+    return mmp_vpu_dev::get_instance()->VPU_GetCodecInstanceIndex(CodecHdl);
+}
+
+MMP_S32 mmp_vpu_if_ana::VPU_GetCodecInstanceUse(void* CodecHdl) {
+
+    return mmp_vpu_dev::get_instance()->VPU_GetCodecInstanceUse(CodecHdl);
+}

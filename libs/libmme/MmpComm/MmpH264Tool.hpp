@@ -128,6 +128,7 @@ public:
     static MMP_RESULT __MmpApiCall Remake_VideoDSI(unsigned int fourcc, unsigned char* dsi, int dsiSize, int* newDsiSize=NULL, int* spsIndex=NULL, int* spsSize=NULL, int* ppsIndex=NULL, int* ppsSize=NULL);
     static MMP_RESULT __MmpApiCall Remake_VideoDSI_H264(unsigned char* dsi, int dsiSize, int* newDsiSize, int* spsIndex, int* spsSize, int* ppsIndex, int* ppsSize);
     static MMP_RESULT __MmpApiCall Remake_VideoDSI_AVC1(unsigned char* dsi, int dsiSize, int* newDsiSize, int* spsIndex, int* spsSize, int* ppsIndex, int* ppsSize);
+    static MMP_RESULT __MmpApiCall ConvertDSI_AVC1_To_H264(MMP_U8* avc_dsi, MMP_S32 avc_dsi_size, MMP_U8* h264_dsi, MMP_S32* h264_dsi_size);
     static MMP_RESULT __MmpApiCall ParsingSPS(unsigned char* spsStream, int spsSize, CMmpH264SPS* pSPS);
     static unsigned int __MmpApiCall CheckH264SPS(unsigned int fourcc, CMmpH264SPS* pSPS);
   

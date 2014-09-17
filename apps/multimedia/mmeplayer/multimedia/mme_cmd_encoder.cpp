@@ -219,35 +219,33 @@ int mme_command_player_enc_start(int argc, char* argv[]) {
 
     if(file_name != NULL) {
     
+        memset(&player_create_config, 0x00, sizeof(player_create_config));
         strcpy(player_create_config.filename, file_name);
         player_create_config.video_config.m_hRenderWnd = NULL;//hwnd;
         player_create_config.video_config.m_hRenderDC = NULL; //hdc;
         player_create_config.bForceSWCodec = bForceSWDecoder;
 
-#if (MMP_OS == MMP_OS_WIN32)
-        player_create_config.video_config.m_renderer_type = MMP_RENDERER_TYPE_DUMMY;
-#else
-        player_create_config.video_config.m_renderer_type = MMP_RENDERER_TYPE_NORMAL;    
-#endif
+        player_create_config.video_config.m_renderer_type = MMP_RENDERER_TYPE_DEFAULT;
         player_create_config.video_config.m_bVideoEncoder = MMP_TRUE;
         player_create_config.video_config.m_bVideoEncoderForceSWCodec = bForceSWEncoder;
         
 #if (MMP_OS == MMP_OS_WIN32)
-        strcpy(player_create_config.video_config.m_VideoEncFileName, "d:\\work\\player_enc.ammf");
+#define MUXER_FILE_ROOT "d:\\work\\"
 #elif (MMP_OS == MMP_OS_LINUX)
-        //strcpy(player_create_config.video_config.m_VideoEncFileName, "/root/player_enc.ammf");
-        sprintf(player_create_config.video_config.m_VideoEncFileName, "/mnt/player_enc%d_%c%c%c%c.ammf", 
-                                             s_player_enc_file_count,
+#define MUXER_FILE_ROOT "/mnt/"
+#else
+#error "Select muxter file root dir"
+#endif
+#define MUXER_FILE_EXT ".mp4"
+//#define MUXER_FILE_EXT ".ammf"
 
-                                              MMPGETFOURCC(encFormat, 0), 
+        sprintf(player_create_config.video_config.m_VideoEncFileName, MUXER_FILE_ROOT"player_enc%d_%c%c%c%c"MUXER_FILE_EXT, 
+                                               s_player_enc_file_count,
+                                               MMPGETFOURCC(encFormat, 0), 
                                                MMPGETFOURCC(encFormat, 1),
                                                MMPGETFOURCC(encFormat, 2), 
                                                MMPGETFOURCC(encFormat, 3) 
                                              );
-#else
-        strcpy(player_create_config.video_config.m_VideoEncFileName, file_name);
-        strcat(player_create_config.video_config.m_VideoEncFileName, ".ammf");
-#endif
 
         
         CMmpEncoder::CreateVideoDefaultConfig(encFormat, //MMP_U32 mmp_video_fourcc,

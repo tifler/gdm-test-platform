@@ -36,7 +36,7 @@ private:
 	
 protected:
     
-	mmp_oal_mutex_linux();
+	mmp_oal_mutex_linux(MMP_U32 key);
 	virtual ~mmp_oal_mutex_linux();
 
 	virtual MMP_ERRORTYPE open();

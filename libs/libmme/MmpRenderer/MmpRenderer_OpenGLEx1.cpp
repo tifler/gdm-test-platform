@@ -20,7 +20,7 @@
  */
 
 #include "MmpRenderer_OpenGLEx1.hpp"
-#include "../MmpComm/MmpUtil.hpp"
+#include "MmpUtil.hpp"
 #include "../MmpComm/colorspace/colorspace.h"
 
 /////////////////////////////////////////////////////////////
@@ -110,7 +110,8 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Close()
     return MMP_SUCCESS;
 }
 
-MMP_RESULT CMmpRenderer_OpenGLEx1::Render(CMmpMediaSampleDecodeResult* pDecResult)
+#if 1
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_Ion(CMmpMediaSampleDecodeResult* pDecResult)
 {
     unsigned char* Y,*U,*V;
     int picWidth, picHeight;
@@ -162,6 +163,7 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(CMmpMediaSampleDecodeResult* pDecResul
 
     return MMP_SUCCESS;
 }
+#endif
 
 MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
 
@@ -185,7 +187,7 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
         uv_stride = p_buf_videoframe->get_stride_chroma();
             
         (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
-				        picWidth*3, //int x_stride,
+				        MMP_BYTE_ALIGN(picWidth*3,4), //int x_stride,
 					    Y, //uint8_t * y_src,
 					    V, //uint8_t * v_src,
 					    U, //uint8_t * u_src,
@@ -199,6 +201,14 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
 
     
        m_pMmpGL->Draw();
+
+#if 0
+        static int dump_num = 0;
+        char jpegname[64];
+        sprintf(jpegname, "d:\\work\\dump%04d.jpg", dump_num);
+        CMmpUtil::Jpeg_SW_YUV420Planar_Enc(Y, U, V, picWidth, picHeight, jpegname, 100);
+        dump_num++;
+#endif
     }
     else {
         picWidth = this->m_pRendererProp->m_iPicWidth;
@@ -216,6 +226,7 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
     return MMP_SUCCESS;
 }
     
+#if 0
 MMP_RESULT CMmpRenderer_OpenGLEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     int picWidth, picHeight;
@@ -252,6 +263,7 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_
 
     return MMP_SUCCESS;
 }
+#endif
 
 void CMmpRenderer_OpenGLEx1::Dump(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
     

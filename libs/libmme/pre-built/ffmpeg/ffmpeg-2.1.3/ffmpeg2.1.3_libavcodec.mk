@@ -101,7 +101,7 @@ FFMPEG_SRC_LIBAVCODEC=\
         $(FFMPEG_LIBAVCODEC_TOP)/avpacket.c \
         $(FFMPEG_LIBAVCODEC_TOP)/avpicture.c \
         $(FFMPEG_LIBAVCODEC_TOP)/bethsoftvideo.c \
-        $(FFMPEG_LIBAVCODEC_TOP)/bitstream.c \
+        $(FFMPEG_LIBAVCODEC_TOP)/bitstream.c $(FFMPEG_LIBAVCODEC_TOP)/bitstream_filter.c\
         $(FFMPEG_LIBAVCODEC_TOP)/cabac.c \
         $(FFMPEG_LIBAVCODEC_TOP)/cavs.c \
         $(FFMPEG_LIBAVCODEC_TOP)/cavsdsp.c \
@@ -213,6 +213,7 @@ FFMPEG_SRC_LIBAVCODEC=\
         $(FFMPEG_LIBAVCODEC_TOP)/mss1.c $(FFMPEG_LIBAVCODEC_TOP)/mss2.c $(FFMPEG_LIBAVCODEC_TOP)/mss12.c $(FFMPEG_LIBAVCODEC_TOP)/mss2dsp.c $(FFMPEG_LIBAVCODEC_TOP)/mss3.c $(FFMPEG_LIBAVCODEC_TOP)/mss34dsp.c $(FFMPEG_LIBAVCODEC_TOP)/mss4.c  \
         $(FFMPEG_LIBAVCODEC_TOP)/rangecoder.c  $(FFMPEG_LIBAVCODEC_TOP)/synth_filter.c\
         $(FFMPEG_LIBAVCODEC_TOP)/lzw.c  $(FFMPEG_LIBAVCODEC_TOP)/faxcompr.c\
+        $(FFMPEG_LIBAVCODEC_TOP)/libx264.c
         
         
         

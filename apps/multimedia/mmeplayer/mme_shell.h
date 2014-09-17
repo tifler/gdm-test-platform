@@ -42,6 +42,7 @@ int mme_command_player_seek(int argc, char* argv[]);
 int mme_command_player_status(int argc, char* argv[]);
 int mme_command_player_loop(int argc, char* argv[]);
 int mme_command_player_set_first_renderer(int argc, char* argv[]);
+int mme_command_player_meminfo(int argc, char* argv[]);
 
 /* encoder */
 int mme_command_encoder_test01(int argc, char* argv[]);
@@ -69,6 +70,10 @@ int mme_command_socket_connect_to_server(int argc, char* argv[]);
 
 /* ion */
 int mme_command_ion_test1(int argc, char* argv[]);
+int mme_command_ion_alloc_fd(int argc, char* argv[]);
+int mme_command_ion_free_fd(int argc, char* argv[]);
+int mme_command_ion_import(int argc, char* argv[]);
+int mme_command_ion_phy_to_vir(int argc, char* argv[]);
 
 /* ril */
 int mme_command_ril_init(int argc, char* argv[]);

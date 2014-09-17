@@ -351,6 +351,68 @@ static RetCode InitializeVPU(Uint32 coreIdx, const Uint16* code, Uint32 size)
 	return RETCODE_SUCCESS;
 }
 
+#ifdef __VPU_PLATFORM_MME
+static RetCode InitializeVPU_Shm(Uint32 coreIdx, const Uint16* code, Uint32 size)
+{
+	int code_reuse = 0;
+	
+	code_reuse = vdi_init_shm(coreIdx);	
+	if (code_reuse < 0)
+		return RETCODE_FAILURE;
+	
+#ifdef WIN32 /* Because Win32 VPU is not common, follow code must be done.*/
+
+    {
+        Uint32 data;
+	    vpu_buffer_t vb;
+	    PhysicalAddress tempBuffer;
+	    PhysicalAddress paraBuffer;
+	    PhysicalAddress codeBuffer;
+
+        vdi_get_common_memory((unsigned long)coreIdx, &vb);
+	
+	    codeBuffer = vb.phys_addr;
+	    tempBuffer = codeBuffer + CODE_BUF_SIZE;
+	    paraBuffer = tempBuffer + TEMP_BUF_SIZE;
+
+        VPU_SWReset(coreIdx, SW_RESET_ON_BOOT, NULL);
+    	
+	    VpuWriteReg(coreIdx, BIT_PARA_BUF_ADDR, paraBuffer);
+	    VpuWriteReg(coreIdx, BIT_CODE_BUF_ADDR, codeBuffer);
+	    VpuWriteReg(coreIdx, BIT_TEMP_BUF_ADDR, tempBuffer);
+	    VpuWriteReg(coreIdx, BIT_BIT_STREAM_CTRL, VPU_STREAM_ENDIAN);
+	    VpuWriteReg(coreIdx, BIT_FRAME_MEM_CTRL, CBCR_INTERLEAVE<<2|VPU_FRAME_ENDIAN);
+	    VpuWriteReg(coreIdx, BIT_BIT_STREAM_PARAM, 0);
+
+	    VpuWriteReg(coreIdx, BIT_AXI_SRAM_USE, 0);
+	    VpuWriteReg(coreIdx, BIT_INT_ENABLE, 0);
+	    VpuWriteReg(coreIdx, BIT_ROLLBACK_STATUS, 0);	
+	    data = (1<<INT_BIT_BIT_BUF_FULL);
+	    data |= (1<<INT_BIT_BIT_BUF_EMPTY);
+	    data |= (1<<INT_BIT_DEC_MB_ROWS);
+	    data |= (1<<INT_BIT_SEQ_INIT);
+	    data |= (1<<INT_BIT_DEC_FIELD);
+	    data |= (1<<INT_BIT_PIC_RUN);
+
+
+	    VpuWriteReg(coreIdx, BIT_INT_ENABLE, data);
+	    VpuWriteReg(coreIdx, BIT_INT_CLEAR, 0x1);
+
+	    VpuWriteReg(coreIdx, BIT_BUSY_FLAG, 0x1);
+	    VpuWriteReg(coreIdx, BIT_CODE_RESET, 1);
+	    VpuWriteReg(coreIdx, BIT_CODE_RUN, 1);
+
+	    if (vdi_wait_vpu_busy(coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_BUSY_FLAG) == -1) {
+		    LeaveLock(coreIdx);
+		    return RETCODE_VPU_RESPONSE_TIMEOUT;
+	    }		
+    }
+#endif
+
+	return RETCODE_SUCCESS;
+}
+#endif
+
 RetCode VPU_Init(Uint32 coreIdx)
 {
 #ifdef BIT_CODE_FILE_PATH
@@ -363,6 +425,21 @@ RetCode VPU_Init(Uint32 coreIdx)
 
 	return InitializeVPU(coreIdx, s_pusBitCode[coreIdx], s_bitCodeSize[coreIdx]);
 }
+
+#ifdef __VPU_PLATFORM_MME
+RetCode VPU_Init_Shm(Uint32 coreIdx)
+{
+#ifdef BIT_CODE_FILE_PATH
+	s_pusBitCode[coreIdx] = bit_code;
+	s_bitCodeSize[coreIdx] = sizeof(bit_code)/sizeof(bit_code[0]);
+#endif
+
+	if (s_bitCodeSize[coreIdx] == 0)
+		return RETCODE_NOT_FOUND_BITCODE_PATH;
+
+	return InitializeVPU_Shm(coreIdx, s_pusBitCode[coreIdx], s_bitCodeSize[coreIdx]);
+}
+#endif
 
 RetCode VPU_InitWithBitcode(Uint32 coreIdx, const Uint16* bitcode, Uint32 size)
 {

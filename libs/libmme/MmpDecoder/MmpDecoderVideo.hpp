@@ -23,6 +23,7 @@
 #define _MMPDECODERVIDEO_HPP__
 
 #include "MmpDecoder.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 class CMmpDecoderVideo : public CMmpDecoder
 {
@@ -50,6 +51,7 @@ protected:
     virtual MMP_RESULT Close();
 
     void DecodeMonitor(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
+    void DecodeMonitor(class mmp_buffer_videoframe* p_buf_videoframe);
 
     
 public:
@@ -63,6 +65,10 @@ public:
 
     MMP_S32 GetAvgFPS();
     MMP_S32 GetAvgDur();
+    MMP_S32 GetTotalDecFrameCount() { return m_nTotalDecFrameCount; }
+
+    virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult) = 0;
+    virtual MMP_RESULT DecodeAu(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe) = 0;
 };
 
 #endif

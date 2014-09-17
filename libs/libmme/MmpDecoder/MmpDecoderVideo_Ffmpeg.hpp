@@ -31,7 +31,8 @@ class CMmpDecoderVideo_Ffmpeg : public CMmpDecoderVideo, CMmpDecoderFfmpeg
 friend class CMmpDecoder;
 
 private:
-    class mmp_buffer_videoframe* m_p_framebuf;
+    class mmp_buffer_videoframe* m_p_buf_videoframe;
+    MMP_S32 m_decoded_picture_count;
     
 protected:
     CMmpDecoderVideo_Ffmpeg(struct MmpDecoderCreateConfig *pCreateConfig);
@@ -43,7 +44,10 @@ protected:
     virtual const MMP_CHAR* GetClassName() { return (const MMP_CHAR*)"Ffmpeg";}
 public:
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
+    virtual MMP_RESULT DecodeDSI(class mmp_buffer_videostream* p_buf_videostream);
+
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
+    virtual MMP_RESULT DecodeAu(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe);
 };
 
 #endif

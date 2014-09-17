@@ -1611,10 +1611,6 @@ RetCode AllocateFrameBufferArray(int coreIdx, FrameBuffer *frambufArray, vpu_buf
 			if (alloc_by_user)
 				addrY = frambufArray[i].bufY;
 
-#ifdef __VPU_PLATFORM_MME
-            frambufArray[i].ion_shared_fd = pvbFrame->ion_shared_fd;
-            frambufArray[i].ion_base_phyaddr = pvbFrame->phys_addr;
-#endif
 			frambufArray[i].myIndex = i+gdiIndex;
 			frambufArray[i].mapType = mapType;
 			frambufArray[i].height = memHeight;

@@ -163,8 +163,7 @@ CMmpRenderer::CMmpRenderer(enum MMP_MEDIATYPE mt, CMmpRendererCreateProp* pRende
 m_MediaType(mt)
 ,m_pVideoEncoder(NULL)
 ,m_pMuxer(NULL)
-,m_p_enc_stream(NULL)
-
+,m_p_buf_videostream_enc(NULL)
 {
 	memcpy(&m_RendererProp, pRendererProp, sizeof(CMmpRendererCreateProp));
 	m_pRendererProp = &m_RendererProp;
@@ -189,13 +188,11 @@ MMP_RESULT CMmpRenderer::Open()
         pEncoderCreateConfig->nPicWidth = this->m_pRendererProp->m_iPicWidth;
         pEncoderCreateConfig->nPicHeight = this->m_pRendererProp->m_iPicHeight;
         m_pVideoEncoder = (CMmpEncoderVideo*)CMmpEncoder::CreateVideoObject(pEncoderCreateConfig, m_pRendererProp->m_bVideoEncoderForceSWCodec);
-        
-        
+                
         /*Create Muxer */
         if(m_pVideoEncoder != NULL) {
 
             memset(&muxer_create_config, 0x00, sizeof(muxer_create_config));
-            muxer_create_config.type = MMP_MUXER_TYPE_ANAPASS_MULTIMEDIA_FORMAT;
             strcpy((char*)muxer_create_config.filename, m_pRendererProp->m_VideoEncFileName);
 
             muxer_create_config.bMedia[MMP_MEDIATYPE_VIDEO] = MMP_TRUE;
@@ -203,11 +200,15 @@ MMP_RESULT CMmpRenderer::Open()
             muxer_create_config.bih.biCompression = m_pVideoEncoder->GetFormat();
             muxer_create_config.bih.biWidth = m_pVideoEncoder->GetVideoPicWidth();
             muxer_create_config.bih.biHeight = m_pVideoEncoder->GetVideoPicHeight();
+            muxer_create_config.video_bitrate = 1024*1024*4;
+            muxer_create_config.video_fps = 24;
+            muxer_create_config.video_idr_period = 10;
             
             m_pMuxer = CMmpMuxer::CreateObject(&muxer_create_config);
         }
 
-        m_p_enc_stream = new MMP_U8[ENC_STREAM_MAX_SIZE];
+        /* create stream buffer */
+        m_p_buf_videostream_enc = mmp_buffer_mgr::get_instance()->alloc_media_videostream(ENC_STREAM_MAX_SIZE, mmp_buffer::HEAP);
     }
 
     return MMP_SUCCESS;
@@ -226,10 +227,10 @@ MMP_RESULT CMmpRenderer::Close()
         m_pVideoEncoder = NULL;
     }
 
-    if(m_p_enc_stream != NULL) {
-
-        delete [] m_p_enc_stream;
-        m_p_enc_stream = NULL;
+    /* destoy stream buffer */
+    if(m_p_buf_videostream_enc != NULL) {
+        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_videostream_enc);
+        m_p_buf_videostream_enc = NULL;
     }
 
     return MMP_SUCCESS;
@@ -259,69 +260,22 @@ MMP_RESULT CMmpRenderer::RenderPCM(MMP_U8* pcm_buffer, MMP_U32 pcm_byte_size) {
 	return	this->Render(&dec);
 }
 
-MMP_RESULT CMmpRenderer::EncodeAndMux(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
-    MMP_U32 buffer_enc_stream_size;
-    MMP_U32 buffer_enc_flag;
-    MMP_RESULT mmpResult;
+MMP_RESULT CMmpRenderer::EncodeAndMux(class mmp_buffer_videoframe* p_buf_videoframe) {
 
-    if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
+    MMP_S64 pts;
+    const MMP_S64 SECOND = 1000000L;
+    const MMP_S64 FPS = 24;
+    const MMP_S64 DurPerSecond =  SECOND/FPS;
 
-         mmpResult = m_pVideoEncoder->Encode_YUV420Planar_Vir(Y, U, V, m_p_enc_stream, ENC_STREAM_MAX_SIZE, &buffer_enc_stream_size, &buffer_enc_flag);
-         if(mmpResult == MMP_SUCCESS) {
-            m_pMuxer->AddVideoData(m_p_enc_stream, buffer_enc_stream_size, buffer_enc_flag, 0);
-            if(m_pVideoEncoder->EncodedFrameQueue_IsEmpty() != MMP_TRUE) {
-                if(m_pVideoEncoder->EncodedFrameQueue_GetFrame(m_p_enc_stream, ENC_STREAM_MAX_SIZE, &buffer_enc_stream_size, &buffer_enc_flag) == MMP_SUCCESS) {
-                    m_pMuxer->AddVideoData(m_p_enc_stream, buffer_enc_stream_size, buffer_enc_flag, 0);
-                }
-            }
-         }
-    }
-
-    return MMP_SUCCESS;
-}
-
-MMP_RESULT CMmpRenderer::EncodeAndMux(CMmpMediaSampleDecodeResult* pDecResult) {
-
-    MMP_S32 i;
-    MMP_U32 buffer_enc_stream_size;
-    MMP_U32 buffer_enc_flag;
-    MMP_RESULT mmpResult;
-    
-    m_MediaSample_Enc.uiSampleType = pDecResult->uiResultType;
-
-    if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_enc_stream!=NULL) ) {
-    
-        for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
-            m_MediaSample_Enc.uiBufferPhyAddr[i] = pDecResult->uiDecodedBufferPhyAddr[i];
-            m_MediaSample_Enc.uiBufferLogAddr[i] = pDecResult->uiDecodedBufferLogAddr[i];
-            m_MediaSample_Enc.uiBufferStride[i] = pDecResult->uiDecodedBufferStride[i];
-            m_MediaSample_Enc.uiBufferAlignHeight[i] = pDecResult->uiDecodedBufferAlignHeight[i];
-        }
-        m_MediaSample_Enc.pixelformat = MMP_PIXELFORMAT_YUV420_PLANAR;;
-        m_MediaSample_Enc.uiBufferMaxSize = 0;
-        m_MediaSample_Enc.uiTimeStamp = 0;
-        m_MediaSample_Enc.uiFlag = 0;
-
-        m_MediaSample_EncResult.uiEncodedBufferLogAddr[0] = (MMP_U32)m_p_enc_stream;
-        m_MediaSample_EncResult.uiEncodedBufferMaxSize[0] = ENC_STREAM_MAX_SIZE;
-        m_MediaSample_EncResult.uiEncodedStreamSize[0] = 0;
-        m_MediaSample_EncResult.uiFlag = 0;
-
-        MMPDEBUGMSG(0, (TEXT("[CMmpRenderer::EncodeAndMux] type=0x%x "), m_MediaSample_Enc.uiSampleType));
-        mmpResult = m_pVideoEncoder->EncodeAu(&m_MediaSample_Enc, &m_MediaSample_EncResult);
-        if(mmpResult == MMP_SUCCESS) {
-
-            buffer_enc_stream_size = m_MediaSample_EncResult.uiEncodedStreamSize[0];
-            buffer_enc_flag = m_MediaSample_EncResult.uiFlag;
-
-            m_pMuxer->AddVideoData(m_p_enc_stream, buffer_enc_stream_size, buffer_enc_flag, 0);
-            if(m_pVideoEncoder->EncodedFrameQueue_IsEmpty() != MMP_TRUE) {
-                if(m_pVideoEncoder->EncodedFrameQueue_GetFrame(m_p_enc_stream, ENC_STREAM_MAX_SIZE, &buffer_enc_stream_size, &buffer_enc_flag) == MMP_SUCCESS) {
-                    m_pMuxer->AddVideoData(m_p_enc_stream, buffer_enc_stream_size, buffer_enc_flag, 0);
-                }
-            }
-        }
+    if( (m_pVideoEncoder != NULL) && (m_pMuxer != NULL) && (m_p_buf_videostream_enc!=NULL) ) {
+        
+        pts = m_p_buf_videostream_enc->get_pts();
+        pts += DurPerSecond;
+        p_buf_videoframe->set_pts(pts);
+        
+        m_pVideoEncoder->EncodeAu(p_buf_videoframe, m_p_buf_videostream_enc);
+        m_pMuxer->AddMediaData(m_p_buf_videostream_enc);
     }
 
     return MMP_SUCCESS;

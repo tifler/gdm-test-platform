@@ -243,6 +243,17 @@ MMP_S32 CMmpPlayerVideo::GetVideoDecoderDur() {
     return dur;
 }
 
+MMP_S32 CMmpPlayerVideo::GetVideoDecoderTotalDecFrameCount() {
+
+    MMP_S32 cnt = 0;
+    
+    if(m_pDecoderVideo != NULL) {
+        cnt = m_pDecoderVideo->GetTotalDecFrameCount();
+    }
+
+    return cnt;
+}
+
 const MMP_CHAR* CMmpPlayerVideo::GetVideoDecoderClassName() {
 
     return m_pDecoderVideo->GetClassName();

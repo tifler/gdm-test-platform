@@ -25,6 +25,7 @@
 #include "MmpDefine.h"
 #include "MmpPlayerDef.h"
 #include "MmpDemuxerBuffer.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 #define MMP_DEMUXER_TYPE_FFMPEG       0x1000
 #define MMP_DEMUXER_TYPE_MJPEG_STREAM 0x2001
@@ -59,11 +60,12 @@ public:
     virtual MMP_RESULT GetNextVideoData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size, MMP_S64* packt_pts);
     virtual MMP_RESULT GetNextAudioData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size, MMP_S64* packt_pts);
     virtual MMP_RESULT GetNextMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size, MMP_S64* packt_pts) = 0;
+    virtual MMP_RESULT GetNextVideoData(class mmp_buffer_videostream* p_buf_videstream);
     
     virtual MMP_RESULT GetVideoExtraData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size);
     virtual MMP_RESULT GetAudioExtraData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size);
     virtual MMP_RESULT GetMediaExtraData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size) = 0;
-
+    virtual MMP_RESULT GetVideoExtraData(class mmp_buffer_videostream* p_buf_videstream);
 
     virtual MMP_U32 GetVideoFormat() = 0;
     virtual MMP_U32 GetVideoPicWidth() = 0;
@@ -74,9 +76,8 @@ public:
     virtual MMP_U32 GetAudioSamplingRate() = 0;
     virtual MMP_U32 GetAudioBitsPerSample() = 0;
     
-    virtual MMP_S64 GetDuration() { return 0LL; }
-
-    virtual MMP_RESULT Seek(MMP_S64 pts) { return MMP_FAILURE; }
+    virtual MMP_S64 GetDuration() = 0;
+    virtual MMP_RESULT Seek(MMP_S64 pts) = 0;
 };
 
 

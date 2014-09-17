@@ -2367,10 +2367,20 @@ FLUSH_BUFFER:
 
 		if ((outputInfo.decodingSuccess & 0x01) == 0)
 		{
-			VLOG(ERR, "VPU_DecGetOutputInfo decode fail framdIdx %d \n", frameIdx);
-			VLOG(ERR, "#%d, indexFrameDisplay %d || picType %d || indexFrameDecoded %d\n", 
-				frameIdx, outputInfo.indexFrameDisplay, outputInfo.picType, outputInfo.indexFrameDecoded );
-				goto ERR_DEC_OPEN;
+			// ANABB-57 - Rollback in FileTestMode 
+			if (decOP.bitstreamMode == BS_MODE_ROLLBACK)
+			{
+				if (outputInfo.decodingSuccess&0x10)	// Chunk Reuse 
+					reUseChunk = 1;	
+			}
+			else
+			{
+				VLOG(ERR, "VPU_DecGetOutputInfo decode fail framdIdx %d \n", frameIdx);
+				VLOG(ERR, "#%d, indexFrameDisplay %d || picType %d || indexFrameDecoded %d\n", 
+					frameIdx, outputInfo.indexFrameDisplay, outputInfo.picType, outputInfo.indexFrameDecoded );
+					goto ERR_DEC_OPEN;
+			}
+
 		}		
 		else
 		{

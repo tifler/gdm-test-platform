@@ -26,6 +26,7 @@
 #include "mmp_buffer_def.h"
 #include "mmp_buffer.hpp"
 #include "mmp_buffer_videoframe.hpp"
+#include "mmp_buffer_videostream.hpp"
 
 class mmp_singleton_mgr;
 
@@ -52,13 +53,22 @@ protected:
 public:
 
     virtual class mmp_buffer* alloc_dma_buffer(MMP_S32 buffer_size) = 0;
+    virtual class mmp_buffer* attach_dma_buffer(class mmp_buffer_addr buf_addr) = 0;
     virtual MMP_RESULT free_buffer(class mmp_buffer* p_mmp_buffer) = 0;
     virtual MMP_RESULT free_buffer(class mmp_buffer_addr buf_addr) = 0;
     virtual class mmp_buffer* get_buffer(MMP_S32 shared_fd) = 0;
     virtual class mmp_buffer_addr get_buffer_addr(MMP_S32 shared_fd) = 0;
 
-    virtual class mmp_buffer_videoframe* alloc_video_buffer(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) = 0;
-    virtual MMP_RESULT free_video_buffer(class mmp_buffer_videoframe*) = 0;
+    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_VIDEO_I420) = 0;
+    virtual class mmp_buffer_videoframe* attach_media_videoframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset,
+                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_VIDEO_I420) = 0;
+    
+    virtual class mmp_buffer_videostream* alloc_media_videostream(MMP_S32 stream_max_size, MMP_U32 buf_type=mmp_buffer::HEAP) = 0;
+    virtual class mmp_buffer_videostream* attach_media_videostream(MMP_U8* p_stream_data, MMP_S32 stream_size) = 0;
+
+    virtual MMP_RESULT free_media_buffer(class mmp_buffer_media*) = 0;
+
+    virtual void print_info() = 0;
 };
 
 

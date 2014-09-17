@@ -24,53 +24,23 @@
 #include "vpuhelper.h"
 #include "MmpH264Tool.hpp"
 #include "mmp_buffer_mgr.hpp"
-
-extern "C"
-{
-#include "libavcodec/avcodec.h"
-#include "libavformat/avformat.h"
-#include "libavutil/mem.h"
-#include "libavresample/audio_convert.h"
-}
+#include "mmp_lock.hpp"
 
 #define VPU_ENC_TIMEOUT       1000
 #define VPU_DEC_TIMEOUT       10000
 #define VPU_WAIT_TIME_OUT	100		//should be less than normal decoding time to give a chance to fill stream. if this value happens some problem. we should fix VPU_WaitInterrupt function
-#define PARALLEL_VPU_WAIT_TIME_OUT 0 	//the value of timeout is 0 means we just check interrupt flag. do not wait any time to give a chance of an interrupt of the next core.
+//#define PARALLEL_VPU_WAIT_TIME_OUT 0 	//the value of timeout is 0 means we just check interrupt flag. do not wait any time to give a chance of an interrupt of the next core.
 
 
-#if PARALLEL_VPU_WAIT_TIME_OUT > 0 
-#undef VPU_DEC_TIMEOUT
-#define VPU_DEC_TIMEOUT       1000
-#endif
+//#if PARALLEL_VPU_WAIT_TIME_OUT > 0 
+//#undef VPU_DEC_TIMEOUT
+//#define VPU_DEC_TIMEOUT       1000
+//#endif
 
 
-#define MAX_CHUNK_HEADER_SIZE 1024
-#define MAX_DYNAMIC_BUFCOUNT	3
-#define NUM_FRAME_BUF			19
-#define MAX_ROT_BUF_NUM			2
 #define EXTRA_FRAME_BUFFER_NUM	1
-
-#define ENC_SRC_BUF_NUM			2
 #define STREAM_BUF_SIZE		 0x300000  // max bitstream size
-
-//#define STREAM_FILL_SIZE    (512 * 16)  //  4 * 1024 | 512 | 512+256( wrap around test )
-#define STREAM_FILL_SIZE    0x2000  //  4 * 1024 | 512 | 512+256( wrap around test )
-
 #define STREAM_END_SIZE			0
-#define STREAM_END_SET_FLAG		0
-#define STREAM_END_CLEAR_FLAG	-1
-#define STREAM_READ_SIZE    (512 * 16)
-
-//#define SUPPORT_SW_MIXER
-
-
-#define FORCE_SET_VSYNC_FLAG
-//#define TEST_USER_FRAME_BUFFER
-#ifdef TEST_USER_FRAME_BUFFER
-//#define TEST_MULTIPLE_CALL_REGISTER_FRAME_BUFFER
-#endif
-
 
 
 /////////////////////////////////////////////////////////////
@@ -81,6 +51,7 @@ CMmpDecoderVpuIF::CMmpDecoderVpuIF(struct MmpDecoderCreateConfig *pCreateConfig)
 m_create_config(*pCreateConfig)
 
 ,m_p_vpu_if(NULL)
+,m_vpu_instance_index(-1)
 
 ,m_codec_idx(0)
 ,m_version(0)
@@ -90,8 +61,10 @@ m_create_config(*pCreateConfig)
 ,m_DecHandle(NULL)
 ,m_regFrameBufCount(0)
 
-,m_p_dsi_stream(NULL)
-,m_dsi_stream_size(0)
+,m_p_stream_buffer(NULL)
+
+,m_last_int_reason(0)
+,m_input_stream_count(0)
 {
     int i;
 
@@ -103,10 +76,9 @@ m_create_config(*pCreateConfig)
     }
     
     for(i = 0; i < MAX_FRAMEBUFFER_COUNT; i++) {
-        m_p_decoded_buffer[i] = NULL;
+        m_p_buf_videoframe[i] = NULL;
     }
-
-    m_p_stream_buffer = NULL;
+    
 }
 
 CMmpDecoderVpuIF::~CMmpDecoderVpuIF()
@@ -123,9 +95,13 @@ MMP_RESULT CMmpDecoderVpuIF::Open()
         m_p_vpu_if = mmp_vpu_if::create_object();
         if(m_p_vpu_if == NULL) {
             mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVpuIF::Open] FAIL : mmp_vpu_if::create_object\n")));
+            return mmpResult;
         }
     }
     
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
+
     if(mmpResult == MMP_SUCCESS) {
             
         m_p_vpu_if->VPU_GetVersionInfo(m_codec_idx, &m_version, &m_revision, &m_productId);	
@@ -151,7 +127,6 @@ MMP_RESULT CMmpDecoderVpuIF::Open()
 
             buf_addr = this->m_p_stream_buffer->get_buf_addr();
             m_vpu_stream_buffer.base = buf_addr.m_vir_addr;
-            m_vpu_stream_buffer.ion_shared_fd = buf_addr.m_shared_fd;
             m_vpu_stream_buffer.phys_addr = buf_addr.m_phy_addr;
             m_vpu_stream_buffer.size = buf_addr.m_size;
             m_vpu_stream_buffer.virt_addr = buf_addr.m_vir_addr;
@@ -174,63 +149,77 @@ MMP_RESULT CMmpDecoderVpuIF::Open()
             case MMP_FOURCC_VIDEO_WMV3:
             case MMP_FOURCC_VIDEO_VC1: this->make_decOP_VC1(); break;
 
+            case MMP_FOURCC_VIDEO_MSMPEG4V2:
             case MMP_FOURCC_VIDEO_MSMPEG4V3: this->make_decOP_MSMpeg4V3(); break;
             
             case MMP_FOURCC_VIDEO_RV30: this->make_decOP_RV30(); break;
             case MMP_FOURCC_VIDEO_RV40: this->make_decOP_RV40(); break;
+
             case MMP_FOURCC_VIDEO_VP80: this->make_decOP_VP80(); break;
+
+            case MMP_FOURCC_VIDEO_THEORA: this->make_decOP_Theora(); break;
 
             default:  
                 mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVpuIF::Open] FAIL : Not Support Format(%c%c%c%c) %dx%d"), 
+                            MMPGETFOURCC(this->m_create_config.nFormat, 0),MMPGETFOURCC(this->m_create_config.nFormat, 1),
+                            MMPGETFOURCC(this->m_create_config.nFormat, 2),MMPGETFOURCC(this->m_create_config.nFormat, 3),
+                            this->m_create_config.nPicWidth, this->m_create_config.nPicHeight
+                          ));
                 break;
         }
 
-        vpu_ret = m_p_vpu_if->VPU_DecOpen(&m_DecHandle, &m_decOP);
-	    if( vpu_ret != RETCODE_SUCCESS ) {
-		    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVpuIF::Open] FAIL :  m_p_vpu_if->VPU_DecOpen (vpu_ret=%d) \n"), vpu_ret));
-            mmpResult = MMP_FAILURE;
-	    }
-        else {
-           
-            if (m_decOP.bitstreamMode == BS_MODE_PIC_END) {
-                m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, m_decOP.bitstreamBuffer, 1);	
+        if(mmpResult == MMP_SUCCESS) {
+
+            vpu_ret = m_p_vpu_if->VPU_DecOpen(&m_DecHandle, &m_decOP);
+	        if( vpu_ret != RETCODE_SUCCESS ) {
+		        MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVpuIF::Open] FAIL :  m_p_vpu_if->VPU_DecOpen (vpu_ret=%d) \n"), vpu_ret));
+                mmpResult = MMP_FAILURE;
+	        }
+            else {
+
+                m_vpu_instance_index = m_p_vpu_if->VPU_GetCodecInstanceIndex((void*)m_DecHandle);
+               
+                if (m_decOP.bitstreamMode == BS_MODE_PIC_END) {
+                    m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, m_decOP.bitstreamBuffer, 1);	
+                }
+
+                SecAxiUse		secAxiUse = {0};
+
+                secAxiUse.useBitEnable  = USE_BIT_INTERNAL_BUF;
+	            secAxiUse.useIpEnable   = USE_IP_INTERNAL_BUF;
+	            secAxiUse.useDbkYEnable = USE_DBKY_INTERNAL_BUF;
+	            secAxiUse.useDbkCEnable = USE_DBKC_INTERNAL_BUF;
+	            secAxiUse.useBtpEnable  = USE_BTP_INTERNAL_BUF;
+	            secAxiUse.useOvlEnable  = USE_OVL_INTERNAL_BUF;
+
+	            m_p_vpu_if->VPU_DecGiveCommand(m_DecHandle, SET_SEC_AXI, &secAxiUse);
+
+
+                // MaverickCache configure
+                MaverickCacheConfig decCacheConfig;
+
+                //decConfig.frameCacheBypass   = 0;
+                //    decConfig.frameCacheBurst    = 0;
+                //    decConfig.frameCacheMerge    = 3;
+                //    decConfig.frameCacheWayShape = 15;		
+	            MaverickCache2Config(
+		            &decCacheConfig, 
+		            1, //decoder
+		            m_decOP.cbcrInterleave, // cb cr interleave
+		            0,//decConfig.frameCacheBypass,
+		            0,//decConfig.frameCacheBurst,
+		            3, //decConfig.frameCacheMerge,
+                    m_mapType,
+		            15 //decConfig.frameCacheWayShape
+                    );
+	            m_p_vpu_if->VPU_DecGiveCommand(m_DecHandle, SET_CACHE_CONFIG, &decCacheConfig);
             }
-
-            SecAxiUse		secAxiUse = {0};
-
-            secAxiUse.useBitEnable  = USE_BIT_INTERNAL_BUF;
-	        secAxiUse.useIpEnable   = USE_IP_INTERNAL_BUF;
-	        secAxiUse.useDbkYEnable = USE_DBKY_INTERNAL_BUF;
-	        secAxiUse.useDbkCEnable = USE_DBKC_INTERNAL_BUF;
-	        secAxiUse.useBtpEnable  = USE_BTP_INTERNAL_BUF;
-	        secAxiUse.useOvlEnable  = USE_OVL_INTERNAL_BUF;
-
-	        m_p_vpu_if->VPU_DecGiveCommand(m_DecHandle, SET_SEC_AXI, &secAxiUse);
-
-
-            // MaverickCache configure
-            MaverickCacheConfig decCacheConfig;
-
-            //decConfig.frameCacheBypass   = 0;
-            //    decConfig.frameCacheBurst    = 0;
-            //    decConfig.frameCacheMerge    = 3;
-            //    decConfig.frameCacheWayShape = 15;		
-	        MaverickCache2Config(
-		        &decCacheConfig, 
-		        1, //decoder
-		        m_decOP.cbcrInterleave, // cb cr interleave
-		        0,//decConfig.frameCacheBypass,
-		        0,//decConfig.frameCacheBurst,
-		        3, //decConfig.frameCacheMerge,
-                m_mapType,
-		        15 //decConfig.frameCacheWayShape
-                );
-	        m_p_vpu_if->VPU_DecGiveCommand(m_DecHandle, SET_CACHE_CONFIG, &decCacheConfig);
         }
 	}
 
-    MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[CMmpDecoderVpuIF::Open] res=%d"), mmpResult));
-
+    MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[CMmpDecoderVpuIF::Open] res=%d  CodecInstance=%d "), mmpResult, m_vpu_instance_index));
+    
     return mmpResult;
 }
 
@@ -239,6 +228,8 @@ MMP_RESULT CMmpDecoderVpuIF::Close()
 {
     MMP_S32 i;
     
+    if(m_p_vpu_if)  m_p_vpu_if->enter_critical_section();
+
     if(m_DecHandle != NULL) {
 
        m_p_vpu_if->VPU_DecUpdateBitstreamBuffer(m_DecHandle, STREAM_END_SIZE);
@@ -253,283 +244,97 @@ MMP_RESULT CMmpDecoderVpuIF::Close()
             m_p_stream_buffer = NULL;
        }
     }
-
-    if(m_p_dsi_stream != NULL) {
-        delete [] m_p_dsi_stream;
-        m_p_dsi_stream = NULL;
-    }
   
     for(i = 0; i < MAX_FRAMEBUFFER_COUNT; i++) {
-        if(m_p_decoded_buffer[i] != NULL) {
-            mmp_buffer_mgr::get_instance()->free_buffer(m_p_decoded_buffer[i]);
-            m_p_decoded_buffer[i] = NULL;
+        if(m_p_buf_videoframe[i] != NULL) {
+            mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_videoframe[i]);
+            m_p_buf_videoframe[i] = NULL;
         }
     }
+
+    if(m_p_vpu_if) m_p_vpu_if->leave_critical_section();
 
     if(m_p_vpu_if != NULL) {
         mmp_vpu_if::destroy_object(m_p_vpu_if);
         m_p_vpu_if = NULL;
     }
-    
+
     return MMP_SUCCESS;
 }
 
-MMP_RESULT CMmpDecoderVpuIF::DecodeDSI_CheckStream_Mpeg4(MMP_U8* pStream, MMP_U32 nStreamSize) {
+MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(class mmp_buffer_videostream* p_buf_videostream) {
 
-    /*
-    MMP_RESULT mmpResult = MMP_SUCCESS;
-    CMmpBitExtractor be(pStream);
-
-    Decode_NextStartCodePrefix(&be, nStreamSize);
-    */
-    return MMP_SUCCESS;
-}
-
-MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize) {
+    MMP_U8* p_stream;
+    MMP_S32 stream_size;
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
-    int size;
+    MMP_S32 size;
     RetCode vpu_ret;
-    MMP_U8* p_dsi_stream = NULL;
-    MMP_S32 dsi_stream_size, header_size;
-    AVCodecContext *avc;
-    AVCodecContext *cc= NULL;
-    AVStream *st;
-    MMP_U8* pbHeader;
-    int frameRate = 0;
     
-    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, nStreamSize,
-                   pStream[0], pStream[1], pStream[2], pStream[3], 
-                   pStream[4], pStream[5], pStream[6], pStream[7], 
-                   pStream[8], pStream[9], pStream[10], pStream[11], 
-                   pStream[12], pStream[13], pStream[14], pStream[15] 
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
+
+    p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), 
+                  __LINE__, stream_size,
+                   p_stream[0], p_stream[1], p_stream[2], p_stream[3], 
+                   p_stream[4], p_stream[5], p_stream[6], p_stream[7], 
+                   p_stream[8], p_stream[9], p_stream[10], p_stream[11], 
+                   p_stream[12], p_stream[13], p_stream[14], p_stream[15] 
           ));
 
-    p_dsi_stream = pStream;
-    dsi_stream_size = nStreamSize;
+
+    
     switch(this->m_create_config.nFormat) {
 
         case MMP_FOURCC_VIDEO_H264:
-            if(CMmpH264Parser::Remake_VideoDSI_AVC1((unsigned char*)pStream, nStreamSize, (int*)&dsi_stream_size,
-                NULL, NULL, NULL, NULL) == MMP_SUCCESS) {
-           
-                p_dsi_stream = pStream;
-
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI-AVC1] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, nStreamSize,p_dsi_stream, 
-                       pStream[0], pStream[1], pStream[2], pStream[3], 
-                       pStream[4], pStream[5], pStream[6], pStream[7], 
-                       pStream[8], pStream[9], pStream[10], pStream[11], 
-                       pStream[12], pStream[13], pStream[14], pStream[15] 
-                ));
-            }
-            break;
-
-        case MMP_FOURCC_VIDEO_MSMPEG4V3:
-            cc = (AVCodecContext *)pStream;
-            st = (AVStream *)&pStream[sizeof(AVCodecContext)];
-      
-            m_p_dsi_stream = new MMP_U8[128];
-            dsi_stream_size = 0;
-            p_dsi_stream = m_p_dsi_stream;
-            pbHeader = m_p_dsi_stream;
-
-            MMP_PUT_LE32(pbHeader, MKTAG('C', 'N', 'M', 'V')); //signature 'CNMV'
-            MMP_PUT_LE16(pbHeader, 0x00);                      //version
-            MMP_PUT_LE16(pbHeader, 0x20);                      //length of header in bytes
-            MMP_PUT_LE32(pbHeader, MKTAG('D', 'I', 'V', '3')); //codec FourCC
-            MMP_PUT_LE16(pbHeader, cc->width);                //width
-            MMP_PUT_LE16(pbHeader, cc->height);               //height
-            MMP_PUT_LE32(pbHeader, st->r_frame_rate.num);      //frame rate
-            MMP_PUT_LE32(pbHeader, st->r_frame_rate.den);      //time scale(?)
-            MMP_PUT_LE32(pbHeader, st->nb_index_entries);      //number of frames in file
-            MMP_PUT_LE32(pbHeader, 0); //unused
-            dsi_stream_size += 32;		
-            
-            //MMP_PUT_BUFFER(pbHeader, pbMetaData, nMetaData);
-            //size += nMetaData;
-#if (MMP_OS == MMP_OS_WIN32)
-            memcpy(&p_dsi_stream[dsi_stream_size], cc, sizeof(AVCodecContext) );
-            dsi_stream_size += sizeof(AVCodecContext);
-#endif
-            
+            mmpResult = this->make_seqheader_H264(p_buf_videostream);
             break;
 
         case MMP_FOURCC_VIDEO_VC1:
         case MMP_FOURCC_VIDEO_WMV3:
-
-            cc = (AVCodecContext *)pStream;
-            st = (AVStream *)&pStream[sizeof(AVCodecContext)];
-            avc = st->codec;
-            cc->extradata = &pStream[sizeof(AVCodecContext)+sizeof(AVStream)];
-      
-            if (st->avg_frame_rate.den && st->avg_frame_rate.num)
-                frameRate = (int)((double)st->avg_frame_rate.num/(double)st->avg_frame_rate.den);
-
-            if (!frameRate && st->r_frame_rate.den && st->r_frame_rate.num)
-                frameRate = (int)((double)st->r_frame_rate.num/(double)st->r_frame_rate.den);
-
-#if (MMP_OS == MMP_OS_WIN32)
-            m_p_dsi_stream = new MMP_U8[128 + cc->extradata_size*2 + sizeof(AVCodecContext)];
-#else
-            m_p_dsi_stream = new MMP_U8[128 + cc->extradata_size];
-#endif
-            dsi_stream_size = 0;
-            p_dsi_stream = m_p_dsi_stream;
-            pbHeader = m_p_dsi_stream;
-
-#if (MMP_OS == MMP_OS_WIN32)
-            memcpy(&p_dsi_stream[dsi_stream_size], cc, sizeof(AVCodecContext) );
-            dsi_stream_size += sizeof(AVCodecContext);
-            pbHeader += sizeof(AVCodecContext);
-
-            memcpy(&p_dsi_stream[dsi_stream_size], cc->extradata, cc->extradata_size);
-            dsi_stream_size += cc->extradata_size;
-            pbHeader += cc->extradata_size;
-#endif
-
-            header_size = 0;
-            MMP_PUT_LE32(pbHeader, ((0xC5 << 24)|0));
-            header_size += 4; //version
-            MMP_PUT_LE32(pbHeader, cc->extradata_size);
-            header_size += 4;
-            if(cc->extradata_size>0) {
-                MMP_PUT_BUFFER(pbHeader, cc->extradata, cc->extradata_size);
-                header_size += cc->extradata_size;
-            }
-            MMP_PUT_LE32(pbHeader, avc->height);
-            header_size += 4;
-            MMP_PUT_LE32(pbHeader, avc->width);
-            header_size += 4;
-            MMP_PUT_LE32(pbHeader, 12);
-            header_size += 4;
-            MMP_PUT_LE32(pbHeader, 2 << 29 | 1 << 28 | 0x80 << 24 | 1 << 0);
-            header_size += 4; // STRUCT_B_FRIST (LEVEL:3|CBR:1:RESERVE:4:HRD_BUFFER|24)
-            MMP_PUT_LE32(pbHeader, avc->bit_rate);
-            header_size += 4; // hrd_rate
-            MMP_PUT_LE32(pbHeader, frameRate);            
-            header_size += 4; // frameRate
-
-            dsi_stream_size+=header_size;
+            mmpResult = this->make_seqheader_VC1(p_buf_videostream);
             break;
 
+        case MMP_FOURCC_VIDEO_MSMPEG4V2:
+        case MMP_FOURCC_VIDEO_MSMPEG4V3: 
+            mmpResult = this->make_seqheader_DIV3(p_buf_videostream);
+            break;
+            
         case MMP_FOURCC_VIDEO_RV30:
         case MMP_FOURCC_VIDEO_RV40:
-
-            cc = (AVCodecContext *)pStream;
-            st = (AVStream *)&pStream[sizeof(AVCodecContext)];
-            avc = st->codec;
-            cc->extradata = &pStream[sizeof(AVCodecContext)+sizeof(AVStream)];
-      
-            if (st->avg_frame_rate.den && st->avg_frame_rate.num)
-                frameRate = (int)((double)st->avg_frame_rate.num/(double)st->avg_frame_rate.den);
-
-            if (!frameRate && st->r_frame_rate.den && st->r_frame_rate.num)
-                frameRate = (int)((double)st->r_frame_rate.num/(double)st->r_frame_rate.den);
-
-#if (MMP_OS == MMP_OS_WIN32)
-            m_p_dsi_stream = new MMP_U8[128 + cc->extradata_size*2 + sizeof(AVCodecContext)];
-#else
-            m_p_dsi_stream = new MMP_U8[128 + cc->extradata_size];
-#endif
-            dsi_stream_size = 0;
-            p_dsi_stream = m_p_dsi_stream;
-            pbHeader = m_p_dsi_stream;
-
-#if (MMP_OS == MMP_OS_WIN32)
-            memcpy(&p_dsi_stream[dsi_stream_size], cc, sizeof(AVCodecContext) );
-            dsi_stream_size += sizeof(AVCodecContext);
-            pbHeader += sizeof(AVCodecContext);
-
-            memcpy(&p_dsi_stream[dsi_stream_size], cc->extradata, cc->extradata_size);
-            dsi_stream_size += cc->extradata_size;
-            pbHeader += cc->extradata_size;
-#endif
-
-            header_size = 26 + cc->extradata_size;
-            MMP_PUT_BE32(pbHeader, header_size); //Length
-            MMP_PUT_LE32(pbHeader, MKTAG('V', 'I', 'D', 'O')); //MOFTag
-            MMP_PUT_LE32(pbHeader, this->m_create_config.nFormat); //SubMOFTagl
-            MMP_PUT_BE16(pbHeader, avc->width);
-            MMP_PUT_BE16(pbHeader, avc->height);
-            MMP_PUT_BE16(pbHeader, 0x0c); //BitCount;
-            MMP_PUT_BE16(pbHeader, 0x00); //PadWidth;
-            MMP_PUT_BE16(pbHeader, 0x00); //PadHeight;
-
-            //MMP_PUT_LE32(pbHeader, frameRate);
-		    MMP_PUT_BE32(pbHeader, frameRate<<16);
-            MMP_PUT_BUFFER(pbHeader, cc->extradata, cc->extradata_size); //OpaqueDatata
-            
-            //size += st_size; //add for startcode pattern.
-            dsi_stream_size+=header_size;
+            mmpResult = this->make_seqheader_RV(p_buf_videostream);
             break;
 
         case MMP_FOURCC_VIDEO_VP80:
+            mmpResult = this->make_seqheader_VP8(p_buf_videostream);
+            break;
 
-            cc = (AVCodecContext *)pStream;
-            st = (AVStream *)&pStream[sizeof(AVCodecContext)];
-            avc = st->codec;
-            cc->extradata = &pStream[sizeof(AVCodecContext)+sizeof(AVStream)];
-
-#if (MMP_OS == MMP_OS_WIN32)
-            m_p_dsi_stream = new MMP_U8[128 + cc->extradata_size*2 + sizeof(AVCodecContext)];
-#else
-            m_p_dsi_stream = new MMP_U8[128 + cc->extradata_size];
-#endif
-            dsi_stream_size = 0;
-            p_dsi_stream = m_p_dsi_stream;
-            pbHeader = m_p_dsi_stream;
-            
-            MMP_PUT_LE32(pbHeader, MKTAG('D', 'K', 'I', 'F')); //signature 'DKIF'
-            MMP_PUT_LE16(pbHeader, 0x00);                      //version
-            MMP_PUT_LE16(pbHeader, 0x20);                      //length of header in bytes
-            MMP_PUT_LE32(pbHeader, MKTAG('V', 'P', '8', '0')); //codec FourCC
-            MMP_PUT_LE16(pbHeader, avc->width);                //width
-            MMP_PUT_LE16(pbHeader, avc->height);               //height
-            MMP_PUT_LE32(pbHeader, st->r_frame_rate.num);      //frame rate
-            MMP_PUT_LE32(pbHeader, st->r_frame_rate.den);      //time scale(?)
-            MMP_PUT_LE32(pbHeader, st->nb_index_entries);      //number of frames in file
-            MMP_PUT_LE32(pbHeader, 0); //unused
-            header_size = 32;
-
-            dsi_stream_size += header_size;
-
-#if (MMP_OS == MMP_OS_WIN32)
-            memcpy(&p_dsi_stream[dsi_stream_size], cc, sizeof(AVCodecContext) );
-            dsi_stream_size += sizeof(AVCodecContext);
-            pbHeader += sizeof(AVCodecContext);
-
-            if(cc->extradata_size > 0) {
-                memcpy(&p_dsi_stream[dsi_stream_size], cc->extradata, cc->extradata_size);
-                dsi_stream_size += cc->extradata_size;
-                pbHeader += cc->extradata_size;
-            }
-#endif
+        case MMP_FOURCC_VIDEO_THEORA:
+            mmpResult = this->make_seqheader_Theora(p_buf_videostream);
             break;
 
         default:
-
-            p_dsi_stream = pStream;
-            dsi_stream_size = nStreamSize;
+            mmpResult = this->make_seqheader_Common(p_buf_videostream);
     }
-
-    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, dsi_stream_size,
-                   p_dsi_stream[0], p_dsi_stream[1], p_dsi_stream[2], p_dsi_stream[3], 
-                   p_dsi_stream[4], p_dsi_stream[5], p_dsi_stream[6], p_dsi_stream[7], 
-                   p_dsi_stream[8], p_dsi_stream[9], p_dsi_stream[10], p_dsi_stream[11], 
-                   p_dsi_stream[12], p_dsi_stream[13], p_dsi_stream[14], p_dsi_stream[15] 
-          ));
-
+    
     /* Input DSI Stream */
     if(mmpResult == MMP_SUCCESS) {
-        size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, &m_vpu_stream_buffer, p_dsi_stream, dsi_stream_size, m_decOP.streamEndian);
+        size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx,  m_DecHandle, 
+                                                  &m_vpu_stream_buffer, 
+                                                  (MMP_U8*)p_buf_videostream->get_dsi_buffer(), p_buf_videostream->get_dsi_size(), 
+                                                  m_decOP.streamEndian);
 	    if (size <0) {
-            MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] ln=%d FAIL: WriteBsBufFromBufHelper "), __LINE__));
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: WriteBsBufFromBufHelper ")));
 		    mmpResult = MMP_FAILURE;
 	    }
     }
+    else {
+        MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: make seqheader ")));
+    }
 
-    this->m_p_vpu_if->enter_critical_section();
-
+    
     /* RUN Seq Init */
     if(mmpResult == MMP_SUCCESS) {
 
@@ -556,241 +361,180 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize) {
 
         m_regFrameBufCount = m_dec_init_info.minFrameBufferCount + EXTRA_FRAME_BUFFER_NUM;
 
-        for(i = 0; i < m_regFrameBufCount; i++) {
-            m_p_decoded_buffer[i] = mmp_buffer_mgr::get_instance()->alloc_dma_buffer(framebufStride*framebufHeight*3/2);
-            if(m_p_decoded_buffer[i] == NULL) {
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: alloc frame buf")));
-                break;
+        if( (m_dec_init_info.minFrameBufferCount >= 1) 
+            && (m_dec_init_info.picWidth > 16)
+            && (m_dec_init_info.picHeight > 16) )
+        {
+        
+            for(i = 0; i < m_regFrameBufCount; i++) {
+                m_p_buf_videoframe[i] = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_dec_init_info.picWidth, m_dec_init_info.picHeight, MMP_FOURCC_VIDEO_I420);
+                if(m_p_buf_videoframe[i] == NULL) {
+                    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: alloc frame buf idx=%d  m_regFrameBufCount=%d w=%d h=%d "), i, m_regFrameBufCount, m_dec_init_info.picWidth, m_dec_init_info.picHeight));
+                    break;
+                }
+                else {
+
+                    
+                    memset(&user_frame[i], 0x00, sizeof(FrameBuffer));
+                    user_frame[i].bufY = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_Y);
+                    user_frame[i].bufCb = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CB);
+                    user_frame[i].bufCr = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CR);
+                    user_frame[i].mapType = m_mapType;
+                    user_frame[i].stride = framebufStride;
+                    user_frame[i].height = framebufHeight;
+                    //user_frame[i].ion_shared_fd = buf_addr.m_shared_fd;
+                    //user_frame[i].ion_base_phyaddr = buf_addr.m_phy_addr;
+                    user_frame[i].myIndex = i;
+                }
+            }
+
+            if(i == m_regFrameBufCount) {
+                vpu_ret = m_p_vpu_if->VPU_DecRegisterFrameBuffer(m_DecHandle, user_frame, m_regFrameBufCount, framebufStride, framebufHeight, m_mapType);
+                if(vpu_ret != RETCODE_SUCCESS)  {
+                    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: m_p_vpu_if->VPU_DecRegisterFrameBuffer ")));
+                    mmpResult = MMP_FAILURE;
+                }
             }
             else {
-
-                buf_addr = m_p_decoded_buffer[i]->get_buf_addr();
-
-                memset(&user_frame[i], 0x00, sizeof(FrameBuffer));
-                user_frame[i].bufY = buf_addr.m_phy_addr;
-                user_frame[i].bufCb = buf_addr.m_phy_addr + framebufStride*framebufHeight;
-                user_frame[i].bufCr = buf_addr.m_phy_addr + framebufStride*framebufHeight + framebufStride*framebufHeight/4;
-                user_frame[i].mapType = m_mapType;
-                user_frame[i].stride = framebufStride;
-                user_frame[i].height = framebufHeight;
-                user_frame[i].ion_shared_fd = buf_addr.m_shared_fd;
-                user_frame[i].ion_base_phyaddr = buf_addr.m_phy_addr;
-                user_frame[i].myIndex = i;
-                
-            }
-        }
-
-        if(i == m_regFrameBufCount) {
-            vpu_ret = m_p_vpu_if->VPU_DecRegisterFrameBuffer(m_DecHandle, user_frame, m_regFrameBufCount, framebufStride, framebufHeight, m_mapType);
-            if(vpu_ret != RETCODE_SUCCESS)  {
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: m_p_vpu_if->VPU_DecRegisterFrameBuffer ")));
+            
+                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: alloc decoded buffer")));
                 mmpResult = MMP_FAILURE;
             }
-        }
+
+        } /* end of if(m_dec_init_info.minFrameBufferCount >= 1) */
         else {
-        
-            MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: alloc decoded buffer")));
+            MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: m_dec_init_info.minFrameBufferCount=%d w=%d h=%d "), 
+                              m_dec_init_info.minFrameBufferCount,
+                              m_dec_init_info.picWidth, m_dec_init_info.picHeight
+                              ));
             mmpResult = MMP_FAILURE;
         }
     }
 
-    this->m_p_vpu_if->leave_critical_section();
-
     return mmpResult;
 }
 
-MMP_RESULT CMmpDecoderVpuIF::DecodeAu_StreamRemake_AVC1(CMmpMediaSample* pMediaSample) {
-
-    int remain_size, stream_size;
-    unsigned int* ps;
-    unsigned char* pau;
-
-    pau = pMediaSample->pAu;
-    remain_size = pMediaSample->uiAuSize;
-    while(remain_size > 0) {
-
-        ps = (unsigned int*)pau;
-        stream_size = *ps;
-        if(stream_size == 0x01000000) {
-            break;
-        }
-        stream_size = MMP_SWAP_U32(stream_size);
-        stream_size += 4;
-        *ps = 0x01000000;
-        pau+=stream_size;
-        remain_size -= stream_size;
-    }
-    
-    return MMP_SUCCESS;
-}
-
-MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult) {
+MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe) {
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
     RetCode vpu_ret;
     DecParam		decParam	= {0};
-    MMP_S32 int_reason, size, i;
+    MMP_S32 int_reason, size;
     MMP_U32 start_tick, t1, t2, t3 ,t4;
-    MMP_U8* pStream, *pHeader;
-    MMP_S32 nStreamSize;
-    MMP_U8* pRemakeStream = NULL;
+    MMP_U8* p_stream;
+    MMP_S32 stream_size;
     
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
+
     start_tick = CMmpUtil::GetTickCount();
 
     decParam.iframeSearchEnable = 0;
     decParam.skipframeMode = 0;
     decParam.DecStdParam.mp2PicFlush = 0;
 
-    pStream = pMediaSample->pAu;
-    nStreamSize = pMediaSample->uiAuSize;
+    p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
 
-    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), __LINE__, pMediaSample->uiAuSize,
-                   pMediaSample->pAu[0], pMediaSample->pAu[1], pMediaSample->pAu[2], pMediaSample->pAu[3], 
-                   pMediaSample->pAu[4], pMediaSample->pAu[5], pMediaSample->pAu[6], pMediaSample->pAu[7], 
-                   pMediaSample->pAu[8], pMediaSample->pAu[9], pMediaSample->pAu[10], pMediaSample->pAu[11], 
-                   pMediaSample->pAu[12], pMediaSample->pAu[13], pMediaSample->pAu[14], pMediaSample->pAu[15] 
-          ));
+    m_input_stream_count++;
+    
 
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d cnt=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), 
+                  __LINE__, m_input_stream_count, stream_size,
+                   p_stream[0], p_stream[1], p_stream[2], p_stream[3], 
+                   p_stream[4], p_stream[5], p_stream[6], p_stream[7], 
+                   p_stream[8], p_stream[9], p_stream[10], p_stream[11], 
+                   p_stream[12], p_stream[13], p_stream[14], p_stream[15] 
+    ));
 
+    /* check header */
     switch(this->m_create_config.nFormat) {
 
         case MMP_FOURCC_VIDEO_H264: 
-            this->DecodeAu_StreamRemake_AVC1(pMediaSample); 
-            break;
-
-        case MMP_FOURCC_VIDEO_MSMPEG4V3: 
-        case MMP_FOURCC_VIDEO_VP80: 
-
-            nStreamSize = pMediaSample->uiAuSize +12;
-            pRemakeStream = new MMP_U8[nStreamSize];
-            pStream = pRemakeStream;
-            pHeader = pStream;
-            
-            MMP_PUT_LE32(pHeader, pMediaSample->uiAuSize);
-            MMP_PUT_LE32(pHeader,0);
-            MMP_PUT_LE32(pHeader,0);
-            //size += 12;
-            memcpy(pHeader, pMediaSample->pAu, pMediaSample->uiAuSize);
+            mmpResult = this->make_frameheader_H264(p_buf_videostream);
             break;
 
         case MMP_FOURCC_VIDEO_VC1:
         case MMP_FOURCC_VIDEO_WMV3:
-
-            nStreamSize = pMediaSample->uiAuSize +8;
-            pRemakeStream = new MMP_U8[nStreamSize];
-            pStream = pRemakeStream;
-            pHeader = pStream;
-            
-            //write size&keyframe
-            if((pMediaSample->uiFlag&MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME) != 0) {
-                MMP_PUT_LE32(pHeader, pMediaSample->uiAuSize | 0x80000000 );
-            }
-            else {
-                MMP_PUT_LE32(pHeader, pMediaSample->uiAuSize | 0x00000000 );
-            }
-
-            //Write TimeStamp
-            if(AV_NOPTS_VALUE == pMediaSample->uiTimeStamp)
-            {
-                MMP_PUT_LE32(pHeader, 0);
-            }
-            else
-            {
-                MMP_PUT_LE32(pHeader, pMediaSample->uiTimeStamp/1000); // milli_sec
-            }
-
-            memcpy(pHeader, pMediaSample->pAu, pMediaSample->uiAuSize);
+            mmpResult = this->make_frameheader_VC1(p_buf_videostream);
             break;
 
+        case MMP_FOURCC_VIDEO_MSMPEG4V2:
+        case MMP_FOURCC_VIDEO_MSMPEG4V3:
+            mmpResult = this->make_frameheader_DIV3(p_buf_videostream);
+            break;
 
         case MMP_FOURCC_VIDEO_RV30:
         case MMP_FOURCC_VIDEO_RV40:
-
-            {
-                char cSlice;
-                int nSlice, offset;
-                unsigned int val;
-                int header_size;
-            
-                cSlice = pMediaSample->pAu[0] + 1;
-                nSlice = pMediaSample->uiAuSize - 1 - (cSlice * 8);
-                header_size = 20 + (cSlice*8);
-                nStreamSize = header_size + pMediaSample->uiAuSize;
-
-                pRemakeStream = new MMP_U8[nStreamSize];
-                pStream = pRemakeStream;
-                pHeader = pStream;
-                
-                MMP_PUT_BE32(pHeader, nSlice);
-                if(AV_NOPTS_VALUE == pMediaSample->uiTimeStamp)
-                {
-                    MMP_PUT_LE32(pHeader, 0);
-                }
-                else
-                {
-                    MMP_PUT_LE32(pHeader, (int)(pMediaSample->uiTimeStamp/1000)); // milli_sec
-                }
-                MMP_PUT_BE16(pHeader, pMediaSample->uiSampleNumber);
-                MMP_PUT_BE16(pHeader, 0x02); //Flags
-                MMP_PUT_BE32(pHeader, 0x00); //LastPacket
-                MMP_PUT_BE32(pHeader, cSlice); //NumSegments
-                offset = 1;
-                for (i = 0; i < (int)cSlice; i++)
-                {
-                    val = (pMediaSample->pAu[offset+3] << 24) | (pMediaSample->pAu[offset+2] << 16) | (pMediaSample->pAu[offset+1] << 8) | pMediaSample->pAu[offset];
-                    MMP_PUT_BE32(pHeader, val); //isValid
-                    offset += 4;
-                    val = (pMediaSample->pAu[offset+3] << 24) | (pMediaSample->pAu[offset+2] << 16) | (pMediaSample->pAu[offset+1] << 8) | pMediaSample->pAu[offset];
-                    MMP_PUT_BE32(pHeader, val); //Offset
-                    offset += 4;
-                }
-
-                //int cSlice = chunkData[0] + 1;
-				//int nSlice =  chunkSize - 1 - (cSlice * 8);
-				//chunkData += (1+(cSlice*8));
-                memcpy(&pStream[header_size], &pMediaSample->pAu[1+(cSlice*8)], pMediaSample->uiAuSize-(1+(cSlice*8)) );
-				nStreamSize = nSlice + header_size;//chunkSize = nSlice;
-                
-#if (MMP_OS == MMP_OS_WIN32)
-                memcpy(&pStream[header_size], pMediaSample->pAu, pMediaSample->uiAuSize);
-                nStreamSize = header_size + pMediaSample->uiAuSize;
-#endif
-
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d RV40 nStreamSize=%d nSlice=%d "), __LINE__, nStreamSize, nSlice));
-            }
+            mmpResult = this->make_frameheader_RV(p_buf_videostream);
             break;
 
+        case MMP_FOURCC_VIDEO_VP80:
+            mmpResult = this->make_frameheader_VP8(p_buf_videostream);
+            break;
+
+        case MMP_FOURCC_VIDEO_THEORA:
+            mmpResult = this->make_frameheader_Theora(p_buf_videostream);
+            break;
 
         default:
-            pStream = pMediaSample->pAu;
-            nStreamSize = pMediaSample->uiAuSize;
+            mmpResult = this->make_frameheader_Common(p_buf_videostream);
     }
 
-    size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, &m_vpu_stream_buffer, pStream, nStreamSize, m_decOP.streamEndian);
-    //size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, &m_vbStream, pStream, nStreamSize, m_decOP.streamEndian);
-	if (size <0)
-	{
-		//VLOG(ERR, "WriteBsBufFromBufHelper failed Error code is 0x%x \n", size );
-		//goto ERR_DEC_OPEN;
-        mmpResult = MMP_FAILURE;
-        MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d FAIL: WriteBsBufFromBufHelper"), __LINE__));
-	}
+
+    if(mmpResult == MMP_SUCCESS) {
+
+        if(p_buf_videostream->get_header_size() > 0) {
+            size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
+                                                       &m_vpu_stream_buffer, 
+                                                       (BYTE*)p_buf_videostream->get_header_buffer(), p_buf_videostream->get_header_size(), 
+                                                       m_decOP.streamEndian);
+            if (size <0)
+	        {
+		        mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
+	        }
+        }
+
+        if(mmpResult == MMP_SUCCESS) {
+            size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
+                                                       &m_vpu_stream_buffer, 
+                                                       p_buf_videostream->get_stream_real_ptr(), p_buf_videostream->get_stream_real_size(), 
+                                                       m_decOP.streamEndian);
+            if (size <0)
+	        {
+		        mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
+	        }
+        }
+    }
+    else {
+        MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: make frame header")));
+    }
+
     t1 = CMmpUtil::GetTickCount();
     
-    this->m_p_vpu_if->enter_critical_section();
+    
 
-	// Start decoding a frame.
-	vpu_ret = m_p_vpu_if->VPU_DecStartOneFrame(m_DecHandle, &decParam);
-	if (vpu_ret != RETCODE_SUCCESS) 
-	{
-		//VLOG(ERR,  "m_p_vpu_if->VPU_DecStartOneFrame failed Error code is 0x%x \n", ret);
-		//goto ERR_DEC_OPEN;
-        mmpResult = MMP_FAILURE;
-        MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d FAIL: m_p_vpu_if->VPU_DecStartOneFrame"), __LINE__));
-	}
+    if(mmpResult == MMP_SUCCESS)  {
+
+        if( (m_last_int_reason&(1<<INT_BIT_DEC_FIELD)) != 0) {
+            m_p_vpu_if->VPU_ClearInterrupt(m_codec_idx);
+        }
+        else {
+
+	        // Start decoding a frame.
+	        vpu_ret = m_p_vpu_if->VPU_DecStartOneFrame(m_DecHandle, &decParam);
+	        if (vpu_ret != RETCODE_SUCCESS) 
+	        {
+		        mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d FAIL: m_p_vpu_if->VPU_DecStartOneFrame"), __LINE__));
+	        }
+        }
+    }
 
     t2 = CMmpUtil::GetTickCount();
 
+    int_reason = 0;
     while(mmpResult == MMP_SUCCESS) {
     
         int_reason = m_p_vpu_if->VPU_WaitInterrupt(m_codec_idx, VPU_DEC_TIMEOUT);
@@ -799,98 +543,86 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmp
             MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d  FAIL: m_p_vpu_if->VPU_WaitInterrupt   TimeOut "), __LINE__));
 			VPU_SWReset(m_codec_idx, SW_RESET_SAFETY, m_DecHandle);				
 			mmpResult = MMP_FAILURE;
+            int_reason = 0;
             break;
 		}		
+        
+        if (int_reason & (1<<INT_BIT_DEC_FIELD)) {
 
-        //MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d int_reason=%d"), __LINE__, int_reason));
-        if (int_reason)
+            PhysicalAddress rdPtr, wrPtr;
+            MMP_S32 room, chunkSize, picHeaderSize, seqHeaderSize;
+            MMP_S32 remain_size;
+            
+            chunkSize = p_buf_videostream->get_stream_size();
+            picHeaderSize = p_buf_videostream->get_header_size();
+            seqHeaderSize = 0;
+
+            m_p_vpu_if->VPU_DecGetBitstreamBuffer(m_DecHandle, &rdPtr, &wrPtr, (int*)&room);
+
+            if(rdPtr <= wrPtr)  {
+                remain_size = wrPtr - rdPtr;
+            }
+            else {
+                remain_size = wrPtr-m_decOP.bitstreamBuffer;
+                remain_size += m_decOP.bitstreamBufferSize - (rdPtr-m_decOP.bitstreamBuffer);
+            }
+            
+            if(remain_size > 8) //(rdPtr-m_decOP.bitstreamBuffer) < (PhysicalAddress)(chunkSize+picHeaderSize+seqHeaderSize-8))	// there is full frame data in chunk data.
+            {
+				//m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, rdPtr, 0);		//set rdPtr to the position of next field data.
+                MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] INT_BIT_DEC_FIELD 0x%08x Wait Next Dec (0x%08x 0x%08x 0x%08x ) remain_size:%d"), int_reason , rdPtr, wrPtr , m_decOP.bitstreamBuffer, remain_size));
+            }
+            else {
+                MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] INT_BIT_DEC_FIELD 0x%08x Wait Next Stream (0x%08x 0x%08x 0x%08x ) remain_size:%d"), int_reason , rdPtr, wrPtr , m_decOP.bitstreamBuffer, remain_size));
+                mmpResult = MMP_FAILURE;
+                break;
+            }
+            
+        }
+
+        if (int_reason) {
     		m_p_vpu_if->VPU_ClearInterrupt(m_codec_idx);
-
+        }
     
-        if (int_reason & (1<<INT_BIT_PIC_RUN)) 
-				break;		
+        if (int_reason & (1<<INT_BIT_PIC_RUN))  {
+            MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] INT_BIT_PIC_RUN 0x%08x "), int_reason ));
+		    break;		
+        }
     }
+    m_last_int_reason = int_reason;
 
     t3 = CMmpUtil::GetTickCount();
-
+    
     if(mmpResult == MMP_SUCCESS) {
 
         memset(&m_output_info, 0x00, sizeof(m_output_info));
         vpu_ret = m_p_vpu_if->VPU_DecGetOutputInfo(m_DecHandle, &m_output_info);
-
-        if(vpu_ret == RETCODE_SUCCESS) {
         
-            
+        t4 = CMmpUtil::GetTickCount();
+
+        MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d dur=(%d %d %d %d) indexFrameDisplay(%d) interlace(%d) pict(%d %d) success(%d) topFieldFirst(%d)"), 
+                                                            __LINE__, 
+                                                            (t1-start_tick),(t2-start_tick),(t3-start_tick),(t4-start_tick), 
+                                                            m_output_info.indexFrameDisplay,
+                                                            m_output_info.interlacedFrame, 
+                                                            m_output_info.picType, 
+                                                            m_output_info.picTypeFirst, 
+                                                            m_output_info.decodingSuccess,
+                                                            m_output_info.topFieldFirst
+                                                            ));
+        if( (vpu_ret == RETCODE_SUCCESS) 
+            && (m_output_info.picType<PIC_TYPE_MAX)
+            ) 
+        {
             if(m_output_info.indexFrameDisplay >= 0) {
             
                 FrameBuffer frameBuf;
                 m_p_vpu_if->VPU_DecGetFrameBuffer(m_DecHandle, m_output_info.indexFrameDisplay, &frameBuf);
 
-                t4 = CMmpUtil::GetTickCount();
-
-                MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d dur=(%d %d %d %d) m_output_info.indexFrameDisplay=%d  ion_fd=%d  bufYCbCr(0x%08x 0x%08x 0x%08x, 0x%08x ) "), __LINE__, 
-                                                            (t1-start_tick),(t2-start_tick),(t3-start_tick),(t4-start_tick), 
-                                                            m_output_info.indexFrameDisplay,
-                                                            frameBuf.ion_shared_fd,
-                                                            frameBuf.bufY, frameBuf.bufCb, frameBuf.bufCr,
-                                                            frameBuf.ion_base_phyaddr
-                                                            ));
                 
-
-                pDecResult->uiDecodedSize = (m_output_info.dispPicWidth*m_output_info.dispPicHeight*3)/2;
-                pDecResult->bImage = MMP_TRUE;
-                pDecResult->uiTimeStamp = pMediaSample->uiTimeStamp;
-
-#if 1
-                pDecResult->uiResultType = MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD;
-                
-                /* sharde fd*/
-                pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_Y] = frameBuf.ion_shared_fd;
-                pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_U] = frameBuf.ion_shared_fd;
-                pDecResult->uiDecodedBufferPhyAddr[MMP_DECODED_BUF_V] = frameBuf.ion_shared_fd;
-                
-                /* offset*/
-                pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y] = frameBuf.bufY - frameBuf.bufY;
-                pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U] = frameBuf.bufCb - frameBuf.bufY;
-                pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V] = frameBuf.bufCr - frameBuf.bufY;
-                
-                /* stride */
-                pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_Y] = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16);
-                pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_U] = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16)>>1;
-                pDecResult->uiDecodedBufferStride[MMP_DECODED_BUF_V] = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16)>>1;
-
-                /* align height */
-                pDecResult->uiDecodedBufferAlignHeight[MMP_DECODED_BUF_Y] = MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16);
-                pDecResult->uiDecodedBufferAlignHeight[MMP_DECODED_BUF_U] = MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16)>>1;
-                pDecResult->uiDecodedBufferAlignHeight[MMP_DECODED_BUF_V] = MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16)>>1;
-#else
-#if 0//(MMP_OS == MMP_OS_WIN32)
-                luma_size = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16) * MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16);
-                chroma_size = luma_size/4;
-                vdi_read_memory(m_codec_idx, frameBuf.bufY, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y],  luma_size, m_decOP.frameEndian);
-                vdi_read_memory(m_codec_idx, frameBuf.bufCb, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U],  chroma_size, m_decOP.frameEndian);
-                vdi_read_memory(m_codec_idx, frameBuf.bufCr, (unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V],  chroma_size, m_decOP.frameEndian);
-#else
-                unsigned int key=0xAAAA9829;
-				unsigned int value, addr;
-
-                memcpy((unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_Y], &frameBuf, sizeof(frameBuf));
-
-                memcpy((unsigned char*)pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_U], &key, sizeof(unsigned int));
-
-				addr = pDecResult->uiDecodedBufferLogAddr[MMP_DECODED_BUF_V];
-				value = key; 
-				memcpy((unsigned char*)addr, &value, sizeof(unsigned int));
-				
-				addr += sizeof(unsigned int);
-				value = (unsigned int)this; 
-				memcpy((unsigned char*)addr, &value, sizeof(unsigned int));
-				
-				addr += sizeof(unsigned int);
-				value = (unsigned int)CMmpDecoderVpuIF::vdi_memcpy_stub; 
-				memcpy((unsigned char*)addr, &value, sizeof(unsigned int));
-#endif
-#endif
+                if(pp_buf_videoframe != NULL) {
+                    *pp_buf_videoframe = m_p_buf_videoframe[m_output_info.indexFrameDisplay];
+                }
                 
                 m_p_vpu_if->VPU_DecClrDispFlag(m_DecHandle, m_output_info.indexFrameDisplay);
             }
@@ -906,18 +638,8 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmp
         }
 		
     }
-    this->m_p_vpu_if->leave_critical_section();
-
-    if(pRemakeStream != NULL) {
-        delete [] pRemakeStream;
-    }
-
+    
     return mmpResult;
-}
-
-void CMmpDecoderVpuIF::vdi_memcpy_stub(void* param, void* dest_vaddr, void* src_paddr, int size) {
-	CMmpDecoderVpuIF* pMmpDecoderVpu=(CMmpDecoderVpuIF*)param;
-	vdi_read_memory(pMmpDecoderVpu->m_codec_idx, (PhysicalAddress)src_paddr, (unsigned char*)dest_vaddr, size, pMmpDecoderVpu->m_decOP.frameEndian);
 }
 
 void CMmpDecoderVpuIF::make_decOP_Common() {
@@ -951,7 +673,7 @@ void CMmpDecoderVpuIF::make_decOP_H263() {
 
     this->make_decOP_Common();
 
-    m_decOP.bitstreamFormat = (CodStd)STD_H263_DEC; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
+    m_decOP.bitstreamFormat = STD_H263; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.mp4DeblkEnable = 0;
 	m_decOP.mp4Class = 0; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
 	
@@ -961,7 +683,7 @@ void CMmpDecoderVpuIF::make_decOP_H264() {
     
     this->make_decOP_Common();
 
-    m_decOP.bitstreamFormat = (CodStd)STD_AVC_DEC; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
+    m_decOP.bitstreamFormat = STD_AVC; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.avcExtension = 0;  // AVC extension 0(No) / 1(MVC) 
     
 	
@@ -971,7 +693,7 @@ void CMmpDecoderVpuIF::make_decOP_MPEG4() {
 
     this->make_decOP_Common();
 
-    m_decOP.bitstreamFormat = (CodStd)STD_MP4_DEC; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
+    m_decOP.bitstreamFormat = STD_MPEG4; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.mp4DeblkEnable = 1;
 	m_decOP.mp4Class = 0; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
 	
@@ -981,7 +703,7 @@ void CMmpDecoderVpuIF::make_decOP_MPEG2() {
 
     this->make_decOP_Common();
 
-    m_decOP.bitstreamFormat = (CodStd)STD_MP2_DEC; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
+    m_decOP.bitstreamFormat = STD_MPEG2; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.mp4DeblkEnable = 0;
 	m_decOP.mp4Class = 0; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
 	
@@ -1001,7 +723,7 @@ void CMmpDecoderVpuIF::make_decOP_MSMpeg4V3() {
 
     this->make_decOP_Common();
 
-    m_decOP.bitstreamFormat = (CodStd)STD_DIV3; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
+    m_decOP.bitstreamFormat = STD_DIV3; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.mp4DeblkEnable = 0;
 	m_decOP.mp4Class = 0; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
 	
@@ -1032,42 +754,489 @@ void CMmpDecoderVpuIF::make_decOP_VP80() {
 	
 }
 
-void CMmpDecoderVpuIF::make_user_frame() {
+void CMmpDecoderVpuIF::make_decOP_Theora() {
+
+    this->make_decOP_Common();
+
+    m_decOP.bitstreamFormat = STD_THO; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
+    m_decOP.mp4DeblkEnable = 0;
+	m_decOP.mp4Class = 0; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
+	
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_Common(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult;
+    MMP_U8 *p_stream, *p_dsi;
+    MMP_S32 stream_size, dsi_size;
+
+    p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(stream_size);
+    if(mmpResult == MMP_SUCCESS) {
+
+        p_dsi = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+        dsi_size = stream_size;
+        MMP_MEMCPY(p_dsi, p_stream, dsi_size);
+        p_buf_videostream->set_dsi_size(dsi_size);
+    }
+
+    p_buf_videostream->set_stream_offset(0);
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_H264(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult;
+    MMP_U8 *p_avc_dsi, *p_h264_dsi;
+    MMP_S32 avc_dsi_size, h264_dsi_size;
+
+    p_avc_dsi = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    avc_dsi_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(128+avc_dsi_size);
+    if(mmpResult == MMP_SUCCESS) {
+
+        p_h264_dsi = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+        mmpResult = CMmpH264Parser::ConvertDSI_AVC1_To_H264(p_avc_dsi, avc_dsi_size, p_h264_dsi, &h264_dsi_size);
+        if(mmpResult == MMP_SUCCESS) {
+            
+        }
+        else {
+            MMP_MEMCPY(p_h264_dsi, p_avc_dsi, avc_dsi_size);
+            h264_dsi_size = avc_dsi_size;
+        }
+
+        p_buf_videostream->set_dsi_size(h264_dsi_size);
+        mmpResult = MMP_SUCCESS;
+    }
+
+    p_buf_videostream->set_stream_offset(0);
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_VC1(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 stream_size;
+    MMP_S32 framerate, bitrate, w, h;
+    
+    MMP_U8 *pbHeader, *pstream;
+    MMP_S32 header_size;
+
+    pstream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(128+stream_size);
+    if(mmpResult == MMP_SUCCESS) {
+    
+        framerate = p_buf_videostream->get_player_framerate();
+        bitrate = p_buf_videostream->get_player_bitrate();
+        w = p_buf_videostream->get_pic_width();
+        h = p_buf_videostream->get_pic_height();
+
+        pbHeader = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+
+        header_size = 0;
+        MMP_PUT_LE32(pbHeader, ((0xC5 << 24)|0));   
+        header_size += 4; //version
+        MMP_PUT_LE32(pbHeader, stream_size);
+        header_size += 4;
+        if(stream_size > 0) {
+            MMP_PUT_BUFFER(pbHeader, pstream, stream_size);
+            header_size += stream_size;
+        }
+        MMP_PUT_LE32(pbHeader, h);
+        header_size += 4;
+        MMP_PUT_LE32(pbHeader, w);
+        header_size += 4;
+        MMP_PUT_LE32(pbHeader, 12);
+        header_size += 4;
+        MMP_PUT_LE32(pbHeader, 2 << 29 | 1 << 28 | 0x80 << 24 | 1 << 0);
+        header_size += 4; // STRUCT_B_FRIST (LEVEL:3|CBR:1:RESERVE:4:HRD_BUFFER|24)
+        MMP_PUT_LE32(pbHeader, bitrate);
+        header_size += 4; // hrd_rate
+        MMP_PUT_LE32(pbHeader, framerate);            
+        header_size += 4; // frameRate
+
+        p_buf_videostream->set_dsi_size(header_size);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return mmpResult;
+}
+
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_DIV3(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 stream_size;
+    MMP_S32 w, h;
+    
+    MMP_U8 *pbHeader, *pstream;
+    MMP_S32 header_size;
+
+    pstream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(128);
+    if(mmpResult == MMP_SUCCESS) {
+    
+        w = p_buf_videostream->get_pic_width();
+        h = p_buf_videostream->get_pic_height();
+
+        pbHeader = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+
+        header_size = 0;
+        MMP_PUT_LE32(pbHeader, MKTAG('C', 'N', 'M', 'V')); //signature 'CNMV'
+        MMP_PUT_LE16(pbHeader, 0x00);                      //version
+        MMP_PUT_LE16(pbHeader, 0x20);                      //length of header in bytes
+        MMP_PUT_LE32(pbHeader, MKTAG('D', 'I', 'V', '3')); //codec FourCC
+        MMP_PUT_LE16(pbHeader, w);                //width
+        MMP_PUT_LE16(pbHeader, h);               //height
+        MMP_PUT_LE32(pbHeader, 0 /*st->r_frame_rate.num*/);      //frame rate
+        MMP_PUT_LE32(pbHeader, 0 /*st->r_frame_rate.den*/);      //time scale(?)
+        MMP_PUT_LE32(pbHeader, 0 /*st->nb_index_entries*/);      //number of frames in file
+        MMP_PUT_LE32(pbHeader, 0); //unused
+        header_size += 32;
+
+        p_buf_videostream->set_dsi_size(header_size);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_RV(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 stream_size;
+    MMP_S32 w, h, framerate;
+    
+    MMP_U8 *pbHeader, *pstream;
+    MMP_S32 header_size;
+
+    pstream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(128 + stream_size);
+    if(mmpResult == MMP_SUCCESS) {
+    
+        framerate = p_buf_videostream->get_player_framerate();
+        w = p_buf_videostream->get_pic_width();
+        h = p_buf_videostream->get_pic_height();
+
+        pbHeader = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+
+        header_size = 26 + stream_size;
+        MMP_PUT_BE32(pbHeader, header_size); //Length
+        MMP_PUT_LE32(pbHeader, MKTAG('V', 'I', 'D', 'O')); //MOFTag
+        MMP_PUT_LE32(pbHeader, this->m_create_config.nFormat); //SubMOFTagl
+        MMP_PUT_BE16(pbHeader, w);
+        MMP_PUT_BE16(pbHeader, h);
+        MMP_PUT_BE16(pbHeader, 0x0c); //BitCount;
+        MMP_PUT_BE16(pbHeader, 0x00); //PadWidth;
+        MMP_PUT_BE16(pbHeader, 0x00); //PadHeight;
+        
+	    MMP_PUT_BE32(pbHeader, framerate<<16);
+        MMP_PUT_BUFFER(pbHeader, pstream, stream_size); //OpaqueDatata
+        
+        p_buf_videostream->set_dsi_size(header_size);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_VP8(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 stream_size;
+    MMP_S32 w, h, framerate;
+    
+    MMP_U8 *pbHeader, *pstream;
+    MMP_S32 header_size;
+
+    pstream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(128);
+    if(mmpResult == MMP_SUCCESS) {
+    
+        framerate = p_buf_videostream->get_player_framerate();
+        w = p_buf_videostream->get_pic_width();
+        h = p_buf_videostream->get_pic_height();
+
+        pbHeader = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+
+        header_size = 32;
+        MMP_PUT_LE32(pbHeader, MKTAG('D', 'K', 'I', 'F')); //signature 'DKIF'
+        MMP_PUT_LE16(pbHeader, 0x00);                      //version
+        MMP_PUT_LE16(pbHeader, 0x20);                      //length of header in bytes
+        MMP_PUT_LE32(pbHeader, MKTAG('V', 'P', '8', '0')); //codec FourCC
+        MMP_PUT_LE16(pbHeader, w);                //width
+        MMP_PUT_LE16(pbHeader, h);               //height
+        MMP_PUT_LE32(pbHeader, 0 /*st->r_frame_rate.num*/);      //frame rate
+        MMP_PUT_LE32(pbHeader, 0 /*st->r_frame_rate.den*/);      //time scale(?)
+        MMP_PUT_LE32(pbHeader, 0 /*st->nb_index_entries*/);      //number of frames in file
+        MMP_PUT_LE32(pbHeader, 0); //unused
+        
+        p_buf_videostream->set_dsi_size(header_size);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_seqheader_Theora(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 stream_size;
+    MMP_S32 w, h, framerate;
+    
+    MMP_U8 *pbHeader, *pstream;
+    MMP_S32 header_size;
+    
+    const int THO_SEQ_HEADER_LEN = 32;
+
+    pstream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    mmpResult = p_buf_videostream->alloc_dsi_buffer(128);
+    if(mmpResult == MMP_SUCCESS) {
+    
+        framerate = p_buf_videostream->get_player_framerate();
+        w = p_buf_videostream->get_pic_width();
+        h = p_buf_videostream->get_pic_height();
+
+        pbHeader = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+
+        header_size = THO_SEQ_HEADER_LEN;
+
+        // signature  : 4Byte
+        MMP_PUT_BYTE(pbHeader, 'C');
+        MMP_PUT_BYTE(pbHeader, 'N');
+        MMP_PUT_BYTE(pbHeader, 'M');
+        MMP_PUT_BYTE(pbHeader, 'V');
+
+        // version  : 2Byte
+        MMP_PUT_LE16(pbHeader, 0);
+
+        // header length: 2Byte
+        MMP_PUT_LE16(pbHeader, THO_SEQ_HEADER_LEN); 
+
+        // FourCC : 4Byte
+        MMP_PUT_BYTE(pbHeader, 'V');
+        MMP_PUT_BYTE(pbHeader, 'P');
+        MMP_PUT_BYTE(pbHeader, '3');
+        MMP_PUT_BYTE(pbHeader, '0');
+
+        // Size Info : 4Byte
+        MMP_PUT_LE16(pbHeader, w);    // Picture Width
+        MMP_PUT_LE16(pbHeader, h);   // Picture Height     
+
+        // Etc : 16Byte
+        MMP_PUT_LE32(pbHeader, 0);     // Frame Rate
+        MMP_PUT_LE32(pbHeader, 0);     // Time Scale
+        MMP_PUT_LE32(pbHeader, 0);     // Frame Number
+        MMP_PUT_LE32(pbHeader, 0);     // Reserved
+        
+        p_buf_videostream->set_dsi_size(header_size);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_Common(class mmp_buffer_videostream* p_buf_videostream) {
+
+    p_buf_videostream->set_header_size(0);
+    p_buf_videostream->set_stream_offset(0);
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_H264(class mmp_buffer_videostream* p_buf_videostream) {
+
+    //this->DecodeAu_StreamRemake_AVC1((MMP_U8*)p_buf_videostream->get_buf_vir_addr(), p_buf_videostream->get_stream_size()); 
+    
+    MMP_S32 remain_size, stream_size;
+    MMP_U32* ps;
+    MMP_U8* pau;
+
+    pau = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    remain_size = p_buf_videostream->get_stream_size();
+
+    while(remain_size > 0) {
+
+        ps = (MMP_U32*)pau;
+        stream_size = *ps;
+        if(stream_size == 0x01000000) {
+            break;
+        }
+        stream_size = MMP_SWAP_U32(stream_size);
+        stream_size += 4;
+        *ps = 0x01000000;
+        pau+=stream_size;
+        remain_size -= stream_size;
+    }
+
+    p_buf_videostream->set_header_size(0);
+    p_buf_videostream->set_stream_offset(0);
+        
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_VC1(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U8* p_header; 
+    MMP_S32 stream_size;
+    MMP_S64 pts;
+    MMP_U32 flag;
+
+    mmpResult = p_buf_videostream->alloc_header_buffer(8);
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_header = (MMP_U8*)p_buf_videostream->get_header_buffer();
+        pts = p_buf_videostream->get_pts();
+        stream_size = p_buf_videostream->get_stream_size();
+        flag = p_buf_videostream->get_flag();
+
+        if((flag&MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME) != 0) {
+            MMP_PUT_LE32(p_header,  stream_size | 0x80000000 );
+        }
+        else {
+            MMP_PUT_LE32(p_header, stream_size | 0x00000000 );
+        }
+
+        MMP_PUT_LE32(p_header, pts/1000); /* milli_sec */
+
+        p_buf_videostream->set_header_size(8);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_DIV3(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U8* p_header; 
+    MMP_S32 stream_size;
+    
+    mmpResult = p_buf_videostream->alloc_header_buffer(12);
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_header = (MMP_U8*)p_buf_videostream->get_header_buffer();
+        stream_size = p_buf_videostream->get_stream_size();
+
+        MMP_PUT_LE32(p_header, stream_size);
+        MMP_PUT_LE32(p_header, 0);
+        MMP_PUT_LE32(p_header, 0);
+
+        p_buf_videostream->set_header_size(12);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_RV(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U8 *p_header, *p_stream; 
+    MMP_S32 stream_size, header_size;
+    MMP_S32 cSlice, nSlice, offset, i;
+    MMP_U32 val;
+
+    p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();
+
+    cSlice = ((MMP_S32)p_stream[0])&0xFF;
+    cSlice++;
+    nSlice = stream_size - 1 - (cSlice * 8);
+    header_size = 20 + (cSlice*8);
+    
+    mmpResult = p_buf_videostream->alloc_header_buffer(header_size);
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_header = (MMP_U8*)p_buf_videostream->get_header_buffer();
+        
+        MMP_PUT_BE32(p_header, nSlice);
+        MMP_PUT_LE32(p_header, 0);   /* time stamp (milesec) */
+        MMP_PUT_BE16(p_header, 0);//m_input_stream_count);
+        MMP_PUT_BE16(p_header, 0x02); //Flags
+        MMP_PUT_BE32(p_header, 0x00); //LastPacket
+        MMP_PUT_BE32(p_header, cSlice); //NumSegments
+
+        offset = 1;
+        for (i = 0; i < cSlice; i++)   {
+
+            val = (p_stream[offset+3] << 24) | (p_stream[offset+2] << 16) | (p_stream[offset+1] << 8) | p_stream[offset];
+            MMP_PUT_BE32(p_header, val); //isValid
+            offset += 4;
+            val = (p_stream[offset+3] << 24) | (p_stream[offset+2] << 16) | (p_stream[offset+1] << 8) | p_stream[offset];
+            MMP_PUT_BE32(p_header, val); //Offset
+            offset += 4;
+        }
+
+        p_buf_videostream->set_header_size(header_size);
+        p_buf_videostream->set_stream_offset(1+(cSlice*8));
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_VP8(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U8* p_header; 
+    MMP_S32 stream_size;
+    
+    mmpResult = p_buf_videostream->alloc_header_buffer(12);
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_header = (MMP_U8*)p_buf_videostream->get_header_buffer();
+        stream_size = p_buf_videostream->get_stream_size();
+
+        MMP_PUT_LE32(p_header, stream_size);
+        MMP_PUT_LE32(p_header, 0);
+        MMP_PUT_LE32(p_header, 0);
+
+        p_buf_videostream->set_header_size(12);
+        p_buf_videostream->set_stream_offset(0);
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpDecoderVpuIF::make_frameheader_Theora(class mmp_buffer_videostream* p_buf_videostream) {
 
 #if 0
-    FrameBufferAllocInfo fbAllocInfo;
-    int framebufStride, framebufHeight;
-    DRAMConfig dramCfg = {0};
-    FrameBuffer  fbUser[MAX_REG_FRAME]={0,};
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U8* p_header; 
+    MMP_S32 stream_size;
+    
+    mmpResult = p_buf_videostream->alloc_header_buffer(12);
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_header = (MMP_U8*)p_buf_videostream->get_header_buffer();
+        stream_size = p_buf_videostream->get_stream_size();
 
-    framebufStride = MMP_BYTE_ALIGN(m_dec_init_info.picWidth, 16);
-    framebufHeight = MMP_BYTE_ALIGN(m_dec_init_info.picHeight, 16);
+        MMP_PUT_LE32(p_header, stream_size);
+        MMP_PUT_LE32(p_header, 0);
+        MMP_PUT_LE32(p_header, 0);
 
-    fbAllocInfo.format          = FORMAT_420;
-	fbAllocInfo.cbcrInterleave  = m_decOP.cbcrInterleave;
-	fbAllocInfo.mapType         = m_mapType;
-	fbAllocInfo.stride          = framebufStride;
-	fbAllocInfo.height          = framebufHeight;
-	fbAllocInfo.num             = m_regFrameBufCount;
-	
-	fbAllocInfo.endian          = m_decOP.frameEndian;
-	fbAllocInfo.type            = FB_TYPE_CODEC;
+        p_buf_videostream->set_header_size(12);
+        p_buf_videostream->set_stream_offset(0);
+    }
 
-    m_framebufSize = VPU_GetFrameBufSize(framebufStride, framebufHeight, fbAllocInfo.mapType, framebufFormat, &dramCfg);
-
-    for (i=0; i<fbAllocInfo.num; i++)
-	{
-		vbFrame[i].size = framebufSize;
-		if (vdi_allocate_dma_memory(coreIdx, &vbFrame[i]) < 0)
-		{
-			VLOG(ERR, "fail to allocate frame buffer\n" );
-			goto ERR_DEC_OPEN;
-		}
-		fbUser[i].bufY = vbFrame[i].phys_addr;
-		fbUser[i].bufCb = -1;
-		fbUser[i].bufCr = -1;
-	}
-    ret = VPU_DecAllocateFrameBuffer(handle, fbAllocInfo, fbUser);
-    pUserFrame = (FrameBuffer *)fbUser;				
+    return MMP_SUCCESS;
+#else
+    return MMP_FAILURE;
 #endif
 }
+

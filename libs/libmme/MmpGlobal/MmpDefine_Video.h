@@ -37,6 +37,16 @@ typedef struct MMPBITMAPINFOHEADER
         MMP_U32      biClrImportant;
 }MMPBITMAPINFOHEADER;
 
+struct mmp_video_hw_codec_instance_info {
+
+    MMP_S32 instance_index;
+    MMP_S32 instance_max_count;
+
+    MMP_S32 is_use;
+    MMP_S32 is_decoder;
+
+    MMPBITMAPINFOHEADER bih;
+};
 
 typedef enum MMP_VIDEO_CODINGTYPE {
     MMP_VIDEO_CodingUnused,     /**< Value when coding is N/A */
@@ -54,32 +64,47 @@ typedef enum MMP_VIDEO_CODINGTYPE {
     MMP_VIDEO_CodingMax = 0x7FFFFFFF
 } MMP_VIDEO_CODINGTYPE;
 
-#define MMP_FOURCC_VIDEO_UNKNOWN 0
-#define MMP_FOURCC_VIDEO_H264    MMPMAKEFOURCC('H','2','6','4')
-#define MMP_FOURCC_VIDEO_H263    MMPMAKEFOURCC('H','2','6','3')
+#define MMP_FOURCC_VIDEO_UNKNOWN  MMPMAKEFOURCC('X','X','X','X')
+#define MMP_FOURCC_VIDEO_H264     MMPMAKEFOURCC('H','2','6','4')
+#define MMP_FOURCC_VIDEO_H263     MMPMAKEFOURCC('H','2','6','3')
 #define MMP_FOURCC_VIDEO_MPEG4    MMPMAKEFOURCC('M','P','4','V')
 #define MMP_FOURCC_VIDEO_MPEG2    MMPMAKEFOURCC('M','P','G','2')
 #define MMP_FOURCC_VIDEO_MPEG4_V2 MMPMAKEFOURCC('M','P','4','2')
 #define MMP_FOURCC_VIDEO_XVID     MMPMAKEFOURCC('X','V','I','D')
-#define MMP_FOURCC_VIDEO_VC1      MMPMAKEFOURCC('V','C','1',' ')
+
+#define MMP_FOURCC_VIDEO_VC1       MMPMAKEFOURCC('V','C','1',' ')
 #define MMP_FOURCC_VIDEO_WMV3      MMPMAKEFOURCC('W','M','V','3')  //VC1-WMV9 
-//#define MMP_FOURCC_VIDEO_WMV2      MMPMAKEFOURCC('W','M','V','2')  //VC1-WMV8 
-//#define MMP_FOURCC_VIDEO_WMV1      MMPMAKEFOURCC('W','M','V','1')  //VC1-WMV7 
-//#define MMP_FOURCC_VIDEO_VP6      MMPMAKEFOURCC('V','P','6',' ')  
-//#define MMP_FOURCC_VIDEO_VP6F      MMPMAKEFOURCC('V','P','6','F')  
-//#define MMP_FOURCC_VIDEO_VP6A      MMPMAKEFOURCC('V','P','6','A') 
-#define MMP_FOURCC_VIDEO_VP80      MMPMAKEFOURCC('V','P','8','0')  
+#define MMP_FOURCC_VIDEO_WMV2      MMPMAKEFOURCC('W','M','V','2')  //VC1-WMV8 
+#define MMP_FOURCC_VIDEO_WMV1      MMPMAKEFOURCC('W','M','V','1')  //VC1-WMV7 
+#define MMP_FOURCC_VIDEO_MSS1      MMPMAKEFOURCC('M','S','S','1')  
+#define MMP_FOURCC_VIDEO_MSS2      MMPMAKEFOURCC('M','S','S','2')  
+
+#define MMP_FOURCC_VIDEO_VP60      MMPMAKEFOURCC('V','P','6','0')  
+#define MMP_FOURCC_VIDEO_VP6F      MMPMAKEFOURCC('V','P','6','F')  
+#define MMP_FOURCC_VIDEO_VP6A      MMPMAKEFOURCC('V','P','6','A') 
+#define MMP_FOURCC_VIDEO_VP80      MMPMAKEFOURCC('V','P','8','0') 
+
 #define MMP_FOURCC_VIDEO_RV30      MMPMAKEFOURCC('R','V','3','0')  
 #define MMP_FOURCC_VIDEO_RV40      MMPMAKEFOURCC('R','V','4','0')  
-//#define MMP_FOURCC_VIDEO_SVQ1      MMPMAKEFOURCC('S','V','Q','1')   //Sorenson 1
-//#define MMP_FOURCC_VIDEO_SVQ3      MMPMAKEFOURCC('S','V','Q','3')   //Sorenson 3
+
+#define MMP_FOURCC_VIDEO_SVQ1      MMPMAKEFOURCC('S','V','Q','1')   //Sorenson 1
+#define MMP_FOURCC_VIDEO_SVQ3      MMPMAKEFOURCC('S','V','Q','3')   //Sorenson 3
 #define MMP_FOURCC_VIDEO_THEORA      MMPMAKEFOURCC('T','H','E','O')   
 #define MMP_FOURCC_VIDEO_MJPEG      MMPMAKEFOURCC('M','J','P','G')   
-//#define MMP_FOURCC_VIDEO_MSMPEG4V1    MMPMAKEFOURCC('M','S','M','1')   
-//#define MMP_FOURCC_VIDEO_MSMPEG4V2    MMPMAKEFOURCC('M','S','M','2')   
+#define MMP_FOURCC_VIDEO_FLV1      MMPMAKEFOURCC('F','L','V','1')   
+
+#define MMP_FOURCC_VIDEO_MSMPEG4V1    MMPMAKEFOURCC('M','S','M','1')   
+#define MMP_FOURCC_VIDEO_MSMPEG4V2    MMPMAKEFOURCC('M','S','M','2')   
 #define MMP_FOURCC_VIDEO_MSMPEG4V3    MMPMAKEFOURCC('M','S','M','3')   //Divx3
 
-#define MMP_FOURCC_VIDEO_FFMPEG      MMPMAKEFOURCC('F','F','M','P')   
+#define MMP_FOURCC_VIDEO_SVQ3      MMPMAKEFOURCC('S','V','Q','3')   
+#define MMP_FOURCC_VIDEO_INDEO2    MMPMAKEFOURCC('I','N','D','2')   /* Indeo2 */
+#define MMP_FOURCC_VIDEO_INDEO3    MMPMAKEFOURCC('I','N','D','3')   /* Indeo2 */
+#define MMP_FOURCC_VIDEO_INDEO4    MMPMAKEFOURCC('I','N','D','4')   /* Indeo2 */
+#define MMP_FOURCC_VIDEO_INDEO5    MMPMAKEFOURCC('I','N','D','5')   /* Indeo2 */
+
+#define MMP_FOURCC_VIDEO_TSCC      MMPMAKEFOURCC('T','S','C','C')   /* Indeo2 */
+#define MMP_FOURCC_VIDEO_FFMPEG    MMPMAKEFOURCC('F','F','M','P')   
 
 #define MMP_FOURCC_VIDEO_YV12    MMPMAKEFOURCC('Y','V','1','2')  /* http://www.fourcc.org/yuv.php#YV12  8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes.*/
 #define MMP_FOURCC_VIDEO_I420    MMPMAKEFOURCC('I','4','2','0')  /* http://www.fourcc.org/yuv.php#IYUV  0x30323449 	12 	8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes..*/

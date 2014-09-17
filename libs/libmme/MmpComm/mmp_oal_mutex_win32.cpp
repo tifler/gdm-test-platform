@@ -27,8 +27,8 @@
 class members
 **********************************************************/
 
-mmp_oal_mutex_win32::mmp_oal_mutex_win32() :
-m_hMutex(NULL)
+mmp_oal_mutex_win32::mmp_oal_mutex_win32(MMP_U32 key) : mmp_oal_mutex(key)
+,m_hMutex(NULL)
 {
 
 }
@@ -41,11 +41,19 @@ mmp_oal_mutex_win32::~mmp_oal_mutex_win32() {
 MMP_ERRORTYPE mmp_oal_mutex_win32::open() {
 
 	MMP_RESULT ret = MMP_ErrorNone;
+    char mutex_name[32];
 
-	m_hMutex = CreateMutex(NULL, FALSE, NULL);
+    if(m_key == 0) {
+        m_hMutex = CreateMutex(NULL, FALSE, NULL);
+    }
+    else {
+        sprintf(mutex_name, "mmp_oal_mutex_win32-0x%08x", m_key);
+	    m_hMutex = CreateMutex(NULL, FALSE, mutex_name);
+    }
 	if(m_hMutex == NULL) {
 		ret = MMP_ErrorInsufficientResources;
 	}
+
 
 	return ret;
 }

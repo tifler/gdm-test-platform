@@ -75,7 +75,7 @@ protected:
     //void PostProcessing(AVFrame *pAVFrame_Decoded, AVCodecContext *pAVCodecContext);
 
 public:
-    virtual MMP_RESULT EncodeDSI(CMmpMediaSampleEncode* pMediaSample, CMmpMediaSampleEncodeResult* pEncResult);
+    virtual MMP_RESULT EncodeDSI();
     
     
 };

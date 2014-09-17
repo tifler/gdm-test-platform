@@ -27,12 +27,15 @@
 class mmp_oal_mutex : public mmp_oal_lock {
 
 public:
-	static class mmp_oal_mutex* create_object(void);
+	static class mmp_oal_mutex* create_object(MMP_U32 key = 0);
 	static MMP_RESULT destroy_object(class mmp_oal_mutex* p_obj);
 
 protected:
+    MMP_U32 m_key;
+
+protected:
     
-	mmp_oal_mutex();
+	mmp_oal_mutex(MMP_U32 key);
 	virtual ~mmp_oal_mutex();
 
 	virtual MMP_RESULT open();

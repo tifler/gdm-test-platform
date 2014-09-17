@@ -77,7 +77,7 @@ protected:
 
 public:
     virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
-    virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) { return MMP_FAILURE; }
+    virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe) { return MMP_FAILURE; }
 
 
 };

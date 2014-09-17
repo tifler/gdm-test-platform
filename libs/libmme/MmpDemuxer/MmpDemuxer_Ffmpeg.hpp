@@ -70,6 +70,7 @@ public:
 
     virtual MMP_RESULT GetVideoExtraData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size);
     virtual MMP_RESULT GetMediaExtraData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size);
+    virtual MMP_RESULT GetVideoExtraData(class mmp_buffer_videostream* p_buf_videstream);
 
 
     virtual MMP_U32 GetVideoFormat();

@@ -57,11 +57,9 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
-    //void PostProcessing(AVFrame *pAVFrame_Decoded, AVCodecContext *pAVCodecContext);
-
 public:
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
-    //virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
+    virtual MMP_RESULT DecodeDSI(class mmp_buffer_videostream* p_buf_videostream);
     
 };
 

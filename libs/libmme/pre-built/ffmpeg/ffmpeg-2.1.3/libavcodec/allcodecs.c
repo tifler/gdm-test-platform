@@ -271,7 +271,7 @@ void avcodec_register_all(void)
     /*  Video Encoder  */
     REGISTER_ENCODER(MPEG4, mpeg4);  /* OK */
     REGISTER_ENCODER(H263,  h263);
-    //REGISTER_ENCODER(LIBX264, libx264);
+    REGISTER_ENCODER(LIBX264, libx264);
     
     
     /*  Audio Encoder  */

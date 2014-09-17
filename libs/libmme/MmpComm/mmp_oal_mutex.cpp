@@ -22,19 +22,21 @@
 #include "mmp_oal_mutex.hpp"
 #include "mmp_oal_mutex_win32.hpp"
 #include "mmp_oal_mutex_linux.hpp"
+#include "mmp_oal_mutex_linux_sema.hpp"
 
 /**********************************************************
 create/destroy object
 **********************************************************/
 
-class mmp_oal_mutex* mmp_oal_mutex::create_object(void) {
+class mmp_oal_mutex* mmp_oal_mutex::create_object(MMP_U32 key) {
 
 	class mmp_oal_mutex* p_obj = NULL;
 
 #if (MMP_OS == MMP_OS_WIN32)
-	p_obj = new class mmp_oal_mutex_win32();
+	p_obj = new class mmp_oal_mutex_win32(key);
 #elif (MMP_OS == MMP_OS_LINUX)
-	p_obj = new class mmp_oal_mutex_linux();
+	//p_obj = new class mmp_oal_mutex_linux(key);
+    p_obj = new class mmp_oal_mutex_linux_sema(key);
 #else
 #error "ERROR : Select OS "
 #endif
@@ -65,7 +67,9 @@ MMP_ERRORTYPE mmp_oal_mutex::destroy_object(class mmp_oal_mutex* p_obj) {
 class members
 **********************************************************/
 
-mmp_oal_mutex::mmp_oal_mutex() {
+mmp_oal_mutex::mmp_oal_mutex(MMP_U32 key) :
+m_key(key)
+{
 
 }
 

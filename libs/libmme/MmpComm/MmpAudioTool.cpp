@@ -192,8 +192,8 @@ MMP_RESULT CMmpAudioTool::Convert48kPCM_To_8kPCM() {
             
             if( (k%6) == 0) {
 
-                dest_pcm[m] = avg_L/6;
-                dest_pcm[m+1] = avg_R/6;
+                dest_pcm[m] = (MMP_S16)(avg_L/6);
+                dest_pcm[m+1] = (MMP_S16)(avg_R/6);
 
                 u16 = (MMP_U16)dest_pcm[m];
                 dest_pcm[m] = MMP_SWAP_U16(u16);

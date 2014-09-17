@@ -28,7 +28,8 @@ class mmp_singleton_mgr {
 
 public:
     enum {
-        ID_BUFFER_MGR=0,
+        ID_ENV_MGR=0,
+        ID_BUFFER_MGR,
         ID_VPU_DEV,
         ID_MAX
     };

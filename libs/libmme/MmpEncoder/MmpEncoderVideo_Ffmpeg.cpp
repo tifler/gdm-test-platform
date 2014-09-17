@@ -99,7 +99,6 @@ MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(CMmpMediaSampleEncode* pMediaSample
     AVPacket avpkt;
     int got_packet_ptr;
     int iret;
-    MMP_U32 i;
     MMP_U32 enc_start_tick, enc_end_tick;
 
     MMP_U8* pBuffer;
@@ -114,7 +113,7 @@ MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(CMmpMediaSampleEncode* pMediaSample
     
     if(m_pAVCodecContext == NULL) {
     
-        mmpResult = CMmpEncoderFfmpeg::EncodeDSI(pMediaSample, pEncResult);
+        mmpResult = CMmpEncoderFfmpeg::EncodeDSI();
         if(mmpResult != MMP_SUCCESS) {
             return mmpResult;
         }
@@ -175,7 +174,7 @@ MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(CMmpMediaSampleEncode* pMediaSample
 
             if(m_nEncodedStreamCount == 0) {
 
-                this->EncodedFrameQueue_AddFrameWithConfig_Mpeg4(avpkt.data, avpkt.size, (avpkt.flags&AV_PKT_FLAG_KEY)?MMP_ENCODED_FLAG_VIDEO_KEYFRAME:0);
+                this->EncodedFrameQueue_AddFrameWithConfig_Mpeg4(avpkt.data, avpkt.size, (avpkt.flags&AV_PKT_FLAG_KEY)?MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME:0);
 
                 if(this->EncodedFrameQueue_IsEmpty() != MMP_TRUE) {
 
@@ -188,13 +187,13 @@ MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(CMmpMediaSampleEncode* pMediaSample
                 }
 
             }
-            else if(avpkt.size <= nBufMaxSize) {
+            else if(avpkt.size <= (int)nBufMaxSize) {
 
                 memcpy((void*)pBuffer, avpkt.data, avpkt.size);
                 pEncResult->uiEncodedStreamSize[MMP_ENCODED_BUF_STREAM] = avpkt.size;
 
                 if(avpkt.flags&AV_PKT_FLAG_KEY) {
-                    pEncResult->uiFlag |= MMP_ENCODED_FLAG_VIDEO_KEYFRAME;
+                    pEncResult->uiFlag |= MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME;
                 }
 
                 m_nEncodedStreamCount++;
@@ -214,6 +213,124 @@ MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(CMmpMediaSampleEncode* pMediaSample
     pEncResult->uiEncodedDuration = enc_end_tick - enc_start_tick;
 
     CMmpEncoderVideo::EncodeMonitor(pMediaSample, pEncResult);
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(class mmp_buffer_videoframe* p_buf_videoframe, class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS; 
+    AVPacket avpkt;
+    int got_packet_ptr;
+    int iret;
+    MMP_U32 i;
+    MMP_U32 enc_start_tick, enc_end_tick;
+
+    MMP_U8* pBuffer;
+    MMP_U32 nBufSize, nBufMaxSize, nFlag;
+
+    enc_start_tick = CMmpUtil::GetTickCount();
+
+    p_buf_videostream->set_stream_size(0);
+    p_buf_videostream->set_stream_offset(0);
+    p_buf_videostream->set_flag(0);
+    p_buf_videostream->set_pts(p_buf_videoframe->get_pts());
+    p_buf_videostream->set_dsi_size(0);
+
+    if(m_pAVCodecContext == NULL) {
+        mmpResult = CMmpEncoderFfmpeg::EncodeDSI();
+        if(mmpResult != MMP_SUCCESS) {
+            return mmpResult;
+        }
+    }
+
+    av_init_packet (&avpkt);
+    avpkt.data = NULL;
+    avpkt.size = 0;
+    avpkt.flags = 0;
+    
+    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+        m_pAVFrame_Input->data[i] = (uint8_t*)p_buf_videoframe->get_buf_vir_addr(i);
+        m_pAVFrame_Input->linesize[i] = p_buf_videoframe->get_buf_stride(i);
+    }
+    m_pAVFrame_Input->format = m_pAVCodecContext->pix_fmt;
+    m_pAVFrame_Input->width = m_pAVCodecContext->width;
+    m_pAVFrame_Input->height = m_pAVCodecContext->height;
+    m_pAVFrame_Input->pts = AV_NOPTS_VALUE;
+    m_pAVFrame_Input->quality = 100;
+
+    iret = avcodec_encode_video2(m_pAVCodecContext, &avpkt, m_pAVFrame_Input, &got_packet_ptr);
+    if(iret == 0) /* Success */ {
+        
+        /* get the delayed frames */
+        if(got_packet_ptr == 0) {
+
+             iret = avcodec_encode_video2(m_pAVCodecContext, &avpkt, NULL, &got_packet_ptr);
+             if (iret < 0) {
+                got_packet_ptr = 0;    
+             }
+        }
+         
+        if(got_packet_ptr == 1) {
+            
+            pBuffer = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+            nBufMaxSize = p_buf_videostream->get_buf_size();
+
+            if( (m_nEncodedStreamCount == 0)  && (m_CreateConfig.nFormat == MMP_FOURCC_VIDEO_MPEG4) ) {
+
+                this->EncodedFrameQueue_AddFrameWithConfig_Mpeg4(avpkt.data, avpkt.size, (avpkt.flags&AV_PKT_FLAG_KEY)?MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME:0);
+
+                if(this->EncodedFrameQueue_IsEmpty() != MMP_TRUE) {
+
+                    this->EncodedFrameQueue_GetFrame(pBuffer, nBufMaxSize, &nBufSize, &nFlag);
+
+                    /* get dsi */
+                    p_buf_videostream->alloc_dsi_buffer(nBufSize);
+                    p_buf_videostream->set_dsi_size(nBufSize);
+                    memcpy(p_buf_videostream->get_dsi_buffer(), pBuffer, nBufSize);
+
+                    /* get frame */
+                    this->EncodedFrameQueue_GetFrame(pBuffer, nBufMaxSize, &nBufSize, &nFlag);
+                    p_buf_videostream->set_stream_size(nBufSize);
+                    p_buf_videostream->or_flag(nFlag);
+                    
+                    //pEncResult->uiEncodedStreamSize[MMP_ENCODED_BUF_STREAM] = nBufSize;
+                    //pEncResult->uiFlag |= nFlag;
+
+                    m_nEncodedStreamCount++;
+                }
+
+            }
+            else if(avpkt.size <= (int)nBufMaxSize) {
+
+                memcpy((void*)pBuffer, avpkt.data, avpkt.size);
+                p_buf_videostream->set_stream_size(avpkt.size);
+                //pEncResult->uiEncodedStreamSize[MMP_ENCODED_BUF_STREAM] = avpkt.size;
+
+                if(avpkt.flags&AV_PKT_FLAG_KEY) {
+                    //pEncResult->uiFlag |= MMP_ENCODED_FLAG_VIDEO_KEYFRAME;
+                    p_buf_videostream->or_flag(MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME);
+                }
+
+                m_nEncodedStreamCount++;
+            }
+        }
+        
+        mmpResult = MMP_SUCCESS;   
+    }
+    else {
+        mmpResult = MMP_FAILURE;
+    }
+
+    av_free_packet(&avpkt);
+
+    enc_end_tick = CMmpUtil::GetTickCount();
+
+    //pEncResult->uiEncodedDuration = enc_end_tick - enc_start_tick;
+    p_buf_videostream->set_coding_dur(enc_end_tick - enc_start_tick);
+
+    //CMmpEncoderVideo::EncodeMonitor(pMediaSample, pEncResult);
+    CMmpEncoderVideo::EncodeMonitor(p_buf_videostream);
 
     return mmpResult;
 }

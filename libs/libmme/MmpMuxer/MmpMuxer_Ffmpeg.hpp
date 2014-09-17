@@ -35,9 +35,23 @@ class CMmpMuxer_Ffmpeg : public CMmpMuxer
 friend class CMmpMuxer;
 
 private:
-     AVFormatContext *m_oc;
-      AVOutputFormat *m_fmt;
+    FILE* m_fp;
+    int64_t m_iFileSize;
+
+    AVFormatContext *m_oc;
+    AVOutputFormat *m_fmt;
+    AVIOContext* m_pAVIOContext;
+    MMP_U8* m_IoBuffer;
+    URLContext* m_Url;
     
+    enum AVCodecID m_AVCodecID_Video;
+    AVStream *m_audio_st, *m_video_st;
+    AVCodec *m_audio_codec, *m_video_codec;
+
+    MMP_U8 *m_extra_data;
+    MMP_S32 m_extra_data_size;
+    MMP_BOOL m_is_dsi_init[MMP_MEDIATYPE_MAX];
+
 protected:
     CMmpMuxer_Ffmpeg(struct MmpMuxerCreateConfig* pCreateConfig);
     virtual ~CMmpMuxer_Ffmpeg();
@@ -45,10 +59,21 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
+private:
+    static int IORead_C_Stub(void *opaque, uint8_t *buf, int buf_size);
+    static int IOWrite_C_Stub(void *opaque, uint8_t *buf, int buf_size);
+    static int64_t IOSeek_C_Stub(void *opaque, int64_t offset, int whence);
+
+    int IORead_C(void *opaque, uint8_t *buf, int buf_size);
+    int IOWrite_C(void *opaque, uint8_t *buf, int buf_size);
+    int64_t IOSeek_C(void *opaque, int64_t offset, int whence);
+
+    AVStream* add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id, enum MMP_MEDIATYPE mediatype);
     
 public:
     virtual MMP_RESULT AddMediaConfig(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size);
-    virtual MMP_RESULT AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_U32 timestamp);
+    virtual MMP_RESULT AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_S64 pts);
+    
 };
 
 

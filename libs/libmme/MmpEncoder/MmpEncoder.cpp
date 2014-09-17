@@ -289,6 +289,7 @@ MMP_RESULT CMmpEncoder::CreateVideoDefaultConfig(MMP_U32 mmp_video_fourcc,
                                           MMP_U32 framerate, MMP_U32 idr_period, MMP_U32 bitrate,
                                           MMP_OUT struct MmpEncoderCreateConfig *pMmpEncoderCreateConfig
                                           ) {
+    MMP_RESULT mmpResult = MMP_SUCCESS;
 
     memset(pMmpEncoderCreateConfig, 0x00,  sizeof(struct MmpEncoderCreateConfig) );
 
@@ -372,10 +373,13 @@ MMP_RESULT CMmpEncoder::CreateVideoDefaultConfig(MMP_U32 mmp_video_fourcc,
                 pMmpEncoderCreateConfig->enc_info.mpeg4.bReversibleVLC = MMP_FALSE;
 #endif
                 break;
+
+       default :
+           mmpResult = MMP_FAILURE;
     }
 
     
-    return MMP_SUCCESS;
+    return mmpResult;
 }
 
 /////////////////////////////////////////////////////////////

@@ -191,3 +191,44 @@ void CMmpDecoderVideo::DecodeMonitor(CMmpMediaSample* pMediaSample, CMmpMediaSam
     }
     
 }
+
+void CMmpDecoderVideo::DecodeMonitor(class mmp_buffer_videoframe* p_buf_videoframe) {
+
+    static MMP_U32 before_tick = 0, fps_sum=0, dur_sum=0;
+    MMP_U32 start_tick = m_nClassStartTick, cur_tick;
+    MMP_U32 dur_avg = 0;
+
+    if(p_buf_videoframe != NULL) {
+
+        fps_sum ++;
+        dur_sum += p_buf_videoframe->get_coding_dur();
+
+        m_nTotalDecFrameCount++;
+        m_nTotalDecDur += p_buf_videoframe->get_coding_dur();
+ 
+        cur_tick = CMmpUtil::GetTickCount();
+        if( (cur_tick - before_tick) > 1000 ) {
+        
+            if(fps_sum != 0) {
+                dur_avg = dur_sum/fps_sum;
+            }
+            
+            MMPDEBUGMSG(0, (TEXT("[VideoDec %s %s %dx%d] %d. fps=%d dur=%d "), 
+                        this->GetClassName(),   m_szCodecName,  m_bih_out.biWidth, m_bih_out.biHeight,
+                        (cur_tick-start_tick)/1000, fps_sum, dur_avg ));
+
+            if(dur_avg > 0) {
+                m_nDecodingAvgFPS = 1000/dur_avg;
+            }
+            else {
+                m_nDecodingAvgFPS = 1000;
+            }
+
+            before_tick = cur_tick;
+            fps_sum = 0;
+            dur_sum = 0;
+        }
+
+    }
+        
+}

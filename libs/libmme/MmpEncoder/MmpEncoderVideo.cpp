@@ -159,6 +159,37 @@ void CMmpEncoderVideo::EncodeMonitor(CMmpMediaSampleEncode* pMediaSample, CMmpMe
     
 }
 
+void CMmpEncoderVideo::EncodeMonitor(class mmp_buffer_videostream* p_buf_videostream) {
+
+    static MMP_U32 before_tick = 0, fps_sum=0, dur_sum=0;
+    MMP_U32 start_tick = m_nClassStartTick, cur_tick;
+    MMP_U32 dur_avg = 0;
+
+    if(p_buf_videostream->get_stream_real_size() > 0) {
+
+        fps_sum ++;
+        dur_sum += p_buf_videostream->get_coding_dur();
+
+        cur_tick = CMmpUtil::GetTickCount();
+        if( (cur_tick - before_tick) > 1000 ) {
+        
+            if(fps_sum != 0) {
+                dur_avg = dur_sum/fps_sum;
+            }
+            
+            MMPDEBUGMSG(0, (TEXT("[VideoEnc %s %s %dx%d] %d. fps=%d dur=%d "), 
+                        this->GetClassName(),   m_szCodecName,  m_bih_out.biWidth, m_bih_out.biHeight,
+                        (cur_tick-start_tick)/1000, fps_sum, dur_avg ));
+
+            before_tick = cur_tick;
+            fps_sum = 0;
+            dur_sum = 0;
+        }
+
+    }
+    
+}
+
 MMP_BOOL CMmpEncoderVideo::EncodedFrameQueue_IsEmpty() {
     
     return m_queue_ecnframe.IsEmpty()?MMP_TRUE:MMP_FALSE;
@@ -271,7 +302,7 @@ MMP_RESULT CMmpEncoderVideo::EncodedFrameQueue_AddFrameWithConfig_Mpeg4(MMP_U8* 
         framesize = nStartCodeIndex[vop_index];  
     }
     if(framesize > 0) {
-        this->EncodedFrameQueue_AddFrame(pBuffer, framesize, MMP_ENCODED_FLAG_VIDEO_CONFIGDATA);
+        this->EncodedFrameQueue_AddFrame(pBuffer, framesize, MMP_MEDIASAMPMLE_FLAG_CONFIGDATA);
     }
     
     //Add VOP Data
@@ -286,6 +317,7 @@ MMP_RESULT CMmpEncoderVideo::EncodedFrameQueue_AddFrameWithConfig_Mpeg4(MMP_U8* 
     return MMP_SUCCESS;
 }
 
+#if 0
 MMP_RESULT CMmpEncoderVideo::Encode_YUV420Planar_Vir(MMP_U8* Y, MMP_U8* U, MMP_U8* V, 
                                                      MMP_U8* pEncStreamBuf, MMP_U32 nBufMaxSize, MMP_U32* nBufSize, MMP_U32* nFlag) {
 
@@ -330,4 +362,6 @@ MMP_RESULT CMmpEncoderVideo::Encode_YUV420Planar_Vir(MMP_U8* Y, MMP_U8* U, MMP_U
 
     return mmpResult;
 }
+#endif
+
 

@@ -254,3 +254,7 @@ int mme_command_vpu_test3(int argc, char* argv[]) {
     return 0;
 }
 
+int mme_command_vpu_instance_info(int argc, char* argv[])  {
+
+    return 0;
+}

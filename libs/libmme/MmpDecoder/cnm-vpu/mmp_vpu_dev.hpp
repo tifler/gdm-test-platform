@@ -24,6 +24,7 @@
 
 #include "mmp_vpu_def.h"
 #include "mmp_buffer.hpp"
+#include "mmp_env_mgr.hpp"
 
 class mmp_singleton_mgr;
 
@@ -51,83 +52,23 @@ protected:
     struct mmp_vpu_dev_create_config m_create_config;
 
 protected:
-    int m_vpu_fd;
-    MMP_U8* m_p_instance_pool_buffer;
-
-    vpu_buffer_t m_vdb_register;
-    class mmp_buffer* m_p_vpu_common_buffer;
-
-    class mmp_buffer_addr m_code_buf;
-    class mmp_buffer_addr m_parm_buf;
-    class mmp_buffer_addr m_temp_buf;
-    class mmp_buffer_addr m_vpu_reg_buf;
-
-protected:
-
-#if 0
-    inline int WriteReg(unsigned int addr, unsigned int data) {
-        
-        //(*(unsigned long *)(addr + this->m_vdb_register.virt_addr + (coreIdx*VPU_CORE_BASE_OFFSET))) = value
-        (*(unsigned long *)(addr + this->m_vdb_register.virt_addr)) = data;
-        return 0;
-    }
-    
-    inline unsigned int ReadReg(unsigned int addr) {
-    
-        return (*(unsigned long *)(addr + this->m_vdb_register.virt_addr));
-    }
-#endif
-
-#if 0
-    /* register io */
-    inline int VpuWriteReg(int coreIdx, unsigned int addr, unsigned int data) {
-        
-        //(*(unsigned long *)(addr + this->m_vdb_register.virt_addr + (coreIdx*VPU_CORE_BASE_OFFSET))) = value
-        (*(unsigned long *)(addr + this->m_vdb_register.virt_addr)) = data;
-        return 0;
-    }
-
-    inline unsigned int VpuReadReg(int coreIdx, unsigned int addr) {
-    
-        return (*(unsigned long *)(addr + this->m_vdb_register.virt_addr));
-    }
-    
-    int VpuWriteMem(unsigned long coreIdx, unsigned int vir_addr, unsigned char *data, int len, int endian);
-    
-    /* api func */
-    RetCode SetClockGate(Uint32 coreIdx, Uint32 on);
-    RetCode EnterLock(Uint32 coreIdx);
-	RetCode LeaveLock(Uint32 coreIdx);
-    int swap_endian(unsigned char *data, int len, int endian);
-    RetCode BitLoadFirmware(Uint32 coreIdx, PhysicalAddress codeBase, const Uint16 *codeWord, int codeSize);
-    CodecInst *GetPendingInst(Uint32 coreIdx);
-    void BitIssueCommand(Uint32 coreIdx, CodecInst *inst, int cmd);
-
-      /* vdi */
-    int vdi_wait_vpu_busy(unsigned long coreIdx, int timeout, unsigned int addr_bit_busy_flag);
-    int vdi_wait_bus_busy(unsigned long coreIdx, int timeout, unsigned int gdi_busy_flag);
-    int vdi_set_bit_firmware_to_pm(unsigned long coreIdx, const unsigned short *code);
-    int vdi_get_common_memory(unsigned long core_idx, vpu_buffer_t *vb);
-    int vdi_get_sram_memory(unsigned long coreIdx, vpu_buffer_t *vb);
-
-
-    RetCode SetParaSet(DecHandle handle, int paraSetType, DecParamSet * para);
-    
-    RetCode CheckInstanceValidity(CodecInst * pCodecInst);
-    RetCode CheckDecInstanceValidity(DecHandle handle);
-
-    RetCode AllocateFrameBufferArray(int coreIdx, FrameBuffer *frambufArray, vpu_buffer_t *pvbFrame, int mapType, int interleave, int framebufFormat, int num, int stride, int memHeight, int gdiIndex, int fbType, PhysicalAddress tiledBaseAddr, DRAMConfig *pDramCfg);
-
-    int ConfigSecAXI(Uint32 coreIdx, CodStd codStd, SecAxiInfo *sa, int width, int height, int profile);
-#endif
-
-protected:
     mmp_vpu_dev(struct mmp_vpu_dev_create_config* p_create_config);
     virtual ~mmp_vpu_dev();
 
-    virtual MMP_RESULT open();
-    virtual MMP_RESULT close();
+    virtual MMP_RESULT open() = 0;
+    virtual MMP_RESULT close() = 0;
 
+protected:
+    inline void export_vpu_fd(MMP_S32 fd) { mmp_env_mgr::get_instance()->set_vpu_fd(fd); }
+    inline void export_vpu_instance_pool_buffer(MMP_U8* ptr) { mmp_env_mgr::get_instance()->set_vpu_instance_pool_buffer(ptr); }
+    inline void export_vpu_reg_vir_addr(MMP_U32 addr) { mmp_env_mgr::get_instance()->set_vpu_reg_vir_addr(addr); }
+    inline void export_vpu_common_buffer(void* ptr) { mmp_env_mgr::get_instance()->set_vpu_common_buffer(ptr); }
+
+public:
+    MMP_S32 get_phy_addr_from_shared_fd(MMP_S32 shared_fd);
+    MMP_U32 get_vir_addr_from_phy_addr(MMP_U32 phy_addr, MMP_S32 size);
+    MMP_S32 get_phy_addr_for_common_buffer();
+    
 public:
     virtual Uint32  VPU_IsBusy(Uint32 coreIdx) = 0;
 	virtual Uint32  VPU_WaitInterrupt(Uint32 coreIdx, int timeout) = 0;
@@ -188,6 +129,11 @@ public:
 
     virtual void enter_critical_section() = 0;
     virtual void leave_critical_section() = 0;
+    virtual class mmp_oal_mutex* get_external_mutex() = 0;
+
+    virtual MMP_S32 VPU_GetCodecInstanceIndex(void* CodecHdl) = 0;
+    virtual MMP_S32 VPU_GetCodecInstanceUse(void* CodecHdl) = 0;
+    void VPU_GetCodecInfo(int idx, struct mmp_video_hw_codec_instance_info *p_info);
 };
 
 #endif

@@ -116,10 +116,51 @@ MMP_RESULT CMmpDemuxer::GetNextVideoData(MMP_U8* buffer, MMP_U32 buf_max_size, M
 
     return this->GetNextMediaData(MMP_MEDIATYPE_VIDEO, buffer, buf_max_size, buf_size, packet_pts);
 }
+
+MMP_RESULT CMmpDemuxer::GetNextVideoData(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_U8* buffer;
+    MMP_S32 buf_max_size;
+    MMP_S32 stream_size;
+    MMP_S64 packet_pts;
+    MMP_RESULT mmpResult; 
+
+    p_buf_videostream->set_stream_size(0);
+
+    buffer = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    buf_max_size = p_buf_videostream->get_buf_size();
+
+    mmpResult = this->GetNextMediaData(MMP_MEDIATYPE_VIDEO, buffer, (MMP_U32)buf_max_size, (MMP_U32*)&stream_size, &packet_pts);
+    if(mmpResult == MMP_SUCCESS) {
+        p_buf_videostream->set_stream_size(stream_size);
+        p_buf_videostream->set_pts(packet_pts);
+    }
+
+    return mmpResult;
+}
     
 MMP_RESULT CMmpDemuxer::GetVideoExtraData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size) {
 
     return this->GetMediaExtraData(MMP_MEDIATYPE_VIDEO, buffer, buf_max_size, buf_size);
+}
+
+MMP_RESULT CMmpDemuxer::GetVideoExtraData(class mmp_buffer_videostream* p_buf_videstream) {
+
+    class mmp_buffer_addr buf_addr;
+    MMP_S32 stream_size = 0;
+    MMP_RESULT mmpResult;
+
+    buf_addr = p_buf_videstream->get_buf_addr();
+
+    mmpResult = this->GetMediaExtraData(MMP_MEDIATYPE_VIDEO, (MMP_U8*)buf_addr.m_vir_addr, buf_addr.m_size, (MMP_U32*)&stream_size);
+    if(mmpResult == MMP_SUCCESS) {
+        p_buf_videstream->set_stream_size(stream_size);
+    }
+    else {
+        p_buf_videstream->set_stream_size(0);
+    }
+
+    return mmpResult;
 }
 
 MMP_RESULT CMmpDemuxer::GetAudioExtraData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size) {

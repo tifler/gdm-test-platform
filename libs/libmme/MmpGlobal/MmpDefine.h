@@ -227,5 +227,11 @@ enum MMP_MEDIATYPE
 #define MMP_OUT
 #define MMP_INOUT
 
+/* malloc/free/memset/memcpy */
+#define MMP_MALLOC(x) malloc(x)
+#define MMP_FREE(x) free(x)
+#define MMP_MEMSET(ptr, v, sz) memset(ptr, v, sz)
+#define MMP_MEMCPY(dst, src, sz) memcpy(dst, src, sz)
+
 #endif // #ifndef __MMPGLOBAL_H__
 

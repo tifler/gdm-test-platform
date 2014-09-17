@@ -828,12 +828,10 @@ MMP_RESULT CMmpDecoderVpu::DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMe
 
                 t4 = CMmpUtil::GetTickCount();
 
-                MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpu::DecodeAu_PinEnd] ln=%d dur=(%d %d %d %d) m_output_info.indexFrameDisplay=%d  ion_fd=%d  bufYCbCr(0x%08x 0x%08x 0x%08x, 0x%08x ) "), __LINE__, 
+                MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpu::DecodeAu_PinEnd] ln=%d dur=(%d %d %d %d) m_output_info.indexFrameDisplay=%d   bufYCbCr(0x%08x 0x%08x 0x%08x) "), __LINE__, 
                                                             (t1-start_tick),(t2-start_tick),(t3-start_tick),(t4-start_tick), 
                                                             m_output_info.indexFrameDisplay,
-                                                            frameBuf.ion_shared_fd,
-                                                            frameBuf.bufY, frameBuf.bufCb, frameBuf.bufCr,
-                                                            frameBuf.ion_base_phyaddr
+                                                            frameBuf.bufY, frameBuf.bufCb, frameBuf.bufCr
                                                             ));
                 
 

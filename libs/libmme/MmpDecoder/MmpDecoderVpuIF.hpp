@@ -38,6 +38,7 @@ protected:
     struct MmpDecoderCreateConfig m_create_config;
 
     class mmp_vpu_if* m_p_vpu_if;
+    MMP_S32 m_vpu_instance_index;
 
     Uint32 m_codec_idx;
     Uint32 m_version;
@@ -46,8 +47,8 @@ protected:
 
     int m_mapType;
     
-    MMP_U8* m_p_dsi_stream;
-    MMP_S32 m_dsi_stream_size;
+    //MMP_U8* m_p_dsi_stream;
+    //MMP_S32 m_dsi_stream_size;
     
     int m_regFrameBufCount;
     int m_framebufSize;
@@ -62,7 +63,10 @@ protected:
     class mmp_buffer* m_p_stream_buffer;
     vpu_buffer_t m_vpu_stream_buffer;
 
-    class mmp_buffer* m_p_decoded_buffer[MAX_FRAMEBUFFER_COUNT];
+    class mmp_buffer_videoframe* m_p_buf_videoframe[MAX_FRAMEBUFFER_COUNT];
+
+    MMP_S32 m_last_int_reason;
+    MMP_S32 m_input_stream_count;
         
 protected:
     CMmpDecoderVpuIF(struct MmpDecoderCreateConfig *pCreateConfig);
@@ -70,8 +74,7 @@ protected:
 
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
-
-    //void PostProcessing(AVFrame *pAVFrame_Decoded, AVCodecContext *pAVCodecContext);
+    
 private:
     void make_decOP_Common();
     void make_decOP_H263();
@@ -83,22 +86,27 @@ private:
     void make_decOP_RV30();
     void make_decOP_RV40();
     void make_decOP_VP80();
+    void make_decOP_Theora();
 
-    void make_user_frame();
+    MMP_RESULT make_seqheader_Common(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_seqheader_H264(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_seqheader_VC1(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_seqheader_DIV3(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_seqheader_RV(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_seqheader_VP8(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_seqheader_Theora(class mmp_buffer_videostream* p_buf_videostream);
 
-	static void vdi_memcpy_stub(void* param, void* dest_vaddr, void* src_paddr, int size);
-
-private:
-    MMP_RESULT DecodeDSI_CheckStream_Mpeg4(MMP_U8* pStream, MMP_U32 nStreamSize);
-
-    MMP_RESULT DecodeAu_StreamRemake_AVC1(CMmpMediaSample* pMediaSample);
+    MMP_RESULT make_frameheader_Common(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_frameheader_H264(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_frameheader_VC1(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_frameheader_DIV3(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_frameheader_RV(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_frameheader_VP8(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT make_frameheader_Theora(class mmp_buffer_videostream* p_buf_videostream);
 
 protected:
-    virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
-    
-    MMP_RESULT DecodeAu_PinEnd(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
-
-    //virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
+    virtual MMP_RESULT DecodeDSI(class mmp_buffer_videostream* p_buf_videostream);
+    MMP_RESULT DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe);
     
 };
 

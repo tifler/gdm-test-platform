@@ -43,11 +43,11 @@ LOCAL_CFLAGS	+= \
             -I$(BASEDIR)/include\
             -I$(MME_TOP)/../libion \
             -I$(FFMPEG_TOP) -I$(JPEGLIB_TOP)\
-            -I$(MME_VPULIB_TOP)/vpuapi -I$(MME_VPULIB_TOP)/include \
+            -I$(MME_VPULIB_TOP)/vpuapi -I$(MME_VPULIB_TOP)/include -I$(MME_VPULIB_TOP)/vdi/linux/driver\
             -I$(MME_TOP)/MmpGlobal \
             -I$(MME_TOP)/MmpComm \
             -I$(MME_TOP)/MmpDemuxer -I$(MME_TOP)/MmpMuxer \
-            -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpDecoder/buffer\
+            -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpDecoder/buffer -I$(MME_TOP)/MmpDecoder/cnm-vpu -I$(MME_TOP)/MmpDecoder/singleton\
             -I$(MME_TOP)/MmpEncoder \
             -I$(MME_TOP)/MmpRenderer \
             -I$(MME_TOP)/MmpPlayer \

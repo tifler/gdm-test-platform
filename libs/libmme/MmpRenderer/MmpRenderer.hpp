@@ -28,6 +28,7 @@
 #include "MmpEncoderVideo.hpp"
 #include "MmpMuxer.hpp"
 #include "mmp_buffer_videoframe.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 class CMmpRenderer
 {
@@ -47,13 +48,11 @@ protected:
     CMmpRendererCreateProp* m_pRendererProp;
 	CMmpRendererCreateProp m_RendererProp;
 
+private:
     CMmpEncoderVideo* m_pVideoEncoder;
     CMmpMuxer* m_pMuxer;
-    MMP_U8* m_p_enc_stream;
-
-    CMmpMediaSampleEncode m_MediaSample_Enc;
-    CMmpMediaSampleEncodeResult m_MediaSample_EncResult;
-
+    class mmp_buffer_videostream* m_p_buf_videostream_enc;
+    
 protected:
     CMmpRenderer(enum MMP_MEDIATYPE mt, CMmpRendererCreateProp* pRendererProp);
     virtual ~CMmpRenderer();
@@ -65,8 +64,7 @@ protected:
     virtual MMP_RESULT Render_Ion(CMmpMediaSampleDecodeResult* pDecResult) {return MMP_FAILURE;}
         
 protected:
-    MMP_RESULT EncodeAndMux(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
-    MMP_RESULT EncodeAndMux(CMmpMediaSampleDecodeResult* pDecResult);
+    MMP_RESULT EncodeAndMux(class mmp_buffer_videoframe* p_buf_videoframe);
 
 public:
     virtual MMP_RESULT OnSize(int cx, int cy) { return MMP_FAILURE; }
@@ -79,10 +77,9 @@ public:
     
     virtual MMP_RESULT Render() {return MMP_FAILURE;}
     virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
-    virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe) {return MMP_FAILURE;}
+    virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe) = 0;
     
     
-    virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) = 0;
     virtual MMP_RESULT RenderPCM(MMP_U8* pcm_buffer, MMP_U32 pcm_byte_size);
 
 

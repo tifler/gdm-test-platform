@@ -637,7 +637,7 @@ void CMmpPlayerAVEx2::Service_AudioRender() {
 
                 break;
             }
-            else if( (play_us + 3*1000000LL) < pDecResult->uiTimeStamp) {
+            else if( (play_us + 3*1000000LL) < (MMP_U64)pDecResult->uiTimeStamp) {
             
                 MMPDEBUGMSG(1, (TEXT("[AV Player AudioRen] frame is too fast, skip  ts=%d/%d"),
                                         (unsigned int)(pDecResult->uiTimeStamp/1000), 

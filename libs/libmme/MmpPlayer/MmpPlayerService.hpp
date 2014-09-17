@@ -94,6 +94,7 @@ public:
     /* Decoder Prop */
     virtual MMP_S32 GetVideoDecoderFPS() { return 0; }
     virtual MMP_S32 GetVideoDecoderDur() { return 0; }
+    virtual MMP_S32 GetVideoDecoderTotalDecFrameCount() { return 0; }
     virtual const MMP_CHAR* GetVideoDecoderClassName() { return "Unknown"; }
     
     /* Video Renderer */

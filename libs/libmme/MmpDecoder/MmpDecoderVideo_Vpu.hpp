@@ -49,8 +49,12 @@ protected:
 
     virtual const MMP_CHAR* GetClassName() { return (const MMP_CHAR*)"VPU";}
 public:
+    static MMP_BOOL CheckSupportCodec(MMP_U32 format);
+
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
+    virtual MMP_RESULT DecodeDSI(class mmp_buffer_videostream* p_buf_videostream);
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
+    virtual MMP_RESULT DecodeAu(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe);
 };
 
 #endif

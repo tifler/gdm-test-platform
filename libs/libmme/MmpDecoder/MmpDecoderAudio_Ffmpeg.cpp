@@ -293,7 +293,7 @@ MMP_RESULT CMmpDecoderAudio_Ffmpeg::DecodeAu(CMmpMediaSample* pMediaSample, CMmp
     avcodec_get_frame_defaults(m_pAVFrame_Decoded);
     usebyte = avcodec_decode_audio4(m_pAVCodecContext, m_pAVFrame_Decoded, &frameFinished, &avpkt);
     if(usebyte > 0) {
-        if(usebyte > pMediaSample->uiAuSize) {
+        if(usebyte > (int32_t)pMediaSample->uiAuSize) {
             pDecResult->uiAuUsedByte = pMediaSample->uiAuSize;
         }
         else {

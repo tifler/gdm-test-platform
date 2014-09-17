@@ -76,12 +76,13 @@ void av_register_all(void)
     */
     
 
+    
     /*
         Demuxer
     */
     REGISTER_DEMUXER(AVI, avi);  /* OK */
     REGISTER_DEMUXER(ASF,  asf); /* OK */
-    REGISTER_MUXDEMUX(WAV, wav); /* Non-Check */
+    REGISTER_DEMUXER(WAV, wav); /* Non-Check */
     REGISTER_DEMUXER(MOV, mov);
     REGISTER_DEMUXER(OGG, ogg);
     REGISTER_DEMUXER(FLV, flv);
@@ -98,14 +99,18 @@ void av_register_all(void)
     
     REGISTER_DEMUXER(VOBSUB,           vobsub);
     REGISTER_DEMUXER(RM,               rm);
-
+    
     REGISTER_DEMUXER (APE,              ape);
     REGISTER_DEMUXER (AAC,              aac);
-
+    
     /*
         Muxer 
     */
-    REGISTER_MUXER(AVI, avi);  /* OK */
+    REGISTER_MUXER(MP4, mp4);
+    REGISTER_MUXER(MOV, mov);
+    REGISTER_MUXER(AVI, avi);  
+    REGISTER_MUXER(WAV, wav); /* Non-Check */
+
  
 }
 

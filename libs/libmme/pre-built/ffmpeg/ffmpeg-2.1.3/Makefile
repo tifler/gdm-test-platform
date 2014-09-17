@@ -4,6 +4,7 @@ CROSS_COMPILE   :=/home1/hthwang/tools/arm-2013.05-linux/bin/arm-none-linux-gnue
 TOP = /home1/hthwang/develop/odysseus/test-platform
 MME_TOP = $(TOP)/libs/libmme
 FFMPEG_TOP = .
+LIBX264_TOP = ../x264-snapshot-20140408-2245
 
 CC				:=$(CROSS_COMPILE)gcc
 CXX				:=$(CROSS_COMPILE)g++
@@ -18,7 +19,7 @@ OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
 #CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D__PLATFORM_ODY_FPGA -march=armv6
 CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D__PLATFORM_ODY_FPGA -march=armv7-a  
-CFLAGS += $(CFLAGS_FFMPEG)
+CFLAGS += $(CFLAGS_FFMPEG) -I$(LIBX264_TOP)
 $ASFLAGS += $(CFLAGS_FFMPEG) -march=armv6  
 ASFLAGS += $(CFLAGS_FFMPEG) -march=armv7-a  
 

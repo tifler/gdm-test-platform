@@ -115,15 +115,15 @@ MMP_RESULT CMmpEncoderFfmpeg::Close()
     return MMP_SUCCESS;
 }
 
-MMP_RESULT CMmpEncoderFfmpeg::EncodeDSI(CMmpMediaSampleEncode* pMediaSample, CMmpMediaSampleEncodeResult* pEncResult) {
+MMP_RESULT CMmpEncoderFfmpeg::EncodeDSI() {
 
-    MMP_RESULT mmpResult;
+    //MMP_RESULT mmpResult;
     AVRational avr;
     
     AVCodec *codec;
     AVCodecContext *cc= NULL;
     AVCodecContext *cc1= NULL;
-    MMP_U32 key=0, psz1, psz2, i;
+    MMP_U32 key=0;
 
 
     codec = avcodec_find_encoder(m_AVCodecID);
@@ -131,7 +131,7 @@ MMP_RESULT CMmpEncoderFfmpeg::EncodeDSI(CMmpMediaSampleEncode* pMediaSample, CMm
         return MMP_FAILURE;
     }
 
-    cc= avcodec_alloc_context();
+    cc= avcodec_alloc_context3(codec);
     
     cc->bit_rate = m_CreateConfig.nBitRate;//400000;     /* put sample parameters */
     cc->width = m_nPicWidth;   /* resolution must be a multiple of two */
@@ -150,8 +150,12 @@ MMP_RESULT CMmpEncoderFfmpeg::EncodeDSI(CMmpMediaSampleEncode* pMediaSample, CMm
     cc->extradata = NULL;//pStream;
     cc->extradata_size = NULL;//nStreamSize;
     
+    if(m_AVCodecID == AV_CODEC_ID_H263) {
+        cc->max_b_frames = 0;
+    }
+
     /* open it */
-    if(avcodec_open(cc, codec) < 0) 
+    if(avcodec_open2(cc, codec, NULL) < 0) 
     {
         MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpEncoderFfmpeg::DecodeDSI] FAIL: could not open codec\n\r")));
         return MMP_FAILURE;

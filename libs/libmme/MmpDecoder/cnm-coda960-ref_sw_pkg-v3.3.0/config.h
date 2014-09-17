@@ -14,19 +14,17 @@
 #include "mmp_buffer_mgr.h"
 
 #ifdef __cplusplus
-#if (MMP_OS == MMP_OS_WIN32)
-#define EXTERN_C extern "C"
-#else
-#define EXTERN_C extern
-#endif
-#else
-#define EXTERN_C extern
+extern "C" {
 #endif
 
-EXTERN_C int g_vpu_fd; 
-EXTERN_C unsigned char* g_p_instance_pool_buffer;
-EXTERN_C unsigned int g_vpu_reg_vir_addr;
-EXTERN_C void* g_p_vpu_common_buffer;
+    int mme_util_get_vpu_fd(void);
+    unsigned char* mme_util_get_vpu_instance_pool_buffer(void);
+    unsigned int mme_util_get_vpu_reg_vir_addr(void);
+    void* mme_util_get_vpu_common_buffer(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* #ifdef __VPU_PLATFORM_MME */
 

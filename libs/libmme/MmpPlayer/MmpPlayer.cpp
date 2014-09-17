@@ -22,11 +22,12 @@
 
 #include "MmpPlayer.hpp"
 #include "MmpUtil.hpp"
-#include "MmpPlayerVideo.hpp"
+#include "MmpPlayerVideoEx1.hpp"
 #include "MmpPlayerAudio.hpp"
 #include "MmpPlayerPCM.hpp"
 #include "MmpPlayerAVEx1.hpp"
 #include "MmpPlayerAVEx2.hpp"
+#include "MmpPlayerAVEx3.hpp"
 #include "MmpPlayerTONE.hpp"
 #include "MmpPlayerYUV.hpp"
 
@@ -57,11 +58,12 @@ CMmpPlayer* CMmpPlayer::CreateObject(MMP_U32 playerID, CMmpPlayerCreateProp* pPl
         {
             case MMP_PLAYER_DEFAULT:
             case MMP_PLAYER_AUDIO_VIDEO:
-                pObj=new CMmpPlayerAVEx2(pPlayerProp);
+                //pObj=new CMmpPlayerAVEx2(pPlayerProp);
+                pObj=new CMmpPlayerAVEx3(pPlayerProp);
                 break;
 
             case MMP_PLAYER_VIDEO_ONLY:
-                pObj=new CMmpPlayerVideo(pPlayerProp);
+                pObj=new CMmpPlayerVideoEx1(pPlayerProp);
                 break;
 
             case MMP_PLAYER_AUDIO_ONLY:

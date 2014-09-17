@@ -23,6 +23,7 @@
 #include "MmpMuxer_ammf.hpp"
 #include "MmpMuxer_Ffmpeg.hpp"
 #include "MmpMuxer_rawstream.hpp"
+#include "MmpUtil.hpp"
 
 /////////////////////////////////////////////////////////
 // Create/Destroy Object
@@ -30,23 +31,21 @@
 CMmpMuxer* CMmpMuxer::CreateObject(struct MmpMuxerCreateConfig* pCreateConfig)
 {
     CMmpMuxer* pObj=NULL;
-		       
-    switch(pCreateConfig->type) {
+    MMP_CHAR szExt[32];
 
-      case MMP_MUXER_TYPE_ANAPASS_MULTIMEDIA_FORMAT:
-          pObj=new CMmpMuxer_ammf(pCreateConfig);
-          break;
+    CMmpUtil::SplitExt((MMP_CHAR*)pCreateConfig->filename, szExt);
+    CMmpUtil::MakeLower(szExt);
 
-      case MMP_MUXER_TYPE_RAWSTREAM:
-          pObj=new CMmpMuxer_rawstream(pCreateConfig);
-          break;
-
-      case MMP_MUXER_TYPE_FFMPEG:
-      default:
-          pObj=new CMmpMuxer_Ffmpeg(pCreateConfig);
-          break;
+    if(strcmp(szExt, "ammf") == 0) {
+        pObj=new CMmpMuxer_ammf(pCreateConfig);
     }
-
+    else if(strcmp(szExt, "h264") == 0) {
+        pObj=new CMmpMuxer_rawstream(pCreateConfig);
+    }
+    else {
+        pObj=new CMmpMuxer_Ffmpeg(pCreateConfig);
+    }
+    
 	if(pObj==NULL) {
         return (CMmpMuxer*)NULL;
 	}
@@ -76,6 +75,7 @@ MMP_RESULT CMmpMuxer::DestroyObject(CMmpMuxer* pObj)
 
 CMmpMuxer::CMmpMuxer(struct MmpMuxerCreateConfig* pCreateConfig) :
 m_create_config(*pCreateConfig)
+,m_last_input_pts(0)
 {
 
 }
@@ -95,7 +95,37 @@ MMP_RESULT CMmpMuxer::Close()
     return MMP_FAILURE;
 }
 
-MMP_RESULT CMmpMuxer::AddVideoData(MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_U32 timestamp) {
+MMP_RESULT CMmpMuxer::AddVideoConfig(MMP_U8* buffer, MMP_U32 buf_size) {
 
-    return this->AddMediaData(MMP_MEDIATYPE_VIDEO, buffer, buf_size, flag, timestamp);
+    return this->AddMediaConfig(MMP_MEDIATYPE_VIDEO, buffer, buf_size);
+}
+
+MMP_RESULT CMmpMuxer::AddVideoData(MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_S64 pts) {
+
+    return this->AddMediaData(MMP_MEDIATYPE_VIDEO, buffer, buf_size, flag, pts);
+}
+
+MMP_RESULT CMmpMuxer::AddMediaData(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U8* p_stream;
+    MMP_S32 stream_size;
+    MMP_U32 flag;
+    MMP_S64 pts;
+    
+    if(p_buf_videostream->get_dsi_size() > 0) {
+        mmpResult = this->AddMediaConfig(MMP_MEDIATYPE_VIDEO, (MMP_U8*)p_buf_videostream->get_dsi_buffer(), p_buf_videostream->get_dsi_size());
+    }
+
+    if(p_buf_videostream->get_stream_real_size() > 0) {
+
+        p_stream = p_buf_videostream->get_stream_real_ptr();
+        stream_size = p_buf_videostream->get_stream_real_size();
+        flag = p_buf_videostream->get_flag();
+        pts = p_buf_videostream->get_pts();
+
+        mmpResult = this->AddMediaData(MMP_MEDIATYPE_VIDEO, p_stream, stream_size, flag, pts);
+    }
+
+    return MMP_SUCCESS;
 }

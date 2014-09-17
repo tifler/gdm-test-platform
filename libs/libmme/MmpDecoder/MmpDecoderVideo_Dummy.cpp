@@ -107,7 +107,7 @@ MMP_RESULT CMmpDecoderVideo_Dummy::DecodeAu(CMmpMediaSample* pMediaSample, CMmpM
     int32_t frameFinished = 192000 * 2;
     int32_t usebyte;
     AVPacket avpkt;
-    AVPicture *pFrameOut;
+    //AVPicture *pFrameOut;
 
     MMP_U32 dec_start_tick, dec_end_tick;
 

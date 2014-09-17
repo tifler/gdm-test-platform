@@ -96,6 +96,7 @@ protected:
     
     MMP_RESULT EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc, CMmpMediaSampleEncodeResult* pEncResult);
     MMP_RESULT EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc, CMmpMediaSampleEncodeResult* pEncResult);
+    virtual MMP_RESULT EncodeAu(class mmp_buffer_videoframe* p_buf_videoframe, class mmp_buffer_videostream* p_buf_videostream);
 
     //virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
     

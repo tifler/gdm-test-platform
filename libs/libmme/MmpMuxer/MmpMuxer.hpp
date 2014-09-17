@@ -24,20 +24,21 @@
 
 #include "MmpDefine.h"
 #include "MmpPlayerDef.h"
-
-#define MMP_MUXER_TYPE_FFMPEG 0x1000
-#define MMP_MUXER_TYPE_ANAPASS_MULTIMEDIA_FORMAT 0x3001
-#define MMP_MUXER_TYPE_RAWSTREAM                 0x3002
+#include "mmp_buffer_mgr.hpp"
 
 struct MmpMuxerCreateConfig
 {
-    MMP_U32 type;
     MMP_U8 filename[256];
 
     MMP_BOOL bMedia[MMP_MEDIATYPE_MAX];
 
     MMPWAVEFORMATEX wf;
+
+    /*Video Featrue */
     MMPBITMAPINFOHEADER bih;
+    MMP_S32 video_bitrate;
+    MMP_S32 video_fps;
+    MMP_S32 video_idr_period; 
 };
 
 class CMmpMuxer
@@ -50,6 +51,9 @@ public:
 protected:
     struct MmpMuxerCreateConfig m_create_config;
 
+private:
+    MMP_S64 m_last_input_pts;
+
 protected:
     CMmpMuxer(struct MmpMuxerCreateConfig* pCreateConfig);
     virtual ~CMmpMuxer();
@@ -57,12 +61,19 @@ protected:
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
 
+protected:
+    inline void set_last_input_pts(MMP_S64 pts) { m_last_input_pts = pts; }
+
 public:
+    virtual MMP_RESULT AddVideoConfig(MMP_U8* buffer, MMP_U32 buf_size);
+    virtual MMP_RESULT AddVideoData(MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_S64 pts);
+    
     virtual MMP_RESULT AddMediaConfig(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size) = 0;
-    virtual MMP_RESULT AddVideoData(MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_U32 timestamp);
+    virtual MMP_RESULT AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_S64 pts) = 0;
+    virtual MMP_RESULT AddMediaData(class mmp_buffer_videostream* p_buf_videostream);
     
-    virtual MMP_RESULT AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_U32 timestamp) = 0;
-    
+    MMP_S32 get_video_fps() { return this->m_create_config.video_fps; }
+    MMP_S64 get_last_input_pts() { return m_last_input_pts; }
     
 };
 

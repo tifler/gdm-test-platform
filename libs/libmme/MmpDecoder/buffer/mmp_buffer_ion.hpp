@@ -19,20 +19,20 @@
  * limitations under the License.
  */
 
-#ifndef MMP_BUFFER_ION_STREAM_HPP__
-#define MMP_BUFFER_ION_STREAM_HPP__
+#ifndef MMP_BUFFER_ION_HPP__
+#define MMP_BUFFER_ION_HPP__
 
 #include "mmp_buffer.hpp"
 
-class mmp_buffer_ion_stream : public mmp_buffer {
+class mmp_buffer_ion : public mmp_buffer {
 
 friend class mmp_buffer;
 
 private:
     
 protected:
-    mmp_buffer_ion_stream(struct mmp_buffer_create_object *p_create_object);
-    virtual ~mmp_buffer_ion_stream();
+    mmp_buffer_ion(struct mmp_buffer_create_config *p_create_config);
+    virtual ~mmp_buffer_ion();
 
     virtual MMP_RESULT open();
     virtual MMP_RESULT close();

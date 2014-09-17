@@ -35,7 +35,7 @@ private:
 	
 protected:
     
-	mmp_oal_mutex_win32();
+	mmp_oal_mutex_win32(MMP_U32 key);
 	virtual ~mmp_oal_mutex_win32();
 
 	virtual MMP_RESULT open();

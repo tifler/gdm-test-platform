@@ -94,7 +94,7 @@ MMP_RESULT CMmpMuxer_ammf::Open()
 
 MMP_RESULT CMmpMuxer_ammf::Close()
 {   
-    int i, j;
+    int i;
     TList<CMmpAmmfIndex> *pListIndex;
     CMmpAmmfIndex index;
     bool bflag;
@@ -163,12 +163,12 @@ MMP_RESULT CMmpMuxer_ammf::AddMediaConfig(MMP_U32 mediatype, MMP_U8* buffer, MMP
     return mmpResult;
 }
 
-MMP_RESULT CMmpMuxer_ammf::AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_U32 timestamp) {
+MMP_RESULT CMmpMuxer_ammf::AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_S64 pts) {
 
     TList<CMmpAmmfIndex>* pListIndex;
     CMmpAmmfIndex index;
 
-    if( (flag&MMP_ENCODED_FLAG_VIDEO_CONFIGDATA) != 0 ) {
+    if( (flag&MMP_MEDIASAMPMLE_FLAG_CONFIGDATA) != 0 ) {
         this->AddMediaConfig(mediatype, buffer, buf_size);
     }
     else {
@@ -178,15 +178,18 @@ MMP_RESULT CMmpMuxer_ammf::AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U
         index.uiStreamType = mediatype;
         index.uiStreamSize = buf_size;
         index.uiFileOffset = (MMP_U32)ftell(m_fp);
-        index.uiTimeStamp = timestamp;
+        index.uiTimeStamp = (MMP_U32)(pts/1000L);
         index.uiFlag = flag;
         pListIndex->Add(index);
 
         fwrite(buffer, 1, buf_size, m_fp);
 
         m_ammf_header.uiStreamDataSize += buf_size;
-
+        if(m_ammf_header.uiPlayDuration < (index.uiTimeStamp + 30) ) {
+            m_ammf_header.uiPlayDuration = index.uiTimeStamp + 30;
+        }
     }
 
     return MMP_SUCCESS;
 }
+

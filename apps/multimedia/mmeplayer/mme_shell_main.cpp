@@ -41,6 +41,7 @@ struct mme_command mme_cmds[] = {
         { (char*)"stat"    , mme_command_player_status,  (char*)"display play status infomation  "},
         { (char*)"play_loop"    , mme_command_player_loop,  (char*)"player loop "},
         { (char*)"disp"    , mme_command_player_set_first_renderer,  (char*)"set first renderer to display  "},
+        { (char*)"meminfo"    , mme_command_player_meminfo,  (char*)"display player memory info"},
 
         /*encoder */
         { (char*)"play_enc"    , mme_command_player_enc_start,  (char*)"player enc start"},
@@ -49,7 +50,11 @@ struct mme_command mme_cmds[] = {
 
         /* ion */
         { (char*)"ion_t1"  , mme_command_ion_test1,  (char*)"ion test1"},
-
+        { (char*)"ion_alloc_fd"  , mme_command_ion_alloc_fd,  (char*)"ion alloc fd"},
+        { (char*)"ion_free_fd"  , mme_command_ion_free_fd,  (char*)"ion free fd"},
+        { (char*)"ion_import"  , mme_command_ion_import,  (char*)"ion import"},
+        { (char*)"ion_phy_to_vir"  , mme_command_ion_phy_to_vir,  (char*)"ion phy to vir"},
+        
 #if (MMESHELL_RIL==1)
         /*ril*/
         { (char*)"ril_init"   , mme_command_ril_init,  (char*)"ril init"},
@@ -95,6 +100,8 @@ static void mme_shell_init() {
 void mme_shell_deinit() {
 
     mme_command_player_stop_all(0, NULL);
+    mme_command_player_enc_stop(0, NULL);
+
     mme_command_system_deinit(0, NULL);
 
 #if (MMESHELL_RIL==1)
@@ -121,7 +128,9 @@ void mme_shell_main(int argc_app, char* argv_app[]) {
     printf("------------------------------------ \n");
 	printf("  App   : mmeplayer  \n");
     printf("  Build : %s , hthwang@anapass.com \n", __DATE__);
-    printf("  \targc:%d  argv[0]:%s  argv[1]:%s \n", argc_app, argv_app[0], argv_app[1]);
+    if(argc_app >= 2) {
+        printf("  \targc:%d  argv[0]:%s  argv[1]:%s \n", argc_app, argv_app[0], argv_app[1]);
+    }
 	printf("------------------------------------ \n");
 	
 	if(argc_app == 2) {

@@ -124,7 +124,7 @@ MMP_RESULT CMmpDecoderAudio_Dummy::AudioConvert_Create(AVCodecContext *pAVCodecC
     
 MMP_RESULT CMmpDecoderAudio_Dummy::AudioConvert_Destroy() {
 
-    this->AudioConvert_Destroy();
+    //this->AudioConvert_Destroy();
 
     return MMP_SUCCESS;
 }
@@ -258,8 +258,6 @@ MMP_RESULT CMmpDecoderAudio_Dummy::DecodeAu(CMmpMediaSample* pMediaSample, CMmpM
     int32_t frameFinished = 192000 * 2;
     int32_t usebyte;
     AVPacket avpkt;
-    AVCodecContext *cc;
-    struct audio_decoded_packet decoded_packet;
     
     MMP_U32 dec_start_tick, dec_end_tick;
 
@@ -311,7 +309,7 @@ MMP_RESULT CMmpDecoderAudio_Dummy::DecodeAu(CMmpMediaSample* pMediaSample, CMmpM
             {
                 m_bCofigOK = MMP_TRUE;
 
-                m_wf_in.wFormatTag = m_nFormat;
+                m_wf_in.wFormatTag = (unsigned short)m_nFormat;
                 m_wf_in.nChannels = m_pAVCodecContext->channels;
                 m_wf_in.nSamplesPerSec = m_pAVCodecContext->sample_rate;
                 m_wf_in.nAvgBytesPerSec = 0;
@@ -445,7 +443,6 @@ AudioConvert *ff_audio_convert_alloc(AVAudioResampleContext *avr,
 
 void CMmpDecoderAudio_Dummy::AudioConvert_Processing(MMP_U32 uiTimeStamp, AVFrame *pAVFrame_Decoded, AVCodecContext *pAVCodecContext) {
 
-    AudioConvert *ac;
     AudioData out, in;
     struct audio_decoded_packet* p_decoded_packet;
     int iret;

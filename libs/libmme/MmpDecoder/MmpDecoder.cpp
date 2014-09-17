@@ -85,79 +85,34 @@ CMmpDecoder* CMmpDecoder::CreateVideoObject(struct MmpDecoderCreateConfig *pCrea
 
 	CMmpDecoder* pObj=NULL;
 	
-    if(bForceFfmpeg == MMP_TRUE) {
+    if( (bForceFfmpeg == MMP_TRUE) ) {
         pObj=new CMmpDecoderVideo_Ffmpeg(pCreateConfig);
     }
     else { 
 
-	    switch(pCreateConfig->nFormat)
-	    {
-            case MMP_FOURCC_VIDEO_H263:
-            case MMP_FOURCC_VIDEO_H264:
-            case MMP_FOURCC_VIDEO_MPEG4:
-            case MMP_FOURCC_VIDEO_VC1:
-            case MMP_FOURCC_VIDEO_WMV3:
-            case MMP_FOURCC_VIDEO_MSMPEG4V3: /* Divx3 */
-            case MMP_FOURCC_VIDEO_RV30: 
-            case MMP_FOURCC_VIDEO_RV40: 
-            case MMP_FOURCC_VIDEO_VP80:
-                if(pCreateConfig->bThumbnailMode == MMP_TRUE) {
-                    pObj=new CMmpDecoderVideo_Ffmpeg(pCreateConfig);
-                }
-                else {
-    #if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) )
-                    pObj=new CMmpDecoderVideo_Mfc(pCreateConfig);
-                    
-    #elif (MMP_HWCODEC == MMP_HWCODEC_VPU)
-                    pObj=new CMmpDecoderVideo_Vpu(pCreateConfig);
-    #else
-                    pObj=new CMmpDecoderVideo_Ffmpeg(pCreateConfig);
-    #endif
-                }
-                break;
-            
-            case MMP_FOURCC_VIDEO_MJPEG:
-            case MMP_FOURCC_VIDEO_THEORA:
-            case MMP_FOURCC_VIDEO_MPEG2:
-            case MMP_FOURCC_VIDEO_FFMPEG:
-                //pObj=new CMmpDecoderVideo_Dummy(pCreateConfig);
-                //pObj=new CMmpDecoderVideo_Mfc(pCreateConfig);
-                pObj=new CMmpDecoderVideo_Ffmpeg(pCreateConfig);
-		        break;
-
-            //case MMP_FOURCC_VIDEO_VP6:
-            //case MMP_FOURCC_VIDEO_VP6F:
-            //case MMP_FOURCC_VIDEO_VP6A:
-            //    pObj=new CMmpDecoderVideo_Ffmpeg(nFormat, nStreamType);
-                //pObj=new CMmpDecoderVideo_Mfc(nFormat, nStreamType);
-            //    break;
-
-    		
-            //case MMP_FOURCC_VIDEO_RV30:
-            //case MMP_FOURCC_VIDEO_RV40:
-              //  pObj=new CMmpDecoderVideo_Ffmpeg(nFormat, nStreamType);
-                //pObj=new CMmpDecoderVideo_Dummy(nFormat, nStreamType);
-                //break;
-           
-            //case MMP_FOURCC_VIDEO_SVQ1:
-            //case MMP_FOURCC_VIDEO_SVQ3:
-              //  pObj=new CMmpDecoderVideo_Ffmpeg(nFormat, nStreamType);
-                //pObj=new CMmpDecoderVideo_Dummy(nFormat, nStreamType);
-                //break;
-
-            
-            
-            //case MMP_FOURCC_VIDEO_MSMPEG4V1:
-            //case MMP_FOURCC_VIDEO_MSMPEG4V2:
-            //case MMP_FOURCC_VIDEO_MSMPEG4V3:
-              //  pObj=new CMmpDecoderVideo_Ffmpeg(nFormat, nStreamType);
-                //pObj=new CMmpDecoderVideo_Dummy(nFormat, nStreamType);
-                //break;
-	    }
+#if (MMP_HWCODEC == MMP_HWCODEC_VPU)
+        //if(pCreateConfig->bThumbnailMode == MMP_TRUE) {
+        //
+        //}
+        if(CMmpDecoderVideo_Vpu::CheckSupportCodec(pCreateConfig->nFormat) == MMP_TRUE) {
+            pObj=new CMmpDecoderVideo_Vpu(pCreateConfig);
+        }
+        else {
+        
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDecoder::CreateVideoObject] FAIL: Not support VPU codec  fourcc=%c%c%c%c resol=%dx%d"), 
+                    MMPGETFOURCC(pCreateConfig->nFormat, 0),MMPGETFOURCC(pCreateConfig->nFormat, 1),
+                    MMPGETFOURCC(pCreateConfig->nFormat, 2),MMPGETFOURCC(pCreateConfig->nFormat, 3),
+                    pCreateConfig->nPicWidth, pCreateConfig->nPicHeight
+                ));
+        }
+#else
+#error "ERROR: Select HW Codec "    
+#endif
     
     }
     
 	if(pObj==NULL) {
+
         return (CMmpDecoder*)NULL;
 	}
 

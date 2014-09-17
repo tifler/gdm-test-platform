@@ -1,4 +1,6 @@
 #include "mme_shell.h"
+#include "mmp_buffer_mgr.hpp"
+#include "mmp_vpu_dev.hpp"
 
 
 #if (MMP_OS == MMP_OS_WIN32)
@@ -23,10 +25,10 @@ struct mme_support_extension mme_exts[] = {
     { 0, "rmvb" },  
     { 0, "mp4" },  
     { 0, "mov" },  
-    //{ 0, "k3g" },  
+    { 0, "k3g" },  
     //{ 0, "ogv" },  
-    //{ 0, "ogg" },  
-    //{ 0, "3gp" },  
+    { 0, "ogg" },  
+    { 0, "3gp" },  
     //{ 0, "m4a" },  
   
     { 0, "mkv" },  
@@ -117,15 +119,8 @@ int mme_command_player_start(int argc, char* argv[]) {
     int contents_number;
     MMP_S32 player_index = 0;
 
-#if (MMP_OS == MMP_OS_WIN32)
-    MMP_BOOL bForceSWCodec = MMP_TRUE;
-#else
     MMP_BOOL bForceSWCodec = MMP_FALSE;
-#endif
-    //MMP_U32 player_type = MMP_PLAYER_STAGEFRIGHT;
     MMP_U32 player_type = MMP_PLAYER_VIDEO_ONLY;
-    //MMP_U32 player_type = MMP_PLAYER_DEFAULT;
-
     
     /* Get Player Index */
     for(i = 0; i < MAX_PLAYER_COUNT; i++) {
@@ -337,8 +332,9 @@ int mme_command_player_status(int argc, char* argv[]) {
     MMP_S32 pos_hour, pos_min, pos_sec, pos_msec;
     MMP_U32 vf;
 
-    MMP_S32 player_index = 0;
+    MMP_S32 player_index = 0, inst_idx;
     CMmpPlayer* pPlayer;
+    struct mmp_video_hw_codec_instance_info hw_codec_inst_info;
 
     for(player_index = 0; player_index < MAX_PLAYER_COUNT; player_index++) {
     
@@ -350,13 +346,15 @@ int mme_command_player_status(int argc, char* argv[]) {
 
             vf = pPlayer->GetVideoFormat();
 
-            MMESHELL_PRINT(MMESHELL_ERROR, ("[Player %d] Display(%s) %c%c%c%c(%s) %dx%d PlayerFPS=%d  DecodingDur=%d  (%02d:%02d:%02d/%02d:%02d:%02d) \n",
+            MMESHELL_PRINT(MMESHELL_ERROR, ("[Player %d] Display(%s) %c%c%c%c(%s) %dx%d PlayerFPS=%d  DecodingDur=%d  TotalFrm=%d (%02d:%02d:%02d/%02d:%02d:%02d) \n",
                                                 player_index, 
                                                 pPlayer->IsFirstVideoRenderer()?"ON":"OFF",
                                                 MMPGETFOURCC(vf,0),MMPGETFOURCC(vf,1),MMPGETFOURCC(vf,2),MMPGETFOURCC(vf,3),
                                                 pPlayer->GetVideoDecoderClassName(),
                                                 pPlayer->GetVideoWidth(), pPlayer->GetVideoHeight(),
-                                                pPlayer->GetPlayFPS(), pPlayer->GetVideoDecoderDur(),
+                                                pPlayer->GetPlayFPS(), 
+                                                pPlayer->GetVideoDecoderDur(),
+                                                pPlayer->GetVideoDecoderTotalDecFrameCount(),
                                                 pos_hour, pos_min, pos_sec, 
                                                 dur_hour, dur_min, dur_sec 
                                                 ));
@@ -366,6 +364,16 @@ int mme_command_player_status(int argc, char* argv[]) {
         }
 
     }
+
+    for(inst_idx = 0; inst_idx < 4; inst_idx++) {
+        mmp_vpu_dev::get_instance()->VPU_GetCodecInfo(inst_idx, &hw_codec_inst_info);
+        MMESHELL_PRINT(MMESHELL_ERROR, ("Inst%d.  Use(%d)   \n", 
+                       hw_codec_inst_info.instance_index, 
+                       hw_codec_inst_info.is_use
+                       ));
+    }
+
+
 
     return 0;
 }
@@ -568,5 +576,14 @@ int mme_command_player_loop(int argc, char* argv[]) {
     if(file_array) free(file_array);
     if(ext_array) free(ext_array);
 
+    return 0;
+}
+
+
+int mme_command_player_meminfo(int argc, char* argv[]) {
+
+    /* display mmp_buffer list */  
+    mmp_buffer_mgr::get_instance()->print_info();
+    
     return 0;
 }

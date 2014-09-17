@@ -73,13 +73,35 @@ class mmp_buffer* mmp_buffer_mgr_ex1::alloc_dma_buffer(MMP_S32 buffer_size) {
 
     class mmp_lock autolock(m_p_mutex);
 
-    struct mmp_buffer_create_object buffer_create_object;
+    struct mmp_buffer_create_config buffer_create_config;
     class mmp_buffer* p_mmp_buffer;
 
-    buffer_create_object.type = MMP_BUFFER_TYPE_DMA;
-    buffer_create_object.size = buffer_size;
+    memset(&buffer_create_config, 0x00, sizeof(buffer_create_config));
+    buffer_create_config.type = mmp_buffer::ION;
+    buffer_create_config.size = buffer_size;
 
-    p_mmp_buffer = mmp_buffer::create_object(&buffer_create_object);
+    p_mmp_buffer = mmp_buffer::create_object(&buffer_create_config);
+    if(p_mmp_buffer != NULL) {
+        m_list_buffer.Add(p_mmp_buffer);
+    }
+
+    return p_mmp_buffer;
+}
+
+class mmp_buffer* mmp_buffer_mgr_ex1::attach_dma_buffer(class mmp_buffer_addr buf_addr) {
+
+    class mmp_lock autolock(m_p_mutex);
+
+    struct mmp_buffer_create_config buffer_create_config;
+    class mmp_buffer* p_mmp_buffer;
+
+    buffer_create_config.type = mmp_buffer::ION_ATTACH;
+    buffer_create_config.size = buf_addr.m_size;
+    buffer_create_config.attach_shared_fd = buf_addr.m_shared_fd;
+    buffer_create_config.attach_phy_addr = buf_addr.m_phy_addr;
+    buffer_create_config.attach_offset = 0;
+
+    p_mmp_buffer = mmp_buffer::create_object(&buffer_create_config);
     if(p_mmp_buffer != NULL) {
         m_list_buffer.Add(p_mmp_buffer);
     }
@@ -180,116 +202,269 @@ class mmp_buffer_addr mmp_buffer_mgr_ex1::get_buffer_addr(MMP_S32 shared_fd) {
     return buf_addr;
 }
 
-class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_video_buffer(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
-    
+class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+                                                                        MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset) {
+
     class mmp_buffer* p_mmp_buf;
-    struct mmp_buffer_create_object buffer_create_object;
+    struct mmp_buffer_create_config buffer_create_config;
+    MMP_S32 err_cnt = 0;
 
     class mmp_buffer_videoframe* p_mmp_videoframe = NULL;
     MMP_RESULT mmpResult = MMP_SUCCESS;
     MMP_S32 plane_size[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 stride[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 buffer_height_arr[MMP_MEDIASAMPLE_PLANE_COUNT];
     MMP_S32 buffer_width, buffer_height, luma_size, chroma_size;
     MMP_S32 i;
-        
-    p_mmp_videoframe = new class mmp_buffer_videoframe;
-    if(p_mmp_videoframe != NULL) {
-    
-        p_mmp_videoframe->m_format = format;
-        p_mmp_videoframe->m_pic_width = pic_width;
-        p_mmp_videoframe->m_pic_height = pic_height;
-        
-        
-        switch(p_mmp_videoframe->m_format) {
 
-            case MMP_FOURCC_VIDEO_I420: 
-                p_mmp_videoframe->m_plane_count = 3;        
-
-                buffer_width = MMP_BYTE_ALIGN(p_mmp_videoframe->m_pic_width, 16);
-                buffer_height = MMP_BYTE_ALIGN(p_mmp_videoframe->m_pic_height, 16);
-                luma_size = buffer_width*buffer_height;
-                chroma_size = luma_size>>2;
-
-                plane_size[0] = luma_size;
-                plane_size[1] = chroma_size;
-                plane_size[2] = chroma_size;
-                break;
-
-            default:
-                mmpResult = MMP_FAILURE;
-                MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_mgr_ex1::alloc_video_buffer] FAIL: not supported video format 0x%08x "), p_mmp_videoframe->m_format ));
-                break;
+    if(type == mmp_buffer::ION_ATTACH) {
+        if( (shared_ion_fd == NULL) || (ion_mem_offset == NULL) ) {
+            /* Error  */
+            err_cnt++;
         }
-
-        /* alloc mmp buffer per plane */
-        if(mmpResult == MMP_SUCCESS) {
-
-            for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
-                
-                buffer_create_object.type = MMP_BUFFER_TYPE_DMA;
-                buffer_create_object.size = plane_size[i];
-
-                p_mmp_buf = mmp_buffer::create_object(&buffer_create_object);
-                if(p_mmp_buf == NULL) {
-                    mmpResult = MMP_FAILURE;
-                    break;
-                }
-                else {
-                    p_mmp_videoframe->m_p_mmp_buffer[i] = p_mmp_buf;
-                }
-            }
-        }
-
-    }
-    else {
-        /* FAIL: new instance */
-        mmpResult = MMP_FAILURE;
     }
 
-    if(mmpResult == MMP_SUCCESS) {
-    
-        m_p_mutex->lock();
-
-        /* register mmp buffer */
-        for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
-            m_list_buffer.Add(p_mmp_videoframe->m_p_mmp_buffer[i]);
-        }
-
-        m_p_mutex->unlock();
-
-    }
-    else {
+    if(err_cnt == 0) {
         
+        p_mmp_videoframe = new class mmp_buffer_videoframe;
         if(p_mmp_videoframe != NULL) {
-    
-            for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
-                if(p_mmp_videoframe->m_p_mmp_buffer[i] != NULL) {
-                    mmp_buffer::destroy_object(p_mmp_videoframe->m_p_mmp_buffer[i]);
+        
+            p_mmp_videoframe->m_format = format;
+            p_mmp_videoframe->m_pic_width = pic_width;
+            p_mmp_videoframe->m_pic_height = pic_height;
+            
+            
+            switch(p_mmp_videoframe->m_format) {
+
+                case MMP_FOURCC_VIDEO_I420: 
+                    p_mmp_videoframe->m_plane_count = 3;        
+
+                    buffer_width = MMP_BYTE_ALIGN(p_mmp_videoframe->m_pic_width, 16);
+                    buffer_height = MMP_BYTE_ALIGN(p_mmp_videoframe->m_pic_height, 16);
+                    
+                    stride[0] = buffer_width;
+                    stride[1] = buffer_width>>1;
+                    stride[2] = buffer_width>>1;
+                
+                    buffer_height_arr[0] = buffer_height;
+                    buffer_height_arr[1] = buffer_height>>1;
+                    buffer_height_arr[2] = buffer_height>>1;
+                    
+                    luma_size = buffer_width*buffer_height;
+                    chroma_size = luma_size>>2;
+
+                    plane_size[0] = luma_size;
+                    plane_size[1] = chroma_size;
+                    plane_size[2] = chroma_size;
+
+                    break;
+
+                default:
+                    mmpResult = MMP_FAILURE;
+                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_mgr_ex1::attach_media_videoframe] FAIL: not supported video format 0x%08x "), p_mmp_videoframe->m_format ));
+                    break;
+            }
+
+            /* alloc mmp buffer per plane */
+            if(mmpResult == MMP_SUCCESS) {
+
+                for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
+                    
+                    buffer_create_config.type = type;
+                    buffer_create_config.size = plane_size[i];
+
+                    if(type == mmp_buffer::ION_ATTACH) {
+                        buffer_create_config.attach_shared_fd = shared_ion_fd[i];
+                        buffer_create_config.attach_phy_addr = 0;
+                        buffer_create_config.attach_offset = ion_mem_offset[i];
+                    }
+
+                    p_mmp_buf = mmp_buffer::create_object(&buffer_create_config);
+                    if(p_mmp_buf == NULL) {
+                        mmpResult = MMP_FAILURE;
+                        break;
+                    }
+                    else {
+                        p_mmp_videoframe->m_p_mmp_buffer[i] = p_mmp_buf;
+                        p_mmp_videoframe->m_buf_stride[i] = stride[i];
+                        p_mmp_videoframe->m_buf_height[i] = buffer_height_arr[i];
+                    }
                 }
             }
 
-            delete p_mmp_videoframe;
-            p_mmp_videoframe = NULL;
         }
+        else {
+            /* FAIL: new instance */
+            mmpResult = MMP_FAILURE;
+        }
+
+        if(mmpResult == MMP_SUCCESS) {
+        
+            m_p_mutex->lock();
+
+            /* register mmp buffer */
+            for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
+                m_list_buffer.Add(p_mmp_videoframe->m_p_mmp_buffer[i]);
+            }
+
+            m_p_mutex->unlock();
+
+        }
+        else {
+            
+            if(p_mmp_videoframe != NULL) {
+        
+                for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
+                    if(p_mmp_videoframe->m_p_mmp_buffer[i] != NULL) {
+                        mmp_buffer::destroy_object(p_mmp_videoframe->m_p_mmp_buffer[i]);
+                    }
+                }
+
+                delete p_mmp_videoframe;
+                p_mmp_videoframe = NULL;
+            }
+        }
+
     }
     
     return p_mmp_videoframe;
 }
 
-MMP_RESULT mmp_buffer_mgr_ex1::free_video_buffer(class mmp_buffer_videoframe* p_mmp_videoframe) {
+class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
+    
+    return this->alloc_media_videoframe(pic_width, pic_height, format, mmp_buffer::ION, NULL, NULL);
+}
 
+class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::attach_media_videoframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset, MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
+
+    return this->alloc_media_videoframe(pic_width, pic_height, format, mmp_buffer::ION_ATTACH, shared_ion_fd, ion_mem_offset);
+}
+
+class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height);
+
+class mmp_buffer_videoframe* attach_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset);
+
+
+class mmp_buffer_videostream* mmp_buffer_mgr_ex1::alloc_media_videostream(MMP_S32 stream_max_size, MMP_U32 buf_type, MMP_U8* p_stream_data) {
+
+    MMP_S32 err_cnt = 0;
+    class mmp_buffer* p_mmp_buf;
+    struct mmp_buffer_create_config buffer_create_config;
+    class mmp_buffer_videostream* p_mmp_videostream = NULL;
+
+    if(buf_type == mmp_buffer::HEAP_ATTACH) {
+        if(p_stream_data==NULL) {
+            err_cnt++;        
+        }
+    }
+        
+    if(err_cnt == 0) {
+        p_mmp_videostream = new class mmp_buffer_videostream;
+        if(p_mmp_videostream != NULL) {
+
+            memset(&buffer_create_config, 0x00, sizeof(buffer_create_config));
+                
+            buffer_create_config.type = buf_type;
+            buffer_create_config.size = stream_max_size;
+
+            if(buf_type == mmp_buffer::HEAP_ATTACH) {
+                buffer_create_config.attach_vir_addr = (MMP_U32)p_stream_data;
+                buffer_create_config.attach_offset = 0;
+            }
+
+            p_mmp_buf = mmp_buffer::create_object(&buffer_create_config);
+            if(p_mmp_buf != NULL) {
+
+                m_p_mutex->lock();
+        
+                p_mmp_videostream->m_p_mmp_buffer = p_mmp_buf;
+                m_list_buffer.Add(p_mmp_videostream->m_p_mmp_buffer);
+                
+                m_p_mutex->unlock();
+            }
+        }
+    }
+    
+    return p_mmp_videostream;
+}
+
+class mmp_buffer_videostream* mmp_buffer_mgr_ex1::alloc_media_videostream(MMP_S32 stream_max_size, MMP_U32 buf_type) {
+
+    return this->alloc_media_videostream(stream_max_size, buf_type, NULL);
+}
+
+class mmp_buffer_videostream* mmp_buffer_mgr_ex1::attach_media_videostream(MMP_U8* p_stream_data, MMP_S32 stream_size) {
+    return this->alloc_media_videostream(stream_size, mmp_buffer::HEAP_ATTACH, p_stream_data);
+}
+
+MMP_RESULT mmp_buffer_mgr_ex1::free_media_buffer(class mmp_buffer_media* p_buf_media) {
     
     MMP_S32 i;
-
-    if(p_mmp_videoframe != NULL) {
     
-        for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
-            this->free_buffer(p_mmp_videoframe->m_p_mmp_buffer[i]);
+
+    if(p_buf_media != NULL) {
+    
+        
+
+        switch(p_buf_media->m_type) {
+
+            case mmp_buffer_media::VIDEO_FRAME :
+                {
+                    class mmp_buffer_videoframe* p_mmp_videoframe = (class mmp_buffer_videoframe*)p_buf_media;
+
+                    for(i = 0; i < p_mmp_videoframe->m_plane_count; i++) {
+                        this->free_buffer(p_mmp_videoframe->m_p_mmp_buffer[i]);
+                    }
+                
+                }
+                break;
+
+            case mmp_buffer_media::VIDEO_STREAM :
+                {
+                    class mmp_buffer_videostream* p_mmp_videostream = (class mmp_buffer_videostream*)p_buf_media;
+
+                    this->free_buffer(p_mmp_videostream->m_p_mmp_buffer);
+                }
+                break;
         }
 
-        delete p_mmp_videoframe;
+        delete p_buf_media;
     }
 
     return MMP_SUCCESS;
 }
 
+void mmp_buffer_mgr_ex1::print_info() {
+
+    class mmp_lock autolock(m_p_mutex);
+    
+    MMP_S32 idx;
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    bool flag;
+    class mmp_buffer* p_mmp_buffer = NULL;
+    class mmp_buffer_addr buf_addr;
+    MMP_S32 alloc_size[mmp_buffer::TYPE_MAX] = { 0, 0, 0};
+    MMP_S32 buf_count[mmp_buffer::TYPE_MAX] = { 0, 0, 0};
+    
+    
+    idx = 0;
+    flag = m_list_buffer.GetFirst(p_mmp_buffer);
+    while(flag) {
+        buf_addr = p_mmp_buffer->get_buf_addr();
+        MMPDEBUGMSG(1, (TEXT("\t%d. type=%d vir=0x%08x phy=0x%08x sz=%d fd=(%d 0x%08x)"), 
+                      idx, buf_addr.m_type, 
+                      buf_addr.m_vir_addr, buf_addr.m_phy_addr, buf_addr.m_size,
+                      buf_addr.m_shared_fd, buf_addr.m_shared_fd
+                      ));
+
+        buf_count[buf_addr.m_type] ++;
+        alloc_size[buf_addr.m_type] +=  buf_addr.m_size;
+        idx++;
+        flag = m_list_buffer.GetNext(p_mmp_buffer);
+    }
+    
+    MMPDEBUGMSG(1, (TEXT("ION - cnt=%d   sz=%d "), buf_count[mmp_buffer::ION], alloc_size[mmp_buffer::ION] ));
+    MMPDEBUGMSG(1, (TEXT("HEAP- cnt=%d   sz=%d "), buf_count[mmp_buffer::HEAP], alloc_size[mmp_buffer::HEAP] ));
+
+}
 

@@ -115,12 +115,12 @@ public:
     //static MMP_RESULT Printf( WCHAR* lpszFormat, ... );
 
     static MMP_RESULT __MmpApiCall SplitDir(WCHAR* strFileName, WCHAR* wszDir);// 입력된 전체 파일명에서 디렉토리만 뽑아낸다. ex) "c:\mylib\aa.dat" => "c:\mylib\"
-	static MMP_RESULT __MmpApiCall SplitFileName(WCHAR* strFileName, WCHAR* wszName); // 입력된 전체 파일명에서 파일이름만 뽑아낸다. ex) "c:\mylib\aa.dat" => "aa"
+	static MMP_RESULT __MmpApiCall SplitFileName(MMP_CHAR* strFileName, MMP_CHAR* wszName); // 입력된 전체 파일명에서 파일이름만 뽑아낸다. ex) "c:\mylib\aa.dat" => "aa"
 	static MMP_RESULT __MmpApiCall SplitExt(MMP_CHAR* strFileName, MMP_CHAR* wszExt);// 입력된 전체 파일명에서 확장자만 뽑아낸다. ex) "c:\mylib\aa.dat" => dat
 	static MMP_RESULT __MmpApiCall MakeLower(MMP_CHAR* wszName);// 입력된 문자열을 모두 소문자로 만든다 ex) "AbcDe" => "abcde"
 	
     static MMP_RESULT __MmpApiCall SplitDirC(MMP_CHAR* strFileName, MMP_CHAR* wszDir);// 입력된 전체 파일명에서 디렉토리만 뽑아낸다. ex) "c:\mylib\aa.dat" => "c:\mylib\"
-	static MMP_RESULT __MmpApiCall SplitFileNameC(MMP_CHAR* strFileName, MMP_CHAR* wszName); // 입력된 전체 파일명에서 파일이름만 뽑아낸다. ex) "c:\mylib\aa.dat" => "aa"
+	//static MMP_RESULT __MmpApiCall SplitFileNameC(MMP_CHAR* strFileName, MMP_CHAR* wszName); // 입력된 전체 파일명에서 파일이름만 뽑아낸다. ex) "c:\mylib\aa.dat" => "aa"
 	static MMP_RESULT __MmpApiCall SplitExtC(MMP_CHAR* strFileName, MMP_CHAR* wszExt);// 입력된 전체 파일명에서 확장자만 뽑아낸다. ex) "c:\mylib\aa.dat" => dat
 	static MMP_RESULT __MmpApiCall MakeLowerC(MMP_CHAR* wszName);// 입력된 문자열을 모두 소문자로 만든다 ex) "AbcDe" => "abcde"
 

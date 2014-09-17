@@ -38,9 +38,12 @@ MME_SRC_OAL = \
     $(MME_TOP)/MmpComm/mmp_oal_cond_linux.cpp \
     $(MME_TOP)/MmpComm/mmp_oal_mutex.cpp \
     $(MME_TOP)/MmpComm/mmp_oal_mutex_linux.cpp \
+    $(MME_TOP)/MmpComm/mmp_oal_mutex_linux_sema.cpp \
     $(MME_TOP)/MmpComm/mmp_simple_heap.cpp \
     $(MME_TOP)/MmpComm/mmp_oal_task.cpp \
     $(MME_TOP)/MmpComm/mmp_oal_task_linux.cpp \
+    $(MME_TOP)/MmpComm/mmp_oal_shm.cpp \
+    $(MME_TOP)/MmpComm/mmp_oal_shm_linux.cpp \
     $(MME_TOP)/MmpComm/MmpBitExtractor.cpp\
     $(MME_TOP)/MmpComm/MmpMpeg4Tool.cpp\
     $(MME_TOP)/MmpComm/MmpH264Tool.cpp\
@@ -55,20 +58,27 @@ MME_SRC_OAL = \
   
 MME_SRC_BUFFER = \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer.cpp \
-    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_ion_stream.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_ion.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_ion_attach.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_heap.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_heap_attach.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_ext.cpp \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_mgr.cpp \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_mgr_ex1.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_media.cpp \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_videoframe.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_videostream.cpp \
 
 MME_SRC_CNM_VPU = \
     $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_if.cpp \
     $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_if_ana.cpp \
     $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_if_cnm.cpp \
     $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_dev.cpp \
-    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_dev_ex2.cpp \
+    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_dev_shm.cpp \
 
 MME_SRC_SINGLETON = \
    $(MME_TOP)/MmpDecoder/singleton/mmp_singleton_mgr.cpp\
+   $(MME_TOP)/MmpDecoder/singleton/mmp_env_mgr.cpp\
 
 MME_SRC_DECODER = \
   $(MME_TOP)/MmpDecoder/MmpDecoder.cpp \
@@ -93,6 +103,7 @@ MME_SRC_ENCODER = \
   
 MME_SRC_VPULIB = \
   $(MME_VPULIB_TOP)/vpuapi/vpuapi.c \
+  $(MME_VPULIB_TOP)/vpuapi/vpuapi_mme.c \
   $(MME_VPULIB_TOP)/vpuapi/vpuapifunc.c\
   $(MME_VPULIB_TOP)/vdi/mm.c\
   $(MME_VPULIB_TOP)/vdi/linux/vdi.c\
@@ -116,10 +127,9 @@ MME_SRC_MUXER = \
 MME_SRC_PLAYER = \
   $(MME_TOP)/MmpPlayer/MmpPlayerService.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayer.cpp \
-  $(MME_TOP)/MmpPlayer/MmpPlayerVideo.cpp \
+  $(MME_TOP)/MmpPlayer/MmpPlayerVideoEx1.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayerAudio.cpp \
-  $(MME_TOP)/MmpPlayer/MmpPlayerAVEx1.cpp \
-  $(MME_TOP)/MmpPlayer/MmpPlayerAVEx2.cpp \
+  $(MME_TOP)/MmpPlayer/MmpPlayerAVEx3.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayerStagefright.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayerTONE.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayerPCM.cpp \
@@ -129,11 +139,14 @@ MME_SRC_RENDERER = \
   $(MME_TOP)/MmpRenderer/MmpRenderer.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_YUVWriter.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_Dummy.cpp \
-  $(MME_TOP)/MmpRenderer/MmpRenderer_OdyFpgaDisplay.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_OdyClientEx1.cpp \
   
+MME_SRC_API = \
+  $(MME_TOP)/api/mme_c_api_util.cpp \
+  $(MME_TOP)/api/mme_c_api_video_encoder.cpp \
+  $(MME_TOP)/api/mme_c_api_muxer.cpp \
 
-SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_VPULIB) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON) $(MME_SRC_CNM_VPU)
+SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_VPULIB) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON) $(MME_SRC_CNM_VPU) $(MME_SRC_API)
 OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
 LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) -D$(MME_VPU_DEFINE) \
@@ -155,7 +168,7 @@ LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) 
             -I$(MME_TOP)/MmpBuffer \
             
 LOCAL_CXXFLAGS := $(LOCAL_CFLAGS) -D__STDC_CONSTANT_MACROS
-LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp
+LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp -lx264
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync

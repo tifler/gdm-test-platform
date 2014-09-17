@@ -95,7 +95,6 @@ int mmp_buffer_mgr_alloc_vpu_buffer(MMP_S32 buf_size, void* vpu_buffer_ptr) {
         buf_addr = p_mmp_buf->get_buf_addr();
 
         vb->base = buf_addr.m_vir_addr;
-        vb->ion_shared_fd = buf_addr.m_shared_fd;
         vb->phys_addr = buf_addr.m_phy_addr;
         vb->size = buf_addr.m_size;
         vb->virt_addr = buf_addr.m_vir_addr;
@@ -114,11 +113,11 @@ int mmp_buffer_mgr_free_vpu_buffer(void* vpu_buffer_ptr) {
     vpu_buffer_t* vb = (vpu_buffer_t*)vpu_buffer_ptr;
 
     buf_addr.m_vir_addr =  vb->base;
-    buf_addr.m_shared_fd = vb->ion_shared_fd;
+    buf_addr.m_shared_fd = -1;
     buf_addr.m_phy_addr =  vb->phys_addr;
     buf_addr.m_size = vb->size;
     buf_addr.m_vir_addr = vb->virt_addr;
-    buf_addr.m_type = MMP_BUFFER_TYPE_DMA;
+    buf_addr.m_type = mmp_buffer::ION;
 
     mmpResult = mmp_buffer_mgr::get_instance()->free_buffer(buf_addr);
     if(mmpResult == MMP_SUCCESS) {

@@ -179,51 +179,33 @@ MMP_RESULT CMmpUtil::SplitDir(WCHAR* strFileName, WCHAR* wszDir)
 
 // 입력된 전체 파일명에서 파일이름만 뽑아낸다.
 // ex) "c:\mylib\aa.dat" => "aa"
-MMP_RESULT CMmpUtil::SplitFileName(WCHAR* strFileName, WCHAR* wszName)
+MMP_RESULT CMmpUtil::SplitFileName(MMP_CHAR* strFileName, MMP_CHAR* szName)
 {
-   WCHAR* strFile;
-
-   WCHAR ch;
-   int i;
-   int strLength;
-
-#if (MMP_OS==MMP_OS_NUCLEUS)
+    MMP_CHAR* strFile;
+    MMP_CHAR ch;
+    MMP_S32 i, strLength;
+    
     strLength=strlen(strFileName);
-#elif (MMP_OS==MMP_OS_LINUX)
-    strLength=strlen(strFileName);
-#else
-   strLength=wcslen(strFileName);
-#endif
 
-   for( i=strLength-1; i>=0; i-- )
-   {
-	  ch=strFileName[i];
-      if( ch==L'\\' )
-	  {
-		  break;
-	  }
-   }
-   strFile=&strFileName[i+1];
-
-
-#if (MMP_OS==MMP_OS_NUCLEUS)
-    strLength=strlen(strFile);
-#elif (MMP_OS==MMP_OS_LINUX)
-    strLength=strlen(strFile);
-#else
-    strLength=wcslen(strFile);
-#endif
-    for( i=0; i<strLength; i++ )
-    {
-	  ch=strFile[i];
-      if( ch==L'.' )
-      {
-          break;
-      }
-      wszName[i]=ch;
+    for(i = strLength-1; i >= 0; i-- )  {
+	    ch = strFileName[i];
+        if(ch == MMP_FILE_DEVIDER) {
+		    break;
+	    }
     }
-    wszName[i]=L'\0';
+    strFile = &strFileName[i+1];
 
+    strcpy(szName, strFile);
+
+    strLength = strlen(szName);
+    for(i = strLength-1; i >= 0; i-- )  {
+	    ch=szName[i];
+        if( ch == '.' ) {
+            szName[i] = NULL;
+            break;
+        }
+    }
+    
     return MMP_SUCCESS;
 }
 
@@ -299,6 +281,7 @@ MMP_RESULT CMmpUtil::SplitDirC(MMP_CHAR* strFileName, MMP_CHAR* wszDir)
    return MMP_SUCCESS;
 }
 
+#if 0
 // 입력된 전체 파일명에서 파일이름만 뽑아낸다.
 // ex) "c:\mylib\aa.dat" => "aa"
 MMP_RESULT CMmpUtil::SplitFileNameC(MMP_CHAR* strFileName, MMP_CHAR* wszName)
@@ -335,6 +318,7 @@ MMP_RESULT CMmpUtil::SplitFileNameC(MMP_CHAR* strFileName, MMP_CHAR* wszName)
 
     return MMP_SUCCESS;
 }
+#endif
 
 MMP_RESULT CMmpUtil::SplitExtC(MMP_CHAR* strFileName, MMP_CHAR* wszExt)
 {
@@ -466,6 +450,17 @@ MMP_RESULT CMmpUtil::Printf( TCHAR* lpszFormat, ... )
     OutputDebugString("\n") ;
 #else //if (MMP_OS==MMP_OS_WINCE60)
     RETAILMSG(1, (TEXT("%s"), szBuffer));
+#endif
+
+#if 0
+    FILE* fp = NULL;
+    if(fp == NULL) {
+        fp = fopen("d:\\my_mme.log", "a");
+    }
+    if(fp != NULL) {
+        fprintf(fp, "%s\n", szBuffer);
+        fclose(fp);
+    }
 #endif
 
     va_end(args) ;

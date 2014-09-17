@@ -36,6 +36,7 @@
 
 
 #include "vpuapi.h"
+#include "vpuapi_mme.h"
 #include "vpurun.h"
 #include "vpuapifunc.h"
 #include "vpuhelper.h"
@@ -107,6 +108,5 @@
 #define MMP_MSG_VPU_EncGetOutputInfo                (MMP_MSG_VPU_BASE+0x27)
 #define MMP_MSG_VPU_EncGiveCommand                  (MMP_MSG_VPU_BASE+0x28)
 #define MMP_MSG_VPU_EncAllocateFrameBuffer          (MMP_MSG_VPU_BASE+0x29)
-
 
 #endif

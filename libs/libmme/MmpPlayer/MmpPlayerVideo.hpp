@@ -71,6 +71,7 @@ public:
 
     virtual MMP_S32 GetVideoDecoderFPS();
     virtual MMP_S32 GetVideoDecoderDur();
+    virtual MMP_S32 GetVideoDecoderTotalDecFrameCount();
     virtual const MMP_CHAR* GetVideoDecoderClassName();
 
     /* Video Renderer */

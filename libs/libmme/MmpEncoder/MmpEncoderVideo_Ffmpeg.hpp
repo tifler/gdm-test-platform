@@ -44,7 +44,7 @@ protected:
     virtual const MMP_U8* GetClassName() { return (const MMP_U8*)"Ffmpeg";}
 public:
     virtual MMP_RESULT EncodeAu(CMmpMediaSampleEncode* pMediaSample, CMmpMediaSampleEncodeResult* pEncResult);
-    
+    virtual MMP_RESULT EncodeAu(class mmp_buffer_videoframe* p_buf_videoframe, class mmp_buffer_videostream* p_buf_videostream);
 
 };
 

@@ -111,6 +111,11 @@ public:
 
     virtual void enter_critical_section() = 0;
     virtual void leave_critical_section() = 0;
+    virtual class mmp_oal_mutex* get_external_mutex() = 0;
+
+    virtual MMP_S32 VPU_GetCodecInstanceIndex(void* CodecHdl) = 0;
+    virtual MMP_S32 VPU_GetCodecInstanceUse(void* CodecHdl) = 0;
+
 };
 
 #endif

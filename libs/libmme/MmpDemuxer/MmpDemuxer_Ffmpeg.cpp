@@ -371,33 +371,44 @@ MMP_U32 CMmpDemuxer_Ffmpeg::GetVideoFormat() {
 
         switch(cc->codec_id) {
         
-            case AV_CODEC_ID_H264:
-                format = MMP_FOURCC_VIDEO_H264;
-                break;
+            case AV_CODEC_ID_H263:  format = MMP_FOURCC_VIDEO_H263; break;
+            case AV_CODEC_ID_H264:  format = MMP_FOURCC_VIDEO_H264; break;
+            case AV_CODEC_ID_MPEG4: format = MMP_FOURCC_VIDEO_MPEG4;  break;
+            case AV_CODEC_ID_MPEG2VIDEO : format = MMP_FOURCC_VIDEO_MPEG2;  break;
+            case AV_CODEC_ID_MJPEG : format = MMP_FOURCC_VIDEO_MJPEG;  break;
 
-            case AV_CODEC_ID_MPEG4:
-                format = MMP_FOURCC_VIDEO_MPEG4;
-                break;
+            /* Microsoft Codec */
+            case AV_CODEC_ID_WMV1: format = MMP_FOURCC_VIDEO_WMV1; break;
+            case AV_CODEC_ID_WMV2: format = MMP_FOURCC_VIDEO_WMV2; break;
+            case AV_CODEC_ID_WMV3: format = MMP_FOURCC_VIDEO_WMV3; break;
+            case AV_CODEC_ID_VC1:  format = MMP_FOURCC_VIDEO_VC1;  break;
+            case AV_CODEC_ID_MSMPEG4V2: format = MMP_FOURCC_VIDEO_MSMPEG4V2; break;
+            case AV_CODEC_ID_MSMPEG4V3: format = MMP_FOURCC_VIDEO_MSMPEG4V3; break;
+            case AV_CODEC_ID_MSS1: format = MMP_FOURCC_VIDEO_MSS1;  break;
+            case AV_CODEC_ID_MSS2: format = MMP_FOURCC_VIDEO_MSS2;  break;
 
-            case AV_CODEC_ID_WMV3:
-                format = MMP_FOURCC_VIDEO_WMV3;
-                break;
-
-            case AV_CODEC_ID_VC1:
-                format = MMP_FOURCC_VIDEO_VC1;
-                break;
-
-            case AV_CODEC_ID_MSMPEG4V3:
-                format = MMP_FOURCC_VIDEO_MSMPEG4V3;
-                break;
-
+            /* RV */
             case AV_CODEC_ID_RV30: format = MMP_FOURCC_VIDEO_RV30; break;
             case AV_CODEC_ID_RV40: format = MMP_FOURCC_VIDEO_RV40; break;
 
-            case AV_CODEC_ID_VP8: format = MMP_FOURCC_VIDEO_VP80; break;
+            /* VP 6/7/8 */
+            case AV_CODEC_ID_VP8:  format = MMP_FOURCC_VIDEO_VP80; break;
+            case AV_CODEC_ID_VP6:  format = MMP_FOURCC_VIDEO_VP60; break;
+            case AV_CODEC_ID_VP6F: format = MMP_FOURCC_VIDEO_VP6F; break;
+            case AV_CODEC_ID_VP6A: format = MMP_FOURCC_VIDEO_VP6A; break;
 
+            /* Etc */
+            case AV_CODEC_ID_SVQ3: format = MMP_FOURCC_VIDEO_SVQ3; break;
+            case AV_CODEC_ID_THEORA: format = MMP_FOURCC_VIDEO_THEORA; break;
+            case AV_CODEC_ID_FLV1: format = MMP_FOURCC_VIDEO_FLV1; break;
+            case AV_CODEC_ID_INDEO2: format = MMP_FOURCC_VIDEO_INDEO2; break;
+            case AV_CODEC_ID_INDEO3: format = MMP_FOURCC_VIDEO_INDEO3; break;
+            case AV_CODEC_ID_INDEO4: format = MMP_FOURCC_VIDEO_INDEO4; break;
+            case AV_CODEC_ID_INDEO5: format = MMP_FOURCC_VIDEO_INDEO5; break;
+            case AV_CODEC_ID_TSCC:   format = MMP_FOURCC_VIDEO_TSCC; break;
+            
             default:
-                format = MMP_FOURCC_VIDEO_FFMPEG;
+                format = MMP_FOURCC_VIDEO_UNKNOWN;
         }
         
 
@@ -447,6 +458,7 @@ MMP_U32 CMmpDemuxer_Ffmpeg::GetVideoPicHeight() {
 
 MMP_RESULT CMmpDemuxer_Ffmpeg::GetVideoExtraData(MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size)  {
 
+#if 0
     MMP_RESULT mmpResult = MMP_FAILURE;
     AVStream *s;
     AVCodecContext *cc;
@@ -513,10 +525,16 @@ MMP_RESULT CMmpDemuxer_Ffmpeg::GetVideoExtraData(MMP_U8* buffer, MMP_U32 buf_max
     }
 
     return mmpResult;
+
+#else
+
+    return MMP_FAILURE;
+#endif
 }
 
 MMP_RESULT CMmpDemuxer_Ffmpeg::GetMediaExtraData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_max_size, MMP_U32* buf_size)  {
 
+#if 0
     MMP_RESULT mmpResult = MMP_FAILURE;
     AVStream *s;
     AVCodecContext *cc;
@@ -542,6 +560,20 @@ MMP_RESULT CMmpDemuxer_Ffmpeg::GetMediaExtraData(MMP_U32 mediatype, MMP_U8* buff
                 }
                 break;
             
+            case AV_CODEC_ID_RV30:
+            case AV_CODEC_ID_RV40:
+            case AV_CODEC_ID_WMV3:
+            case AV_CODEC_ID_VP8:
+                pdata = buffer;
+                memcpy(pdata, cc, sizeof(AVCodecContext)); pdata+=sizeof(AVCodecContext);
+                memcpy(pdata, s, sizeof(AVStream)); pdata+=sizeof(AVStream);
+                if(cc->extradata_size > 0) {
+                    memcpy(pdata, cc->extradata, cc->extradata_size); pdata+=cc->extradata_size;
+                }
+                if(buf_size) *buf_size = (unsigned int)pdata-(unsigned int)buffer;
+                mmpResult = MMP_SUCCESS;
+                break;
+            
             default:
                 ffmpeg_packet_header.key = MMP_FFMPEG_PACKET_HEADER_KEY;
                 ffmpeg_packet_header.payload_type = MMP_FFMPEG_PACKET_TYPE_AVCodecContext;
@@ -559,6 +591,57 @@ MMP_RESULT CMmpDemuxer_Ffmpeg::GetMediaExtraData(MMP_U32 mediatype, MMP_U8* buff
                 if(buf_size) *buf_size = ffmpeg_packet_header.packet_size;
         }
 
+    }
+
+    return mmpResult;
+
+#else
+    return MMP_FAILURE;
+#endif
+}
+
+MMP_RESULT CMmpDemuxer_Ffmpeg::GetVideoExtraData(class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    AVStream *s;
+    AVCodecContext *cc;
+    MMP_S32 stream_index;
+
+    MMP_U8* buffer;
+
+    MMP_S32 frame_rate = 0;
+    
+    p_buf_videostream->set_stream_size(0);
+    buffer = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_index = m_nStreamIndex[MMP_MEDIATYPE_VIDEO];
+
+    if(stream_index >= 0) {
+        s = m_pAvformatCtx->streams[stream_index];
+        cc = s->codec;
+
+        memcpy(buffer, cc->extradata, cc->extradata_size);
+        p_buf_videostream->set_stream_size(cc->extradata_size);
+
+        /* set cc */
+        p_buf_videostream->set_ffmpeg_codec_context(cc, sizeof(AVCodecContext) );
+
+        /* set frame rate */
+        if(s->avg_frame_rate.den && s->avg_frame_rate.num)
+            frame_rate = (MMP_S32)((double)s->avg_frame_rate.num/(double)s->avg_frame_rate.den);
+
+        if(!frame_rate && s->r_frame_rate.den && s->r_frame_rate.num)
+            frame_rate = (MMP_S32)((double)s->r_frame_rate.num/(double)s->r_frame_rate.den);
+        p_buf_videostream->set_player_framerate(frame_rate);
+
+        /* set width, height */
+        p_buf_videostream->set_pic_width(s->codec->width);
+        p_buf_videostream->set_pic_height(s->codec->height);
+
+        /* set bit rate */
+        p_buf_videostream->set_player_bitrate(s->codec->bit_rate);
+
+
+        mmpResult = MMP_SUCCESS;
     }
 
     return mmpResult;

@@ -71,10 +71,11 @@ MMP_RESULT CMmpMuxer_rawstream::AddMediaConfig(MMP_U32 mediatype, MMP_U8* buffer
     return MMP_SUCCESS;
 }
 
-MMP_RESULT CMmpMuxer_rawstream::AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_U32 timestamp) {
+MMP_RESULT CMmpMuxer_rawstream::AddMediaData(MMP_U32 mediatype, MMP_U8* buffer, MMP_U32 buf_size, MMP_U32 flag, MMP_S64 pts) {
 
     
     fwrite(buffer, 1, buf_size, m_fp);
     
     return MMP_SUCCESS;
 }
+

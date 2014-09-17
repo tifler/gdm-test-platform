@@ -25,7 +25,7 @@
 #include "MmpDefine.h"
 #include "MmpPlayerDef.h"
 #include "MmpMediaInfo.hpp"
-
+#include "mmp_buffer_mgr.hpp"
 
 struct MmpEncoderProperty_AnapassVPU{
 

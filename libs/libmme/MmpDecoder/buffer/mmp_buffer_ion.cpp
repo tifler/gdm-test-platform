@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-#include "mmp_buffer_ion_stream.hpp"
+#include "mmp_buffer_ion.hpp"
 #include "ion_api.h"
 
 #include <sys/mman.h>
@@ -33,28 +33,24 @@
 #include <sys/time.h>
 
 #include "MmpUtil.hpp"
+#include "vpu.h"
 
 #if (MMP_OS==MMP_OS_WIN32)
 #undef open
 #endif
 
-extern "C"  int g_vpu_fd; 
-
-
-mmp_buffer_ion_stream::mmp_buffer_ion_stream(struct mmp_buffer_create_object *p_create_object) : mmp_buffer(p_create_object)
+mmp_buffer_ion::mmp_buffer_ion(struct mmp_buffer_create_config *p_create_config) : mmp_buffer(p_create_config)
 
 {
     
 }
 
-mmp_buffer_ion_stream::~mmp_buffer_ion_stream() {
+mmp_buffer_ion::~mmp_buffer_ion() {
 
 }
 
-#define VPU_DEVICE_NAME "/dev/vpu"
-MMP_RESULT mmp_buffer_ion_stream::open() {
+MMP_RESULT mmp_buffer_ion::open() {
 
-    int vpu_fd;
     int ion_fd, ret;
     MMP_RESULT mmpResult = MMP_FAILURE;
 
@@ -65,43 +61,20 @@ MMP_RESULT mmp_buffer_ion_stream::open() {
         if(ret < 0) {
             /* error */
             this->m_buf_addr.m_shared_fd = -1;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_ion::open] FAIL: ion_alloc_fd(ion_fd=%d) sz=%d"), ion_fd, this->m_buf_addr.m_size ));
         }
         else {
             this->m_buf_addr.m_vir_addr = (unsigned int)MMP_DRIVER_MMAP(NULL, this->m_buf_addr.m_size, (PROT_READ | PROT_WRITE), MAP_SHARED, this->m_buf_addr.m_shared_fd, 0);
             mmpResult = MMP_SUCCESS;
 
-//#if (MMP_OS == MMP_OS_WIN32)
-  //          this->m_buf_addr.m_phy_addr = this->m_buf_addr.m_vir_addr;
-//#endif
-            vpu_fd = g_vpu_fd;//MMP_DRIVER_OPEN(VPU_DEVICE_NAME, O_RDWR);
-            if(vpu_fd >= 0) {
+            this->m_buf_addr.m_phy_addr = this->get_phy_addr_from_shared_fd(this->m_buf_addr.m_shared_fd);
 
-                unsigned int int_array[3];
-
-                int_array[0] = this->m_buf_addr.m_shared_fd;
-
-                ret = MMP_DRIVER_IOCTL(vpu_fd, 0x07779829, int_array);
-                if(ret >= 0) {
-                    this->m_buf_addr.m_phy_addr = int_array[1];      
-                    MMPDEBUGMSG(1, (TEXT("[mmp_buffer_ion_stream::open] fd=%d vir_addr=0x%08x phy_addr=0x%08x sz=%d "), 
-                         this->m_buf_addr.m_shared_fd,
-                         this->m_buf_addr.m_vir_addr,   
-                         this->m_buf_addr.m_phy_addr,
-                         this->m_buf_addr.m_size
-                         ));
-                }
-                else {
-                    MMPDEBUGMSG(1, (TEXT("[mmp_buffer_ion_stream::open] FAIL: convert ion fd -> phy_addr")));
-                    mmpResult = MMP_FAILURE;
-                }
-
-                //MMP_DRIVER_CLOSE(vpu_fd);
-            }
-            else {
-                MMPDEBUGMSG(1, (TEXT("[mmp_buffer_ion_stream::open] FAIL: open vpu drv")));
-                mmpResult = MMP_FAILURE;
-            }
-
+            MMPDEBUGMSG(1, (TEXT("[mmp_buffer_ion::open] fd=%d vir_addr=0x%08x phy_addr=0x%08x sz=%d "), 
+                 this->m_buf_addr.m_shared_fd,
+                 this->m_buf_addr.m_vir_addr,   
+                 this->m_buf_addr.m_phy_addr,
+                 this->m_buf_addr.m_size
+                 ));
         }
         ion_close(ion_fd);
     }
@@ -109,14 +82,14 @@ MMP_RESULT mmp_buffer_ion_stream::open() {
     return mmpResult;
 }
 
-MMP_RESULT mmp_buffer_ion_stream::close() {
+MMP_RESULT mmp_buffer_ion::close() {
 
     if(this->m_buf_addr.m_shared_fd >= 0) {
 
         MMP_DRIVER_MUNMAP((void*)this->m_buf_addr.m_vir_addr, this->m_buf_addr.m_size);
         ion_close(this->m_buf_addr.m_shared_fd);
 
-        MMPDEBUGMSG(1, (TEXT("[mmp_buffer_ion_stream::close] fd=%d vir_addr=0x%08x phy_addr=0x%08x sz=%d "), 
+        MMPDEBUGMSG(1, (TEXT("[mmp_buffer_ion::close] fd=%d vir_addr=0x%08x phy_addr=0x%08x sz=%d "), 
                          this->m_buf_addr.m_shared_fd,
                          this->m_buf_addr.m_vir_addr,   
                          this->m_buf_addr.m_phy_addr,

@@ -23,10 +23,10 @@
 
 mmp_lock::mmp_lock(class mmp_oal_lock* p_lock) : m_p_lock(p_lock) {
 
-	p_lock->lock();
+	if(m_p_lock) m_p_lock->lock();
 }
 	
 mmp_lock::~mmp_lock() {
 
-	m_p_lock->unlock();
+	if(m_p_lock) m_p_lock->unlock();
 }

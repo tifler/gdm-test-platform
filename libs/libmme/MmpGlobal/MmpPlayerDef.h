@@ -71,6 +71,7 @@ struct MmpEncoderCreateConfig {
 #define MMP_RENDERER_TYPE_NORMAL     0x100
 #define MMP_RENDERER_TYPE_DUMMY      0x101
 #define MMP_RENDERER_TYPE_YUVWRITER  0x102
+#define MMP_RENDERER_TYPE_DEFAULT    MMP_RENDERER_TYPE_NORMAL
 
 typedef struct CMmpRenderCreateProp_st
 {
@@ -220,8 +221,6 @@ typedef struct CMmpMediaSampleEncode_st
 #define MMP_ENCODED_BUF_STREAM 0
 #define MMP_DECODED_BUF_DSI    1
 
-#define MMP_ENCODED_FLAG_VIDEO_KEYFRAME   (1<<0)
-#define MMP_ENCODED_FLAG_VIDEO_CONFIGDATA (1<<1)
 typedef struct CMmpMediaSampleEncodeResult_st
 {
     MMP_U32 uiEncodedBufferPhyAddr[MMP_MEDIASAMPLE_RESULT_ENCBUF_COUNT];
@@ -258,8 +257,8 @@ typedef struct CMmpMediaSampleEncodeResult_st
     ------------------------
 
 */
-#define MMP_AMF_FILE_KEY1 0xCC00CC00
-#define MMP_AMF_FILE_KEY2 0xCC44CC88
+#define MMP_AMF_FILE_KEY1 0xCC00CC04
+#define MMP_AMF_FILE_KEY2 0xCC44CC8C
 #define MMP_AMF_MAX_MEDIA_COUNT     16
 #define MMP_AMF_HEADER_SIZE 4096
 #define MMP_AMF_STREAM_START_OFFSET MMP_AMF_HEADER_SIZE
@@ -269,6 +268,9 @@ typedef struct CMmpAmmfHeader_st {
     MMP_BOOL bIsMedia[MMP_AMF_MAX_MEDIA_COUNT];
 
     MMP_U32 uiFileSize;
+    MMP_U32 uiPlayDuration;
+    MMP_U32 uiRes1;
+    MMP_U32 uiRes2;
 
     MMP_U32 uiHeaderDataFileOffset;
     MMP_U32 uiHeaderDataSize;
@@ -285,6 +287,7 @@ typedef struct CMmpAmmfHeader_st {
     MMPWAVEFORMATEX wf;
     MMPBITMAPINFOHEADER bih;
     
+    MMP_U8 reserve[32];
 }CMmpAmmfHeader;
 
 typedef struct CMmpAmmfIndex_st {

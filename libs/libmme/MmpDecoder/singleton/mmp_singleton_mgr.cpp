@@ -25,6 +25,7 @@
 #include "mmp_vpu_if.hpp"
 #include "mmp_vpu_dev.hpp"
 #include "mmp_buffer_mgr.hpp"
+#include "mmp_env_mgr.hpp"
 #include "MmpUtil.hpp"
 
 #if (MMP_OS == MMP_OS_WIN32)
@@ -39,6 +40,7 @@ class mmp_singleton_mgr mmp_singleton_mgr::s_instance;
 
 mmp_singleton_mgr::mmp_singleton_mgr() {
 
+    MMP_RESULT mmpResult = MMP_SUCCESS;
     MMP_S32 i;
 
     MMPDEBUGMSG(1, (TEXT("[mmp_singleton_mgr::mmp_singleton_mgr] ++ ")));
@@ -51,13 +53,26 @@ mmp_singleton_mgr::mmp_singleton_mgr() {
     kernel_machine_start();
 #endif
 
-    m_mmpResult[ID_BUFFER_MGR] = mmp_buffer_mgr::create_instance();
+    /* create env_mgr */
+    if(mmpResult == MMP_SUCCESS) {
+        mmpResult = mmp_env_mgr::create_instance();
+        m_mmpResult[ID_ENV_MGR] = mmpResult;
+    }
 
+    /* create buffer_mgr */
+    if(mmpResult == MMP_SUCCESS) {
+        mmpResult = mmp_buffer_mgr::create_instance();
+        m_mmpResult[ID_BUFFER_MGR] = mmpResult;
+    }
+
+    /* create vpu_dev */
 #if (MMP_VPU == MMP_VPU_ANAPASS)
-    if(m_mmpResult[ID_BUFFER_MGR] == MMP_SUCCESS) {
-        m_mmpResult[ID_VPU_DEV] = mmp_vpu_dev::create_instance();
+    if(mmpResult == MMP_SUCCESS) {
+        mmpResult = mmp_vpu_dev::create_instance();
+        m_mmpResult[ID_VPU_DEV] = mmpResult;
     }
 #endif
+
 }
 
 mmp_singleton_mgr::~mmp_singleton_mgr() {
@@ -67,6 +82,7 @@ mmp_singleton_mgr::~mmp_singleton_mgr() {
 #endif
 
     mmp_buffer_mgr::destroy_instance();
+    mmp_env_mgr::destroy_instance();
 
 #if (MMP_OS == MMP_OS_WIN32)
     kernel_machine_stop();

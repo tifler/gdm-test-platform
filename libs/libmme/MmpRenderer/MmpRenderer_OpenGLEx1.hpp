@@ -33,10 +33,7 @@ friend class CMmpRenderer;
 
 private:
     CMmpGL_MovieEx1* m_pMmpGL;
-    
-    //HDC m_hDC;
-    //HGLRC m_hRC;
-    //CGLRGB m_rgbBack;
+        
 #if (MMPRENDERER_OPENGLEX1_DUMP == 1)
     FILE* m_fp_dump;
 #endif
@@ -52,9 +49,9 @@ protected:
     void Dump(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
 
 public:
-    virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
+    virtual MMP_RESULT Render_Ion(CMmpMediaSampleDecodeResult* pDecResult);
     virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe);
-    virtual MMP_RESULT RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height);
+    
     virtual MMP_RESULT OnSize(int cx, int cy) 
     { 
         if(m_pMmpGL)

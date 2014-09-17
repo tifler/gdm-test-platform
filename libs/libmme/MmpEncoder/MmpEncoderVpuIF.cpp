@@ -24,84 +24,13 @@
 #include "vpuhelper.h"
 #include "MmpH264Tool.hpp"
 #include "mmp_buffer_mgr.hpp"
-
-extern "C"
-{
-#include "libavcodec/avcodec.h"
-#include "libavformat/avformat.h"
-#include "libavutil/mem.h"
-#include "libavresample/audio_convert.h"
-}
-
-#define PUT_BYTE(_p, _b) \
-    *_p++ = (unsigned char)_b; 
-
-#define PUT_BUFFER(_p, _buf, _len) \
-    memcpy(_p, _buf, _len); \
-    _p += _len;
-
-#define PUT_LE32(_p, _var) \
-    *_p++ = (unsigned char)((_var)>>0);  \
-    *_p++ = (unsigned char)((_var)>>8);  \
-    *_p++ = (unsigned char)((_var)>>16); \
-    *_p++ = (unsigned char)((_var)>>24); 
-
-#define PUT_BE32(_p, _var) \
-    *_p++ = (unsigned char)((_var)>>24);  \
-    *_p++ = (unsigned char)((_var)>>16);  \
-    *_p++ = (unsigned char)((_var)>>8); \
-    *_p++ = (unsigned char)((_var)>>0); 
-
-
-#define PUT_LE16(_p, _var) \
-    *_p++ = (unsigned char)((_var)>>0);  \
-    *_p++ = (unsigned char)((_var)>>8);  
-
-
-#define PUT_BE16(_p, _var) \
-    *_p++ = (unsigned char)((_var)>>8);  \
-    *_p++ = (unsigned char)((_var)>>0);  
-
-
-//#define ENC_SOURCE_FRAME_DISPLAY
+#include "mmp_lock.hpp"
 
 #define VPU_ENC_TIMEOUT       1000
 #define VPU_DEC_TIMEOUT       1000
-#define VPU_WAIT_TIME_OUT	100		//should be less than normal decoding time to give a chance to fill stream. if this value happens some problem. we should fix VPU_WaitInterrupt function
-#define PARALLEL_VPU_WAIT_TIME_OUT 0 	//the value of timeout is 0 means we just check interrupt flag. do not wait any time to give a chance of an interrupt of the next core.
-
-
-#if PARALLEL_VPU_WAIT_TIME_OUT > 0 
-#undef VPU_DEC_TIMEOUT
-#define VPU_DEC_TIMEOUT       1000
-#endif
-
-
-#define MAX_CHUNK_HEADER_SIZE 1024
-#define MAX_DYNAMIC_BUFCOUNT	3
-#define NUM_FRAME_BUF			19
-#define MAX_ROT_BUF_NUM			2
-#define EXTRA_FRAME_BUFFER_NUM	1
+#define VPU_WAIT_TIME_OUT	 100		//should be less than normal decoding time to give a chance to fill stream. if this value happens some problem. we should fix VPU_WaitInterrupt function
 
 #define STREAM_BUF_SIZE		 0x300000  // max bitstream size
-
-//#define STREAM_FILL_SIZE    (512 * 16)  //  4 * 1024 | 512 | 512+256( wrap around test )
-#define STREAM_FILL_SIZE    0x2000  //  4 * 1024 | 512 | 512+256( wrap around test )
-
-#define STREAM_END_SIZE			0
-#define STREAM_END_SET_FLAG		0
-#define STREAM_END_CLEAR_FLAG	-1
-#define STREAM_READ_SIZE    (512 * 16)
-
-//#define SUPPORT_SW_MIXER
-
-
-#define FORCE_SET_VSYNC_FLAG
-//#define TEST_USER_FRAME_BUFFER
-#ifdef TEST_USER_FRAME_BUFFER
-//#define TEST_MULTIPLE_CALL_REGISTER_FRAME_BUFFER
-#endif
-
 
 
 /////////////////////////////////////////////////////////////
@@ -152,9 +81,13 @@ MMP_RESULT CMmpEncoderVpuIF::Open()
         m_p_vpu_if = mmp_vpu_if::create_object();
         if(m_p_vpu_if == NULL) {
             mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpEncoderVpuIF::Open] FAIL : mmp_vpu_if::create_object\n")));
+            return mmpResult;
         }
     }
     
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
+
     if(mmpResult == MMP_SUCCESS) {
     
         m_p_vpu_if->VPU_GetVersionInfo(m_codec_idx, &m_version, &m_revision, &m_productId);	
@@ -182,7 +115,6 @@ MMP_RESULT CMmpEncoderVpuIF::Open()
 
             buf_addr = this->m_p_enc_buffer->get_buf_addr();
             m_vpu_enc_buffer.base = buf_addr.m_vir_addr;
-            m_vpu_enc_buffer.ion_shared_fd = buf_addr.m_shared_fd;
             m_vpu_enc_buffer.phys_addr = buf_addr.m_phy_addr;
             m_vpu_enc_buffer.size = buf_addr.m_size;
             m_vpu_enc_buffer.virt_addr = buf_addr.m_vir_addr;
@@ -249,6 +181,8 @@ MMP_RESULT CMmpEncoderVpuIF::Close()
 {
     MMP_S32 i;
 
+    if(m_p_vpu_if) m_p_vpu_if->enter_critical_section();
+
     if(m_EncHandle != NULL) {
 
         if(m_p_enc_buffer != NULL) {
@@ -280,6 +214,8 @@ MMP_RESULT CMmpEncoderVpuIF::Close()
        m_p_enc_buffer = NULL;
     }
 
+    if(m_p_vpu_if)  m_p_vpu_if->leave_critical_section();
+
     if(m_p_vpu_if != NULL) {
         mmp_vpu_if::destroy_object(m_p_vpu_if);
         m_p_vpu_if = NULL;
@@ -296,6 +232,8 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeDSI() {
     RetCode ret;
     MMP_S32 i;
 
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
+
     //srcFrameWidth = ((encOP.picWidth+15)&~15);
 	//srcFrameStride = srcFrameWidth;
 	//srcFrameFormat = FORMAT_420;
@@ -304,8 +242,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeDSI() {
     m_framebufWidth = MMP_BYTE_ALIGN(m_encOP.picWidth, 16); //(encConfig.rotAngle==90||encConfig.rotAngle ==270)?srcFrameHeight:srcFrameWidth;
 	m_framebufHeight = MMP_BYTE_ALIGN(m_encOP.picHeight, 16);//(encConfig.rotAngle==90||encConfig.rotAngle ==270)?srcFrameWidth:srcFrameHeight;
 	m_framebufStride = m_framebufWidth;
-
-    this->m_p_vpu_if->enter_critical_section();
 
     /* Enc Seq Init */
     if(mmpResult == MMP_SUCCESS) {
@@ -320,8 +256,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeDSI() {
     	    m_regFrameBufCount = m_enc_init_info.minFrameBufferCount;
         }
     }
-
-    this->m_p_vpu_if->leave_critical_section();
 
     /* Register YUV FrameBuffer */
     if(mmpResult == MMP_SUCCESS) {
@@ -362,14 +296,11 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeDSI() {
                 user_frame[i].mapType = m_mapType;
                 user_frame[i].stride = m_framebufStride;
                 user_frame[i].height = m_framebufHeight;
-                user_frame[i].ion_shared_fd = buf_addr.m_shared_fd;
-                user_frame[i].ion_base_phyaddr = buf_addr.m_phy_addr;
                 user_frame[i].myIndex = i;
                 
             }
         }
 
-        this->m_p_vpu_if->enter_critical_section();
         if(i == m_regFrameBufCount) {
             ret = m_p_vpu_if->VPU_EncRegisterFrameBuffer(m_EncHandle, user_frame, m_regFrameBufCount, m_framebufStride, m_framebufHeight, m_mapType);
 	        if( ret != RETCODE_SUCCESS )
@@ -384,7 +315,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeDSI() {
         else {
             mmpResult = MMP_FAILURE;
         }
-        this->m_p_vpu_if->leave_critical_section();
     }
 
 #if 1
@@ -401,7 +331,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeDSI() {
 
             buf_addr = this->m_p_src_frame_buffer->get_buf_addr();
             m_vpu_src_frame_buffer.base = buf_addr.m_vir_addr;
-            m_vpu_src_frame_buffer.ion_shared_fd = buf_addr.m_shared_fd;
             m_vpu_src_frame_buffer.phys_addr = buf_addr.m_phy_addr;
             m_vpu_src_frame_buffer.size = buf_addr.m_size;
             m_vpu_src_frame_buffer.virt_addr = buf_addr.m_vir_addr;
@@ -525,6 +454,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc,
     MMP_U32 nBufSize, nBufMaxSize, nFlag;
     //class mmp_buffer* p_mmp_buf;
 
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
 
     luma_size = m_framebufStride*m_framebufHeight;
     chroma_size = luma_size/4;
@@ -545,8 +475,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc,
         m_FrameBuffer_src.mapType = m_mapType;
         m_FrameBuffer_src.stride = m_framebufStride;
         m_FrameBuffer_src.height = m_framebufHeight;
-        m_FrameBuffer_src.ion_shared_fd = m_vpu_src_frame_buffer.ion_shared_fd;
-        m_FrameBuffer_src.ion_base_phyaddr = m_vpu_src_frame_buffer.phys_addr;
         m_FrameBuffer_src.myIndex = MAX_FRAMEBUFFER_COUNT;
         m_FrameBuffer_src.sourceLBurstEn = 0;
 
@@ -565,8 +493,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc,
     encParam.sourceFrame = pFB;
     encParam.picStreamBufferAddr = m_vpu_enc_buffer.phys_addr;//m_vbStream.phys_addr;	// can set the newly allocated buffer.
     encParam.picStreamBufferSize = m_vpu_enc_buffer.size;//m_vbStream.size;
-
-    this->m_p_vpu_if->enter_critical_section();
 
     ret = m_p_vpu_if->VPU_EncStartOneFrame(m_EncHandle, &encParam);
 	if( ret != RETCODE_SUCCESS )
@@ -623,7 +549,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc,
             pBuffer = (MMP_U8*)pEncResult->uiEncodedBufferLogAddr[MMP_ENCODED_BUF_STREAM];
             nBufMaxSize = pEncResult->uiEncodedBufferMaxSize[MMP_ENCODED_BUF_STREAM];
             nBufSize = outputInfo.bitstreamSize;
-            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_ENCODED_FLAG_VIDEO_KEYFRAME;
+            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME;
             else nFlag = 0;
 
             vdi_read_memory(m_codec_idx, outputInfo.bitstreamBuffer, pBuffer, outputInfo.bitstreamSize, m_encOP.streamEndian);
@@ -633,8 +559,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc,
         }
 
     }
-
-    this->m_p_vpu_if->leave_critical_section();
 
     m_srcFrameIdx = (m_srcFrameIdx+1)%m_regFrameBufCount;
 
@@ -656,6 +580,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
     class mmp_buffer_addr mmp_buf_enc_addr[MMP_MEDIASAMPLE_PLANE_COUNT];
     MMP_S32 i;
 
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
 
     luma_size = m_framebufStride*m_framebufHeight;
     chroma_size = luma_size/4;
@@ -679,8 +604,6 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
                 m_FrameBuffer_src.mapType = m_mapType;
                 m_FrameBuffer_src.stride = pMediaSampleEnc->uiBufferStride[MMP_MEDIASAMPLE_BUF_Y];
                 m_FrameBuffer_src.height = pMediaSampleEnc->uiBufferAlignHeight[MMP_MEDIASAMPLE_BUF_Y];
-                m_FrameBuffer_src.ion_shared_fd = -1;
-                m_FrameBuffer_src.ion_base_phyaddr = 0;
                 m_FrameBuffer_src.myIndex = MAX_FRAMEBUFFER_COUNT;
                 m_FrameBuffer_src.sourceLBurstEn = 0;
                 
@@ -769,7 +692,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
             pBuffer = (MMP_U8*)pEncResult->uiEncodedBufferLogAddr[MMP_ENCODED_BUF_STREAM];
             nBufMaxSize = pEncResult->uiEncodedBufferMaxSize[MMP_ENCODED_BUF_STREAM];
             nBufSize = outputInfo.bitstreamSize;
-            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_ENCODED_FLAG_VIDEO_KEYFRAME;
+            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME;
             else nFlag = 0;
 
             vdi_read_memory(m_codec_idx, outputInfo.bitstreamBuffer, pBuffer, outputInfo.bitstreamSize, m_encOP.streamEndian);
@@ -778,6 +701,107 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
             pEncResult->uiFlag = nFlag;
         }
 
+    }
+
+    m_srcFrameIdx = (m_srcFrameIdx+1)%m_regFrameBufCount;
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpEncoderVpuIF::EncodeAu(class mmp_buffer_videoframe* p_buf_videoframe, class mmp_buffer_videostream* p_buf_videostream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    EncParam		encParam	= { 0 };
+    FrameBuffer *pFB;
+    int luma_size, chroma_size;
+    int int_reason, timeout_count;
+    RetCode ret;
+    EncOutputInfo	outputInfo	= { 0 };
+    MMP_U8* pBuffer;
+    MMP_U32 nBufSize, nBufMaxSize, nFlag;
+
+    class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
+
+    luma_size = m_framebufStride*m_framebufHeight;
+    chroma_size = luma_size/4;
+    
+    m_FrameBuffer_src.bufY = p_buf_videoframe->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_Y);
+    m_FrameBuffer_src.bufCb = p_buf_videoframe->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CB);
+    m_FrameBuffer_src.bufCr = p_buf_videoframe->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CR);
+    m_FrameBuffer_src.mapType = m_mapType;
+    m_FrameBuffer_src.stride = p_buf_videoframe->get_stride_luma();
+    m_FrameBuffer_src.height = p_buf_videoframe->get_pic_height();//p_buf_videoframe->get_buf_height(MMP_MEDIASAMPLE_BUF_Y);
+    m_FrameBuffer_src.myIndex = MAX_FRAMEBUFFER_COUNT;
+    m_FrameBuffer_src.sourceLBurstEn = 0;
+    
+    pFB = &m_FrameBuffer_src;
+    
+    /* Enc Start */
+    if(mmpResult == MMP_SUCCESS) {
+
+        encParam.forceIPicture = 0;
+	    encParam.skipPicture   = 0;
+	    encParam.quantParam	   = 10;//encConfig.picQpY;
+
+        encParam.sourceFrame = pFB;
+        encParam.picStreamBufferAddr = m_vpu_enc_buffer.phys_addr;//m_vbStream.phys_addr;	// can set the newly allocated buffer.
+        encParam.picStreamBufferSize = m_vpu_enc_buffer.size;//m_vbStream.size;
+
+        ret = m_p_vpu_if->VPU_EncStartOneFrame(m_EncHandle, &encParam);
+	    if( ret != RETCODE_SUCCESS )
+	    {
+            MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::EncodeAuEx2] FAIL: m_p_vpu_if->VPU_EncStartOneFrame")));
+		    mmpResult = MMP_FAILURE;
+	    }
+    }
+
+    /* Wait Interrupt */
+    timeout_count = 0;
+	while(mmpResult == MMP_SUCCESS) 
+	{
+		int_reason = m_p_vpu_if->VPU_WaitInterrupt(m_codec_idx, VPU_WAIT_TIME_OUT);
+		if (int_reason == (int)-1)	{
+			
+            if( (timeout_count*VPU_WAIT_TIME_OUT) > VPU_ENC_TIMEOUT) {
+				//VLOG(ERR, "Error : encoder timeout happened\n");
+				m_p_vpu_if->VPU_SWReset(m_codec_idx, SW_RESET_SAFETY, m_EncHandle);
+                mmpResult = MMP_FAILURE;
+				break;
+			}
+			int_reason = 0;
+			timeout_count++;
+		}
+		
+		if (int_reason & (1<<INT_BIT_BIT_BUF_FULL))	{
+            break;
+		}					
+
+		if(int_reason != 0)	{
+			m_p_vpu_if->VPU_ClearInterrupt(m_codec_idx);
+			if (int_reason & (1<<INT_BIT_PIC_RUN)) 
+				break;
+		}
+	}
+
+    /* Process Result */
+    if(mmpResult == MMP_SUCCESS) {
+    
+        ret = m_p_vpu_if->VPU_EncGetOutputInfo(m_EncHandle, &outputInfo);
+        if(ret != RETCODE_SUCCESS) {
+            mmpResult = MMP_FAILURE;
+        }
+        else {
+            pBuffer = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+            nBufMaxSize = p_buf_videostream->get_buf_size();
+            nBufSize = outputInfo.bitstreamSize;
+            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME;
+            else nFlag = 0;
+
+            memcpy(pBuffer, (void*)m_vpu_enc_buffer.virt_addr, nBufSize);
+
+            p_buf_videostream->set_stream_size(nBufSize);
+            p_buf_videostream->or_flag(nFlag);
+        }
     }
 
     m_srcFrameIdx = (m_srcFrameIdx+1)%m_regFrameBufCount;

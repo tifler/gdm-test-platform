@@ -279,10 +279,6 @@ typedef struct {
     int height;
     int sourceLBurstEn;
 
-#ifdef __VPU_PLATFORM_MME
-    int ion_shared_fd;
-    PhysicalAddress ion_base_phyaddr;
-#endif
 } FrameBuffer;
 
 typedef enum {
@@ -826,6 +822,7 @@ extern "C" {
 	RetCode VPU_Init(
 		Uint32 coreIdx
 		);
+
 
 	RetCode VPU_InitWithBitcode(
 		Uint32 coreIdx,

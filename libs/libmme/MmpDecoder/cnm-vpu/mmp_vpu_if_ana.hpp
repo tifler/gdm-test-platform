@@ -99,6 +99,10 @@ public:
 
     virtual void enter_critical_section();
     virtual void leave_critical_section();
+    virtual class mmp_oal_mutex* get_external_mutex();
+
+    virtual MMP_S32 VPU_GetCodecInstanceIndex(void* CodecHdl);
+    virtual MMP_S32 VPU_GetCodecInstanceUse(void* CodecHdl);
 };
 
 

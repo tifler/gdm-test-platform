@@ -239,6 +239,7 @@ void CMmpRenderer_OdyClientEx1::SetFirstRenderer() {
     }
 }
 
+#if 0
 MMP_RESULT CMmpRenderer_OdyClientEx1::Render_Ion(CMmpMediaSampleDecodeResult* pDecResult) {
 
     int iret;
@@ -299,6 +300,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render_Ion(CMmpMediaSampleDecodeResult* pD
 
 	return MMP_SUCCESS;
 }
+#endif
 
 MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
 
@@ -307,6 +309,9 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
     MMP_S32 i;
 
     if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
+
+        CMmpRenderer::EncodeAndMux(p_buf_videoframe);
+
         return MMP_SUCCESS;
     }
 
@@ -346,15 +351,17 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
         CMmpUtil::Sleep(100);
     }
 
-    //CMmpRenderer::EncodeAndMux(pDecResult);
+    CMmpRenderer::EncodeAndMux(p_buf_videoframe);
 
 	return MMP_SUCCESS;
 }
 
+#if 0
 MMP_RESULT CMmpRenderer_OdyClientEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 
     return MMP_FAILURE;
 }
+#endif
 
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {

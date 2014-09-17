@@ -53,12 +53,12 @@ protected:
     virtual MMP_RESULT Close();
 
     void EncodeMonitor(CMmpMediaSampleEncode* pMediaSample, CMmpMediaSampleEncodeResult* pEncResult);
+    void EncodeMonitor(class mmp_buffer_videostream* p_buf_videostream);
     virtual const MMP_U8* GetClassName() = 0;
     
 public:
-    //virtual int GetPicWidth() { return m_pbih_out->biWidth; }
-    //virtual int GetPicHeight() { return m_pbih_out->biHeight; }
-
+    virtual MMP_RESULT EncodeAu(class mmp_buffer_videoframe* p_buf_videoframe, class mmp_buffer_videostream* p_buf_videostream) = 0;
+    
 	inline const MMPBITMAPINFOHEADER& GetBIH_Out() { return m_bih_out; }
 	inline const MMPBITMAPINFOHEADER& GetBIH_In() { return m_bih_in; }
     inline MMP_BOOL IsNeedPictureBufPhyAddr() { return m_bNeedPictureBufPhyAddr; }
@@ -69,8 +69,8 @@ public:
     MMP_BOOL EncodedFrameQueue_IsEmpty();
     MMP_RESULT EncodedFrameQueue_GetFrame(MMP_U8* pBuffer, MMP_U32 nBufMaxSize, MMP_U32* nRetBufSize, MMP_U32* nRetFlag);
 
-    virtual MMP_RESULT Encode_YUV420Planar_Vir(MMP_U8* Y, MMP_U8* U, MMP_U8* V, 
-                                               MMP_U8* pEncStreamBuf, MMP_U32 nBufMaxSize, MMP_U32* nBufSize, MMP_U32* nFlag);
+    //virtual MMP_RESULT Encode_YUV420Planar_Vir(MMP_U8* Y, MMP_U8* U, MMP_U8* V, 
+    //                                           MMP_U8* pEncStreamBuf, MMP_U32 nBufMaxSize, MMP_U32* nBufSize, MMP_U32* nFlag);
 
 
     inline MMP_S32 GetVideoPicWidth() { return m_bih_out.biWidth; }

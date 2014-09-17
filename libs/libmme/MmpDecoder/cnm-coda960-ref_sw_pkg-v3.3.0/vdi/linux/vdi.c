@@ -74,6 +74,9 @@ static void vdiInit_Unlock();
 
 static int swap_endian(unsigned char *data, int len, int endian);
 static int allocate_common_memory(unsigned long coreIdx);
+#ifdef __VPU_PLATFORM_MME
+static int allocate_common_memory_shm(unsigned long coreIdx);
+#endif
 
 
 int vdi_probe(unsigned long coreIdx)
@@ -117,7 +120,7 @@ int vdi_init(unsigned long coreIdx)
 #endif
 
 #ifdef __VPU_PLATFORM_MME
-    vdi->vpu_fd = g_vpu_fd;
+    vdi->vpu_fd = mme_util_get_vpu_fd();
 #else
 	vdi->vpu_fd = open(VPU_DEVICE_NAME, O_RDWR);	// if this API supports VPU parallel processing using multi VPU. the driver should be made to open multiple times.
 	if (vdi->vpu_fd < 0) {
@@ -159,7 +162,7 @@ int vdi_init(unsigned long coreIdx)
 
 #ifdef __VPU_PLATFORM_MME
     vdi->vdb_register.size = VPU_BIT_REG_SIZE;
-    vdi->vdb_register.virt_addr = g_vpu_reg_vir_addr;
+    vdi->vdb_register.virt_addr = mme_util_get_vpu_reg_vir_addr();
 #else
 	vdi->vdb_register.size = VPU_BIT_REG_SIZE;
 	vdi->vdb_register.virt_addr = (unsigned long)mmap(NULL, vdi->vdb_register.size, PROT_READ | PROT_WRITE, MAP_SHARED, vdi->vpu_fd, 0);
@@ -212,6 +215,46 @@ ERR_VDI_INIT:
 	vdi_release(coreIdx);
 	return -1;
 }
+
+#ifdef __VPU_PLATFORM_MME
+int vdi_init_shm(unsigned long coreIdx)
+{
+	vdi_info_t *vdi;
+	int i=0;
+	int code_reuse = 0;
+
+   if (coreIdx >= MAX_NUM_VPU_CORE)
+		return 0;
+
+	vdi = &s_vdi_info[coreIdx];
+    vdi->vpu_fd = mme_util_get_vpu_fd();
+	
+	memset(&vdi->vpu_buffer_pool, 0x00, sizeof(vpudrv_buffer_pool_t)*MAX_VPU_BUFFER_POOL);
+
+	if (!vdi_get_instance_pool_shm(coreIdx))
+	{
+		VLOG(INFO, "[VDI] fail to create shared info for saving context \n");
+		//goto ERR_VDI_INIT;
+        return -1;
+	}
+
+    vdi->vdb_register.size = VPU_BIT_REG_SIZE;
+    vdi->vdb_register.virt_addr = mme_util_get_vpu_reg_vir_addr();
+
+    code_reuse = allocate_common_memory_shm(coreIdx);
+	if (code_reuse < 0)
+	{
+		VLOG(ERR, "[VDI] fail to get vpu common buffer from driver\n");
+		return -1;
+	}
+
+	vdi->coreIdx = coreIdx;
+	vdi->task_num++;
+
+	return code_reuse;
+}
+
+#endif
 
 int vdi_set_bit_firmware_to_pm(unsigned long coreIdx, const unsigned short *code)
 {
@@ -410,13 +453,12 @@ int allocate_common_memory(unsigned long coreIdx)
         vpu_buffer_t vb;
         int iiret;
 
-        memcpy(&vb, g_p_vpu_common_buffer, sizeof(vpu_buffer_t));
+        memcpy(&vb, mme_util_get_vpu_common_buffer(), sizeof(vpu_buffer_t));
 
         //iiret = mmp_buffer_mgr_alloc_vpu_buffer(vdb.size, &vb);
         //if(iiret == 0) {
             vdb.size = vb.size;
             vdb.firmware_code_reuse = 0;
-            vdb.ion_shared_fd = vb.ion_shared_fd;
             vdb.phys_addr = vb.phys_addr;
             vdb.virt_addr = vb.virt_addr;
         //}
@@ -470,7 +512,6 @@ int allocate_common_memory(unsigned long coreIdx)
 	}
 
 	VLOG(INFO, "[VDI] vdi_get_common_memory physaddr=0x%x, size=%d, virtaddr=0x%x\n", (int)vdi->vpu_common_memory.phys_addr, (int)vdi->vpu_common_memory.size, (int)vdi->vpu_common_memory.virt_addr);
-
 	
     if(vdb.firmware_code_reuse)
         return 1;
@@ -478,7 +519,52 @@ int allocate_common_memory(unsigned long coreIdx)
 	    return 0;
 }
 
+#ifdef __VPU_PLATFORM_MME
+int allocate_common_memory_shm(unsigned long coreIdx)
+{
+	vdi_info_t *vdi = &s_vdi_info[coreIdx];
+	int i;
+    vpudrv_buffer_t vdb;
 
+    if (coreIdx >= MAX_NUM_VPU_CORE)
+        return -1;
+
+    if(!vdi || vdi->vpu_fd==-1 || vdi->vpu_fd==0x00)
+        return -1;
+
+    osal_memset(&vdb, 0x00, sizeof(vpudrv_buffer_t));
+	vdb.size = SIZE_COMMON*MAX_NUM_VPU_CORE;
+    {
+        vpu_buffer_t vb;
+        int iiret;
+
+        memcpy(&vb, mme_util_get_vpu_common_buffer(), sizeof(vpu_buffer_t));
+
+        vdb.size = vb.size;
+        vdb.firmware_code_reuse = 0;
+        vdb.phys_addr = vb.phys_addr;
+        vdb.virt_addr = vb.virt_addr;
+    }
+
+
+	osal_memcpy(&vdi->vpu_common_memory, mme_util_get_vpu_common_buffer(), sizeof(vpu_buffer_t));
+
+	for (i=0; i<MAX_VPU_BUFFER_POOL; i++)
+	{
+		if (vdi->vpu_buffer_pool[i].inuse == 0)
+		{
+			vdi->vpu_buffer_pool[i].vdb = vdb;
+			vdi->vpu_buffer_pool_count++;
+			vdi->vpu_buffer_pool[i].inuse = 1;
+			break;
+		}
+	}
+
+	VLOG(INFO, "[VDI] vdi_get_common_memory physaddr=0x%x, size=%d, virtaddr=0x%x\n", (int)vdi->vpu_common_memory.phys_addr, (int)vdi->vpu_common_memory.size, (int)vdi->vpu_common_memory.virt_addr);
+	
+    return 0;
+}
+#endif
 
 vpu_instance_pool_t *vdi_get_instance_pool(unsigned long coreIdx)
 {
@@ -505,7 +591,7 @@ vpu_instance_pool_t *vdi_get_instance_pool(unsigned long coreIdx)
 #endif
 
 #ifdef __VPU_PLATFORM_MME
-        vdb.virt_addr = g_p_instance_pool_buffer;
+        vdb.virt_addr = mme_util_get_vpu_instance_pool_buffer();
         vdb.phys_addr = vdb.virt_addr;
         vdb.base = vdb.virt_addr;
         vdb.firmware_code_reuse = 0;
@@ -544,6 +630,52 @@ vpu_instance_pool_t *vdi_get_instance_pool(unsigned long coreIdx)
 
 	return (vpu_instance_pool_t *)vdi->pvip;
 }
+
+#ifdef __VPU_PLATFORM_MME
+vpu_instance_pool_t *vdi_get_instance_pool_shm(unsigned long coreIdx)
+{
+	vdi_info_t *vdi;
+	vpudrv_buffer_t vdb;
+
+    if (coreIdx >= MAX_NUM_VPU_CORE)
+        return NULL;
+
+	vdi = &s_vdi_info[coreIdx];
+
+	if(!vdi || vdi->vpu_fd == -1 || vdi->vpu_fd == 0x00 )
+		return NULL;
+
+	osal_memset(&vdb, 0x00, sizeof(vpudrv_buffer_t));
+	if (!vdi->pvip)
+	{
+		vdb.size = sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*VDI_NUM_LOCK_HANDLES;
+        VLOG(INFO, "[VDI] sizeof(vpu_instance_pool_t)=%d, sizeof(MUTEX_HANDLE)=%d\n",
+             sizeof(vpu_instance_pool_t), sizeof(MUTEX_HANDLE));
+
+#ifdef SUPPORT_MULTI_CORE_IN_ONE_DRIVER
+		vdb.size  *= MAX_NUM_VPU_CORE;
+#endif
+
+        vdb.virt_addr = mme_util_get_vpu_instance_pool_buffer();
+        vdb.phys_addr = vdb.virt_addr;
+        vdb.base = vdb.virt_addr;
+        vdb.firmware_code_reuse = 0;
+        vdb.ion_shared_fd = -1;
+
+
+		osal_memcpy(&vdi->vpu_instance_pool_memory, &vdb, sizeof(vpudrv_buffer_t));
+
+		vdi->pvip = (vpu_instance_pool_t *)(vdb.virt_addr + (coreIdx*(sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*VDI_NUM_LOCK_HANDLES)));
+
+		vdi->vpu_mutex = (void *)((unsigned long)vdi->pvip + sizeof(vpu_instance_pool_t));	//change the pointer of vpu_mutex to at end pointer of vpu_instance_pool_t to assign at allocated position.
+		vdi->vpu_disp_mutex = (void *)((unsigned long)vdi->pvip + sizeof(vpu_instance_pool_t) + sizeof(MUTEX_HANDLE)*2);
+
+		VLOG(INFO, "[VDI] instance pool physaddr=0x%x, virtaddr=0x%x, base=0x%x, size=%d\n", (int)vdb.phys_addr, (int)vdb.virt_addr, (int)vdb.base, (int)vdb.size);
+	}
+
+	return (vpu_instance_pool_t *)vdi->pvip;
+}
+#endif
 
 int vdi_open_instance(unsigned long coreIdx, unsigned long instIdx)
 {
@@ -890,9 +1022,12 @@ int vdi_write_memory(unsigned long coreIdx, unsigned int addr, unsigned char *da
 
 	offset = addr - (unsigned long)vdb.phys_addr;
 
+//printf("[vdi_write_memory] ln=%d addr=0x%08x vdb.phys_addr=0x%08x offset=%d \n", __LINE__, addr, vdb.phys_addr, offset );
+
 	swap_endian(data, len, endian);
 	osal_memcpy((void *)((unsigned long)vdb.virt_addr+offset), data, len);
 
+//printf("[vdi_write_memory] ln=%d copy done sz=%d \n", __LINE__, len );
 	return len;
 }
 
@@ -966,7 +1101,6 @@ int vdi_allocate_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb)
     }
     vdb.base = vb->base;
     vdb.firmware_code_reuse = vb->firmware_code_reuse;
-    vdb.ion_shared_fd = vb->ion_shared_fd;
     vdb.phys_addr = vb->phys_addr;
     vdb.virt_addr = vb->virt_addr;
 
@@ -1029,9 +1163,8 @@ int vdi_register_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb)
 	vdb.size = vb->size;
 	vdb.phys_addr = vb->phys_addr;
 	vdb.base = vb->base;
-    vdb.ion_shared_fd = vb->ion_shared_fd;
 
-	printf("[hthwang: vdi_registerdma_memory] shared_fd = %d \n", vb->ion_shared_fd );
+	//printf("[hthwang: vdi_registerdma_memory] shared_fd = %d \n", vb->ion_shared_fd );
 	
 	vdb.virt_addr = vb->virt_addr;
 
@@ -1046,7 +1179,7 @@ int vdi_register_dma_memory(unsigned long coreIdx, vpu_buffer_t *vb)
 		}
 	}
 
-	VLOG(INFO, "[VDI] vdi_allocate_dma_memory, physaddr=0x%x, virtaddr=0x%x, size=%d\n", (int)vb->phys_addr, (int)vb->virt_addr, vb->size);
+	//VLOG(INFO, "[VDI] vdi_allocate_dma_memory, physaddr=0x%x, virtaddr=0x%x, size=%d\n", (int)vb->phys_addr, (int)vb->virt_addr, vb->size);
 	return 0;
 }
 #endif

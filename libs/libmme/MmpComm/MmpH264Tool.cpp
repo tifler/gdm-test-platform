@@ -1238,6 +1238,115 @@ MMP_RESULT CMmpH264Parser::Remake_VideoDSI_AVC1(unsigned char* dsi, int dsiSize,
    return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpH264Parser::ConvertDSI_AVC1_To_H264(MMP_U8* avc_dsi, MMP_S32 avc_dsi_size, MMP_U8* h264_dsi, MMP_S32* h264_dsi_size) {
+
+   MMP_U8 ConfigurationVersion;
+   //unsigned char CurrentSeqParameterSetIdx;
+   //unsigned char CurrentPicParameterSetIdx;
+   //unsigned char SliceDataDecoded;
+   MMP_U8 lenghtSizeMinusOne;
+   MMP_U8 ACVProfileIndication;
+   MMP_U8 ProfileCompatibility;
+   MMP_U8 AVCLevelIndication;
+   MMP_U8* ByteStreamBuffer;
+   MMP_S32 dsiIndex;
+   
+   if( (avc_dsi_size == 0) || (avc_dsi == NULL) ) {
+       return MMP_FAILURE;
+   }
+
+   ByteStreamBuffer = avc_dsi;
+
+   ConfigurationVersion = *ByteStreamBuffer++;
+   if(ConfigurationVersion != 1)  {
+      return MMP_FAILURE;
+   }
+  
+   ACVProfileIndication  = *ByteStreamBuffer++;
+   ProfileCompatibility  = *ByteStreamBuffer++;
+   AVCLevelIndication    = *ByteStreamBuffer++;
+   lenghtSizeMinusOne   = *ByteStreamBuffer++;
+   lenghtSizeMinusOne &= 0x03; // 0b00000011 Keep only the 2 lsb
+
+   dsiIndex=0;
+
+   MMP_U8 counter = *ByteStreamBuffer++;
+   MMP_U8 i;
+   MMP_U16 sizeOfSPS, sizeOfPPS;
+   MMP_U32 sliceHeaderMarker;
+
+   //make SPS
+   counter &= 0x1F; // 0b00011111 Keep only the 5 lsb
+   for(i=0;i<counter;i++)
+   {
+       sizeOfSPS = 0;
+       sizeOfSPS |=  (*ByteStreamBuffer++ << 8);
+       sizeOfSPS |=  (*ByteStreamBuffer++); 
+       
+#if 1
+       h264_dsi[dsiIndex++]=0;
+       h264_dsi[dsiIndex++]=0;
+       h264_dsi[dsiIndex++]=0;
+       h264_dsi[dsiIndex++]=1;
+#else
+       sliceHeaderMarker=sizeOfSPS;
+       sliceHeaderMarker&=0xFFFF;
+       sliceHeaderMarker=MMP_SWAP_U32(sliceHeaderMarker);
+       memcpy(&dsi[dsiIndex], &sliceHeaderMarker, 4);
+       dsiIndex+=4;
+#endif
+
+       memcpy(&h264_dsi[dsiIndex], ByteStreamBuffer, sizeOfSPS ); 
+       //if(spsIndex) *spsIndex=dsiIndex;
+       //if(spsSize) *spsSize=sizeOfSPS;
+
+       //pSPSStream = (MMP_U8*)&dsi[dsiIndex];
+
+       dsiIndex += sizeOfSPS;
+       ByteStreamBuffer += sizeOfSPS;
+   }
+   //dsi[dsiIndex]=0xFC; dsiIndex++;
+   //dsi[dsiIndex]=0xA8; dsiIndex++;
+   //*spsSize+=2;
+   
+   // PPSs
+   counter = *ByteStreamBuffer++;
+   for (i=0;i<counter;i++)
+   {
+      sizeOfPPS = 0;
+      sizeOfPPS |=  (*ByteStreamBuffer++ << 8);
+      sizeOfPPS |=  (*ByteStreamBuffer++);
+      
+#if 1
+      h264_dsi[dsiIndex++]=0;
+      h264_dsi[dsiIndex++]=0;
+      h264_dsi[dsiIndex++]=0;
+      h264_dsi[dsiIndex++]=1;
+#else
+      sliceHeaderMarker=sizeOfPPS;
+      sliceHeaderMarker&=0xFFFF;
+      sliceHeaderMarker=MMP_SWAP_U32(sliceHeaderMarker);
+      memcpy(&dsi[dsiIndex], &sliceHeaderMarker, 4);
+      dsiIndex+=4;
+#endif
+      
+      memcpy(&h264_dsi[dsiIndex], ByteStreamBuffer, sizeOfPPS ); 
+      //if(ppsIndex) *ppsIndex=dsiIndex;
+      //if(ppsSize) *ppsSize=sizeOfPPS;
+
+      dsiIndex+=sizeOfPPS;
+      ByteStreamBuffer += sizeOfPPS;
+   }
+   
+   if(h264_dsi_size != NULL) {
+       *h264_dsi_size = dsiIndex;
+   }
+
+   //Parsing SPS
+   //this->MakeH264SPS(pSPSStream, sizeOfSPS);
+   return MMP_SUCCESS;
+}
+
 MMP_RESULT CMmpH264Parser::ParsingSPS(unsigned char* spsStream, int spsSize, CMmpH264SPS* pSPS)
 {
     CMmpBitExtractor be;

@@ -25,6 +25,7 @@
 #include "MmpDefine.h"
 #include "MmpPlayerDef.h"
 #include "MmpMediaInfo.hpp"
+#include "mmp_buffer_mgr.hpp"
 
 struct MmpDecoderCreateConfig {
     MMP_U32 nFormat;

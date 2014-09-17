@@ -30,7 +30,7 @@
 class members
 **********************************************************/
 
-mmp_oal_mutex_linux::mmp_oal_mutex_linux()  {
+mmp_oal_mutex_linux::mmp_oal_mutex_linux(MMP_U32 key) : mmp_oal_mutex(key) {
 
 	m_mutex = MMP_OAL_MUTEX_INIT_VALUE;
 }
@@ -49,7 +49,6 @@ MMP_RESULT mmp_oal_mutex_linux::open() {
 		
 	if(pthread_mutex_init(&m_mutex, &m_mutexattr) != 0) {
     //if(pthread_mutex_init(&m_mutex, NULL) != 0) {
-        
 		m_mutex = MMP_OAL_MUTEX_INIT_VALUE;
         ret = MMP_ErrorUndefined;
     }

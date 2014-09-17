@@ -22,10 +22,9 @@
 #ifndef _MMP_BUFFER_VIDEOFRAME_HPP__
 #define _MMP_BUFFER_VIDEOFRAME_HPP__
 
-#include "mmp_buffer.hpp"
-#include "MmpPlayerDef.h"
+#include "mmp_buffer_media.hpp"
 
-class mmp_buffer_videoframe {
+class mmp_buffer_videoframe : public mmp_buffer_media {
 
 friend class CLASS_BUFFER_MGR;
 private:
@@ -36,6 +35,9 @@ private:
     MMP_S32 m_plane_count;
     MMP_U32 m_format;
 
+    MMP_S32 m_buf_stride[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 m_buf_height[MMP_MEDIASAMPLE_PLANE_COUNT];
+    
 private:
     mmp_buffer_videoframe();
     virtual ~mmp_buffer_videoframe();
@@ -50,8 +52,15 @@ public:
     MMP_U8* get_buf_vir_addr_cr() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_CR); }
     MMP_S32 get_buf_shared_fd(MMP_S32 frame_id);
 
-    inline MMP_S32 get_stride_luma() { return m_pic_width; }
-    inline MMP_S32 get_stride_chroma() { return m_pic_width>>1; }
+    MMP_U32 get_buf_phy_addr(MMP_S32 frame_id);
+
+    inline MMP_S32 get_stride_luma() { return m_buf_stride[MMP_MEDIASAMPLE_BUF_Y]; }
+    inline MMP_S32 get_stride_chroma() { return m_buf_stride[MMP_MEDIASAMPLE_BUF_CB]; }
+    inline MMP_S32 get_buf_stride(MMP_S32 frame_id) { return m_buf_stride[frame_id]; }
+    inline MMP_S32 get_buf_height(MMP_S32 frame_id) { return m_buf_height[frame_id]; }
+
+    inline MMP_S32 get_pic_width() { return m_pic_width; }
+    inline MMP_S32 get_pic_height() { return m_pic_height; }
 };
 
 #endif

@@ -65,7 +65,9 @@ public:
     virtual MMP_U32 GetAudioChannel();
     virtual MMP_U32 GetAudioSamplingRate();
     virtual MMP_U32 GetAudioBitsPerSample();
-    
+
+    virtual MMP_S64 GetDuration();
+    virtual MMP_RESULT Seek(MMP_S64 pts);
 };
 
 

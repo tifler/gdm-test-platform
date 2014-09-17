@@ -479,7 +479,7 @@ MMP_RESULT CMmpEncoderVpu::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSample, CMmp
             pBuffer = (MMP_U8*)pEncResult->uiEncodedBufferLogAddr[MMP_ENCODED_BUF_STREAM];
             nBufMaxSize = pEncResult->uiEncodedBufferMaxSize[MMP_ENCODED_BUF_STREAM];
             nBufSize = outputInfo.bitstreamSize;
-            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_ENCODED_FLAG_VIDEO_KEYFRAME;
+            if(outputInfo.picType == PIC_TYPE_I)  nFlag = MMP_MEDIASAMPMLE_FLAG_VIDEO_KEYFRAME;
             else nFlag = 0;
 
             vdi_read_memory(m_codec_idx, outputInfo.bitstreamBuffer, pBuffer, outputInfo.bitstreamSize, m_encOP.streamEndian);

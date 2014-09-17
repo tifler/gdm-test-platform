@@ -20,7 +20,7 @@
  */
 
 #include "MmpDemuxer_ammf.hpp"
-
+#include "MmpUtil.hpp"
 
 
 /////////////////////////////////////////////////////
@@ -85,7 +85,9 @@ MMP_RESULT CMmpDemuxer_ammf::Open()
             /* Nothing to do */
         }
         else {
-
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpDemuxer_ammf::Open] ERROR : Key Mismatch, Check Version cur_key=(0x%08x, 0x%08x) file_key=(0x%08x,0x%08x) "),
+                                      m_ammf_header.uiKey1, m_ammf_header.uiKey2,
+                                      MMP_AMF_FILE_KEY1, MMP_AMF_FILE_KEY2 ));
             mmpResult = MMP_FAILURE;
         }
     }
@@ -293,6 +295,7 @@ MMP_RESULT CMmpDemuxer_ammf::GetNextMediaData(MMP_U32 mediatype, MMP_U8* buffer,
         fseek(m_fp, ammf_index.uiFileOffset, SEEK_SET);
         fread(buffer, 1, ammf_index.uiStreamSize, m_fp);
         if(buf_size) *buf_size = ammf_index.uiStreamSize;
+        if(packt_pts) *packt_pts = (MMP_S64)ammf_index.uiTimeStamp*1000L;
         mmpResult = MMP_SUCCESS;
 
         m_next_index_id[mediatype]++;
@@ -303,4 +306,14 @@ MMP_RESULT CMmpDemuxer_ammf::GetNextMediaData(MMP_U32 mediatype, MMP_U8* buffer,
 
 void CMmpDemuxer_ammf::queue_buffering(void) {
 
+}
+
+MMP_S64 CMmpDemuxer_ammf::GetDuration() {
+
+    return (MMP_S64)m_ammf_header.uiPlayDuration*1000L;
+}
+
+MMP_RESULT CMmpDemuxer_ammf::Seek(MMP_S64 pts) {
+
+    return MMP_FAILURE;
 }
