@@ -59,4 +59,9 @@ typedef int	bool;
 
 #define ATRACE_CALL()	fprintf(stderr, " ATRACE(%s, %s(), %d): \n", __FILE__, __FUNCTION__, __LINE__)
 
+
+#define LIKELY( exp )       (__builtin_expect( (exp) != 0, true  ))
+#define UNLIKELY( exp )     (__builtin_expect( (exp) != 0, false ))
+
+
 #endif

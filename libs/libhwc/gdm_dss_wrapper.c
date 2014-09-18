@@ -122,7 +122,15 @@ int gdss_io_buffer_sync(int fd, struct gdm_dss_buf_sync *buf_sync)
 	return 0;
 }
 
-
+int gdss_io_vsync_ctl(int fd, int value)
+{
+	if(ioctl(fd, GDMFB_VSYNC_CTRL, &value) < 0) {
+		ALOGE("Failed to call ioctl GDMFB_DISPLAY_COMMIT err=%s\n",
+			strerror(errno));
+		return -1;
+	}
+	return 0;
+}
 int gdss_io_writeback_start(int fd)
 {
 	if(ioctl(fd, GDMFB_WRITEBACK_INIT, NULL) < 0) {

@@ -65,6 +65,7 @@ struct overlay_context_t {
 	struct gdm_dss_overlay_data ov_data_front;
 	struct gdm_dss_overlay_data ov_data_back;
 
+	int status;
 	int application_id;
 	int acquire_fence;
 	int release_fence;
@@ -102,6 +103,11 @@ struct comm_context_t {
 	pthread_t threadID;
 };
 
+struct vsync_state_t {
+	bool enable;
+	bool fakevsync;
+};
+
 struct hwc_context_t {
 
 	bool bstop;
@@ -113,6 +119,8 @@ struct hwc_context_t {
 	int release_fence;
 
 	unsigned char *fb_ptr;
+
+	struct vsync_state_t vstate;
 
 	struct comm_context_t comm_cfg;
 	struct display_attributes dpyAttr[MAX_DISPLAYS];	// fb0: physical, fb1: virtual for writeback
@@ -131,6 +139,17 @@ typedef struct {
 	int fd;
 } cfd;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void init_vsync_thread(struct hwc_context_t* ctx);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif // HWCOMPOSER_INCLUDE_H

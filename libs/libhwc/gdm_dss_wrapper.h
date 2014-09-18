@@ -31,6 +31,8 @@ int gdss_io_overlay_queue(int fd, struct gdm_dss_overlay_data *od);
 int gdss_io_display_commit(int fd, struct gdm_display_commit *info);
 /* GDMFB_BUFFER_SYNC */
 int gdss_io_buffer_sync(int fd, struct gdm_dss_buf_sync *buf_sync);
+/* GDMFB_VSYNC_CTRL */
+int gdss_io_vsync_ctl(int fd, int value);
 /* GDMFB_WRITEBACK_INIT, GDMFB_WRITEBACK_START */
 int gdss_io_writeback_start(int fd);
 /* GDMFB_WRITEBACK_STOP, GDMFB_WRITEBACK_TERMINATE */

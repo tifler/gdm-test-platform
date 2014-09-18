@@ -19,12 +19,13 @@
  */
 
 #include <fcntl.h>
+#include <pthread.h>
 #include <sys/resource.h>
 #include <sys/prctl.h>
 #include <poll.h>
 
 #include "gdm_dss_wrapper.h"
-#include "hwc_utils.h"
+#include "hwcomposer.h"
 
 #define HWC_VSYNC_THREAD_NAME 	"hwcVsyncThread"
 #define MAX_SYSFS_FILE_PATH     255
@@ -33,10 +34,10 @@ int hwc_vsync_control(struct hwc_context_t* ctx, int dpy, int enable)
 {
 	int ret = 0;
 	if(!ctx->vstate.fakevsync &&
-			ioctl(ctx->dpy_attr[dpy].fd, GDMFB_OVERLAY_VSYNC_CTRL,
+			ioctl(ctx->dpyAttr[dpy].fd, GDMFB_OVERLAY_VSYNC_CTRL,
 				&enable) < 0) {
-		//ALOGE("%s: vsync control failed. Dpy=%d, enable=%d : %s",
-		//		__FUNCTION__, dpy, enable, strerror(errno));
+		ALOGE("%s: vsync control failed. Dpy=%d, enable=%d : %s",
+				__FUNCTION__, dpy, enable, strerror(errno));
 		ret = -errno;
 	}
 	return ret;
@@ -58,7 +59,6 @@ static void *vsync_loop(void *param)
 	char vsync_node_path[MAX_SYSFS_FILE_PATH];
 
 	int dpy;
-
 
 #if 0
 	char property[PROPERTY_VALUE_MAX];
@@ -129,7 +129,9 @@ static void *vsync_loop(void *param)
 						if(logvsync)
 							ALOGD("%s: timestamp %llu sent to SF for dpy=%d",
 								__FUNCTION__, timestamp[dpy], dpy);
-						ctx->proc->vsync(ctx->proc, dpy, timestamp[dpy]);
+
+						// TODO:
+						//ctx->proc->vsync(ctx->proc, dpy, timestamp[dpy]);
 					}
 				}
 
@@ -149,14 +151,16 @@ static void *vsync_loop(void *param)
 		//Also, fake vsync is delivered only for the primary display.
 		do {
 			usleep(16666);
-			timestamp[HWC_DISPLAY_PRIMARY] = systemTime();
-			ctx->proc->vsync(ctx->proc, HWC_DISPLAY_PRIMARY,
-					timestamp[HWC_DISPLAY_PRIMARY]);
+			//timestamp[HWC_DISPLAY_PRIMARY] = systemTime();
+
+			// TODO::
+			//ctx->proc->vsync(ctx->proc, HWC_DISPLAY_PRIMARY,
+			//		timestamp[HWC_DISPLAY_PRIMARY]);
 
 		} while (true);
 	}
 
-	for (dpy = HWC_DISPLAY_PRIMARY; dpy <= HWC_DISPLAY_EXTERNAL; dpy++ ) {
+	for (dpy = HWC_DISPLAY_PRIMARY; dpy <= HWC_DISPLAY_VIRTUAL; dpy++ ) {
 		if(fb_fd[dpy] >= 0)
 			close (fb_fd[dpy]);
 	}

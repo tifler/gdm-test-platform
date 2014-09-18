@@ -272,22 +272,27 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 
 }
 
-static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
+static int dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
+	int ret = 0;
 	struct gdm_msghdr *msg = NULL;
 
-//	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-//	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
+
 		if(vi) {
 			memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
 		}
-//		printf("msg->fds[0]: %d\n", msg->fds[0]);
+
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
+
+	return ret;
 }
 
 
@@ -438,7 +443,12 @@ void *decoding_thread(void *arg)
 			req_data.dst_data.memory_id = 0;
 		}
 		dss_overlay_queue(sockfd, &req_data);
-		dss_get_fence_fd(sockfd, &gplayer->release_fd, NULL);
+		ret = dss_get_fence_fd(sockfd, &gplayer->release_fd, NULL);
+
+		if(ret == -1) {
+			gplayer->stop = 1;
+			break;
+		}
 
 		if(gplayer->release_fd != -1) {
 		//	printf("sync_wait - in \n");
@@ -573,7 +583,7 @@ int main(int argc, char **argv)
 
 		if(c == '?') {
 			help(argv[0]);
-			return;
+			return 0;
 		}
 		switch(option_index) {
 		/* h, help */
@@ -646,9 +656,10 @@ int main(int argc, char **argv)
 
 	}
 
-	if(filename == NULL)
+	if(filename == NULL) {
+		help(argv[0]);
 		return -1;
-
+	}
 
 	if(open_video(filename, pvideo) == -1) {
 		close(pvideo->fd);
