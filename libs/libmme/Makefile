@@ -18,11 +18,13 @@ TARGET			:= libmme.so
 
 MME_PLATFORM := __PLATFORM_ODY_FPGA
 MME_VPU_DEFINE := __VPU_PLATFORM_MME
+MME_JPU_DEFINE := __JPU_PLATFORM_MME
 
 MME_TOP = .
 FFMPEG_TOP = $(MME_TOP)/pre-built/ffmpeg/ffmpeg-2.1.3
 JPEGLIB_TOP = $(MME_TOP)/pre-built/jpeglib
 MME_VPULIB_TOP=$(MME_TOP)/MmpDecoder/cnm-coda960-ref_sw_pkg-v3.3.0
+MME_JPULIB_TOP=$(MME_TOP)/MmpDecoder/cnm-coda8550j-ref_sw_pkg-v1.6.5
 
 MME_SRC_UTILS = \
    $(MME_TOP)/MmpComm/MmpUtil.cpp \
@@ -68,13 +70,15 @@ MME_SRC_BUFFER = \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_media.cpp \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_videoframe.cpp \
     $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_videostream.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_imageframe.cpp \
+    $(MME_TOP)/MmpDecoder/buffer/mmp_buffer_imagestream.cpp \
 
-MME_SRC_CNM_VPU = \
-    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_if.cpp \
-    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_if_ana.cpp \
-    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_if_cnm.cpp \
-    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_dev.cpp \
-    $(MME_TOP)/MmpDecoder/cnm-vpu/mmp_vpu_dev_shm.cpp \
+MME_SRC_HW_VPU = \
+    $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_if.cpp \
+    $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_if_ana.cpp \
+    $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_if_cnm.cpp \
+    $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_dev.cpp \
+    $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_dev_shm.cpp \
 
 MME_SRC_SINGLETON = \
    $(MME_TOP)/MmpDecoder/singleton/mmp_singleton_mgr.cpp\
@@ -134,6 +138,7 @@ MME_SRC_PLAYER = \
   $(MME_TOP)/MmpPlayer/MmpPlayerTONE.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayerPCM.cpp \
   $(MME_TOP)/MmpPlayer/MmpPlayerYUV.cpp \
+  $(MME_TOP)/MmpPlayer/MmpPlayerJPEG.cpp \
 
 MME_SRC_RENDERER = \
   $(MME_TOP)/MmpRenderer/MmpRenderer.cpp \
@@ -146,23 +151,25 @@ MME_SRC_API = \
   $(MME_TOP)/api/mme_c_api_video_encoder.cpp \
   $(MME_TOP)/api/mme_c_api_muxer.cpp \
 
-SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_VPULIB) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON) $(MME_SRC_CNM_VPU) $(MME_SRC_API)
+SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_VPULIB) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON) $(MME_SRC_HW_VPU) $(MME_SRC_API)
 OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
-LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) -D$(MME_VPU_DEFINE) \
+LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) -D$(MME_VPU_DEFINE) -D$(MME_JPU_DEFINE)\
             -I$(BASEDIR)/include\
             -I$(MME_TOP)/../libion \
             -I$(MME_TOP)/../libmsgio\
             -I$(MME_TOP)/../libhwc\
             -I$(FFMPEG_TOP) -I$(JPEGLIB_TOP)\
             -I$(MME_VPULIB_TOP)/vpuapi -I$(MME_VPULIB_TOP)/include -I$(MME_VPULIB_TOP)/vdi/linux/driver  -I$(MME_VPULIB_TOP)/vdi\
+            -I$(MME_JPULIB_TOP)/jpuapi -I$(MME_JPULIB_TOP)/include -I$(MME_JPULIB_TOP)/jdi/linux/driver  -I$(MME_JPULIB_TOP)/jdi\
             -I$(MME_TOP)/MmpGlobal \
             -I$(MME_TOP)/MmpComm \
             -I$(MME_TOP)/MmpDemuxer -I$(MME_TOP)/MmpMuxer \
             -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpEncoder \
             -I$(MME_TOP)/MmpDecoder/buffer\
             -I$(MME_TOP)/MmpDecoder/singleton\
-            -I$(MME_TOP)/MmpDecoder/cnm-vpu\
+            -I$(MME_TOP)/MmpDecoder/hw-vpu\
+            -I$(MME_TOP)/MmpDecoder/hw-jpu\
             -I$(MME_TOP)/MmpRenderer \
             -I$(MME_TOP)/MmpPlayer \
             -I$(MME_TOP)/MmpBuffer \

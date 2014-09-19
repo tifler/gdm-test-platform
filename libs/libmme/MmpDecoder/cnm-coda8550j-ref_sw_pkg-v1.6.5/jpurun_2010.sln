@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jpurun", "jpurun_2010.vcxproj", "{D54C54FF-0E71-404F-8AE7-D761EB8CB168}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		64Bit Debug FFmpeg|Win32 = 64Bit Debug FFmpeg|Win32
+		64Bit Debug|Win32 = 64Bit Debug|Win32
+		Debug_Embedded_Linux|Win32 = Debug_Embedded_Linux|Win32
+		Debug_NativeLinux|Win32 = Debug_NativeLinux|Win32
+		Debug_NonOS|Win32 = Debug_NonOS|Win32
+		Debug_Windows_Socket|Win32 = Debug_Windows_Socket|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.64Bit Debug FFmpeg|Win32.ActiveCfg = 64Bit Debug FFmpeg|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.64Bit Debug FFmpeg|Win32.Build.0 = 64Bit Debug FFmpeg|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.64Bit Debug|Win32.ActiveCfg = 64Bit Debug|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.64Bit Debug|Win32.Build.0 = 64Bit Debug|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_Embedded_Linux|Win32.ActiveCfg = Debug_Embedded_Linux|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_Embedded_Linux|Win32.Build.0 = Debug_Embedded_Linux|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_NativeLinux|Win32.ActiveCfg = Debug_NativeLinux|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_NativeLinux|Win32.Build.0 = Debug_NativeLinux|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_NonOS|Win32.ActiveCfg = Debug_NonOS|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_NonOS|Win32.Build.0 = Debug_NonOS|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_Windows_Socket|Win32.ActiveCfg = Debug_Windows_Socket|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Debug_Windows_Socket|Win32.Build.0 = Debug_Windows_Socket|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Release|Win32.ActiveCfg = Release|Win32
+		{D54C54FF-0E71-404F-8AE7-D761EB8CB168}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

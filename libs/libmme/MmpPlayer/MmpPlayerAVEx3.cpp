@@ -111,7 +111,7 @@ MMP_RESULT CMmpPlayerAVEx3::Open()
             mmpResult = MMP_FAILURE;
         }
         else {
-            this->DecodeMediaExtraData(MMP_MEDIATYPE_AUDIO, m_pDemuxer, m_pDecoderAudio);
+            this->DecodeAudioExtraData(m_pDemuxer, m_pDecoderAudio);
         }
     }
 
@@ -122,7 +122,7 @@ MMP_RESULT CMmpPlayerAVEx3::Open()
             mmpResult = MMP_FAILURE;
         }
         else {
-            this->DecodeMediaExtraData(MMP_MEDIATYPE_VIDEO, m_pDemuxer, m_pDecoderVideo);
+            this->DecodeVideoExtraData(m_pDemuxer, m_pDecoderVideo);
         }
     }
 
@@ -948,7 +948,7 @@ void CMmpPlayerAVEx3::Service() {
                 MMP_U32 msg;
                 void *data1 = NULL, *data2 = NULL;
 
-                msg = MMP_PLAYER_CALLBACK_PLAYTIME;
+                msg = CMmpPlayer::CALLBACK_PLAYTIME;
                 playtime_st.media_duration  = m_pDemuxer->GetDuration();
                 playtime_st.media_pts = packet_pts;
 

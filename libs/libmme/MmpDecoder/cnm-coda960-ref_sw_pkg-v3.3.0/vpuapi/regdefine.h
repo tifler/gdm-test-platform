@@ -13,7 +13,7 @@
 //       copies.
 //
 //--=========================================================================--
-#include "../config.h"
+#include "../vpu_config.h"
 
 #ifndef REGDEFINE_H_INCLUDED
 #define REGDEFINE_H_INCLUDED

@@ -23,6 +23,20 @@
 #include "mmp_env_mgr.hpp"
 #include "MmpUtil.hpp"
 
+extern "C" {
+
+int mme_util_get_vpu_fd(void);
+unsigned char* mme_util_get_vpu_instance_pool_buffer(void);
+unsigned int mme_util_get_vpu_reg_vir_addr(void);
+void* mme_util_get_vpu_common_buffer(void);
+
+int mme_util_get_jpu_fd(void);
+unsigned char* mme_util_get_jpu_instance_pool_buffer(void);
+unsigned int mme_util_get_jpu_reg_vir_addr(void);
+void* mme_util_get_jpu_common_buffer(void);
+}
+
+
 int mme_util_get_vpu_fd(void) {
     return mmp_env_mgr::get_instance()->get_vpu_fd();
 }
@@ -37,6 +51,22 @@ unsigned int mme_util_get_vpu_reg_vir_addr(void) {
 
 void* mme_util_get_vpu_common_buffer(void) {
     return mmp_env_mgr::get_instance()->get_vpu_common_buffer();
+}
+
+int mme_util_get_jpu_fd(void) {
+    return mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_FD);
+}
+
+unsigned char* mme_util_get_jpu_instance_pool_buffer(void) {
+    return (unsigned char*)mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_INSTANCE_POOL_BUFFER);
+}
+
+unsigned int mme_util_get_jpu_reg_vir_addr(void) {
+    return mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_REG_VIR_ADDR);
+}
+
+void* mme_util_get_jpu_common_buffer(void) {
+    return (void*)mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_COMMON_BUFFER);
 }
 
 void mme_util_sleep(int milesec) {

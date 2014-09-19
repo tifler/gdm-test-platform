@@ -52,6 +52,7 @@ public:
 	virtual void* get_shm_ptr() = 0;
     virtual MMP_S32 get_shm_size() = 0;
     virtual MMP_BOOL is_create() = 0;
+    virtual MMP_S32 get_attach_process_count() = 0;
 };
 
 #endif

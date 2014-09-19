@@ -356,12 +356,10 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
 	return MMP_SUCCESS;
 }
 
-#if 0
-MMP_RESULT CMmpRenderer_OdyClientEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
+MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
 
     return MMP_FAILURE;
 }
-#endif
 
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {

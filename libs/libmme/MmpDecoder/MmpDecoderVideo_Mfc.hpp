@@ -26,7 +26,7 @@
 #include "MmpDecoderMfc.hpp"
 #include "MmpDecoderMfcAndroid44.hpp"
 
-#if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) )
+#if ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) )
 
 class CMmpDecoderVideo_Mfc : public CMmpDecoderVideo, CMmpDecoderMfc
 {
@@ -49,6 +49,6 @@ public:
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);
 };
 
-#endif /* #if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) ) */
+#endif /* #if ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) ) */
 #endif
 

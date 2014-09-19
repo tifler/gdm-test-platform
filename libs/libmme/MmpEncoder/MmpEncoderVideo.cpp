@@ -36,7 +36,7 @@ CMmpEncoderVideo::CMmpEncoderVideo(struct MmpEncoderCreateConfig *pCreateConfig,
     m_bih_in.biHeight = pCreateConfig->nPicHeight;
 	m_bih_in.biPlanes = 1;
 	m_bih_in.biBitCount = 24;
-	m_bih_in.biCompression = MMP_FOURCC_VIDEO_YV12;
+	m_bih_in.biCompression = MMP_FOURCC_IMAGE_YV12;
 	m_bih_in.biSizeImage = 0;
 	m_bih_in.biXPelsPerMeter = 0;
 	m_bih_in.biYPelsPerMeter = 0;
@@ -121,7 +121,7 @@ void CMmpEncoderVideo::SetVideoSize(MMP_U32 w, MMP_U32 h) {
 	m_bih_out.biHeight = h;
 	m_bih_out.biPlanes = 3;
 	m_bih_out.biBitCount = 12;
-	m_bih_out.biCompression = MMP_FOURCC_VIDEO_YV12;
+	m_bih_out.biCompression = MMP_FOURCC_IMAGE_YV12;
 	m_bih_out.biSizeImage = MMP_YV12_FRAME_SIZE(m_bih_out.biWidth, m_bih_out.biHeight);
 	m_bih_out.biXPelsPerMeter = 0;
 	m_bih_out.biYPelsPerMeter = 0;

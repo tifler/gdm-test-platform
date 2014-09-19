@@ -17,6 +17,7 @@
 #include "vpuapifunc.h"
 #include "vpuapi.h"
 
+#include "mme_vpu_compilehelper.h"
 
 
 #ifdef BIT_CODE_FILE_PATH

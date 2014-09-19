@@ -26,11 +26,35 @@
 
 class mmp_singleton_mgr;
 class mmp_vpu_dev;
+class mmp_jpu_dev;
 
 class mmp_env_mgr {
 
 friend class mmp_singleton_mgr;
 friend class mmp_vpu_dev;
+friend class mmp_jpu_dev;
+
+public:
+    enum {
+        ENV_UINT_VPU_SHM_KEY=0,
+        ENV_UINT_VPU_EXTERNAL_MUTEX_KEY,
+        
+        ENV_UINT_JPU_SHM_KEY,
+        ENV_UINT_JPU_FD,
+        ENV_UINT_JPU_INSTANCE_POOL_BUFFER,
+        ENV_UINT_JPU_REG_PHY_ADDR,
+        ENV_UINT_JPU_REG_VIR_ADDR,
+        ENV_UINT_JPU_REG_SIZE,
+        ENV_UINT_JPU_COMMON_BUFFER,
+        ENV_UINT_JPU_EXTERNAL_MUTEX_KEY,
+        ENV_UINT_MAX    
+    };
+
+    enum {
+        ENV_CHAR_VPU_DRV_NAME=0,
+        ENV_CHAR_JPU_DRV_NAME,
+        ENV_CHAR_MAX    
+    };
 
 private:
     static class mmp_env_mgr* s_p_instance;
@@ -49,6 +73,9 @@ private:
     MMP_U32 m_vpu_reg_vir_addr;
     void*   m_vpu_common_buffer;
 
+    MMP_U32 m_env_uint[ENV_UINT_MAX];
+    MMP_U32 m_env_char[ENV_CHAR_MAX][128];
+
 private:
     mmp_env_mgr();
     virtual ~mmp_env_mgr();
@@ -61,12 +88,16 @@ private:
     inline void set_vpu_instance_pool_buffer(MMP_U8* ptr) { m_vpu_instance_pool_buffer = ptr; }
     inline void set_vpu_reg_vir_addr(MMP_U32 addr) { m_vpu_reg_vir_addr = addr; }
     inline void set_vpu_common_buffer(void* ptr) { m_vpu_common_buffer = ptr; }
+    inline void set_uint(MMP_S32 id, MMP_U32 v) { m_env_uint[id] = v; }
+    inline void set_char(MMP_S32 id, MMP_CHAR* sz) { strcpy((char*)m_env_char[id],sz); }
 
 public:
     inline MMP_S32 get_vpu_fd() { return m_vpu_fd; }
     inline MMP_U8* get_vpu_instance_pool_buffer() { return m_vpu_instance_pool_buffer; }
     inline MMP_U32 get_vpu_reg_vir_addr() { return m_vpu_reg_vir_addr; }
     inline void* get_vpu_common_buffer() { return m_vpu_common_buffer; }
+    inline MMP_U32 get_uint(MMP_S32 id) { return m_env_uint[id]; }
+    inline MMP_CHAR* get_char(MMP_S32 id) { return (MMP_CHAR*)m_env_char[id]; }
 
 };
 

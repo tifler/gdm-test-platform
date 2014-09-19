@@ -29,8 +29,7 @@
 #include "mmp_oal_mutex.hpp"
 #include "mmp_oal_shm.hpp"
 
-#define VDI_SHM_KEY 0xAAAA9829
-#define VDI_INSTANCE_POOL_SIZE (MAX_INST_HANDLE_SIZE*(MAX_NUM_INSTANCE+1) + 1024*12)
+#define VDI_INSTANCE_POOL_SIZE (VPU_MAX_INST_HANDLE_SIZE*(VPU_MAX_NUM_INSTANCE+1) + 1024*12)
 //#define VDI_COMMON_MEMORY_INFO_SIZE 1024
 
 struct vdi_shm {

@@ -19,11 +19,10 @@
  * limitations under the License.
  */
 
-#ifndef _MMPDECODERVIDEO_HPP__
-#define _MMPDECODERVIDEO_HPP__
+#ifndef MMPDECODERVIDEO_HPP__
+#define MMPDECODERVIDEO_HPP__
 
 #include "MmpDecoder.hpp"
-#include "mmp_buffer_mgr.hpp"
 
 class CMmpDecoderVideo : public CMmpDecoder
 {

@@ -367,7 +367,7 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(class mmp_buffer_videostream* p_buf_video
         {
         
             for(i = 0; i < m_regFrameBufCount; i++) {
-                m_p_buf_videoframe[i] = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_dec_init_info.picWidth, m_dec_init_info.picHeight, MMP_FOURCC_VIDEO_I420);
+                m_p_buf_videoframe[i] = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_dec_init_info.picWidth, m_dec_init_info.picHeight, MMP_FOURCC_IMAGE_I420);
                 if(m_p_buf_videoframe[i] == NULL) {
                     MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: alloc frame buf idx=%d  m_regFrameBufCount=%d w=%d h=%d "), i, m_regFrameBufCount, m_dec_init_info.picWidth, m_dec_init_info.picHeight));
                     break;

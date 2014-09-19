@@ -47,7 +47,7 @@ LOCAL_CFLAGS	+= \
             -I$(MME_TOP)/MmpGlobal \
             -I$(MME_TOP)/MmpComm \
             -I$(MME_TOP)/MmpDemuxer -I$(MME_TOP)/MmpMuxer \
-            -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpDecoder/buffer -I$(MME_TOP)/MmpDecoder/cnm-vpu -I$(MME_TOP)/MmpDecoder/singleton\
+            -I$(MME_TOP)/MmpDecoder -I$(MME_TOP)/MmpDecoder/buffer -I$(MME_TOP)/MmpDecoder/hw-vpu -I$(MME_TOP)/MmpDecoder/singleton\
             -I$(MME_TOP)/MmpEncoder \
             -I$(MME_TOP)/MmpRenderer \
             -I$(MME_TOP)/MmpPlayer \

@@ -22,7 +22,7 @@
 #include "MmpEncoderMfc.hpp"
 #include "../MmpComm/MmpUtil.hpp"
 
-#if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) )
+#if ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) )
 
 /////////////////////////////////////////////////////////////
 //CMmpEncoderMfc Member Functions
@@ -773,4 +773,4 @@ MMP_RESULT CMmpEncoderMfc::EncodeDSI(CMmpMediaSampleEncode* pMediaSample, CMmpMe
    return MMP_SUCCESS;
 }
 
-#endif /* #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /* #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */

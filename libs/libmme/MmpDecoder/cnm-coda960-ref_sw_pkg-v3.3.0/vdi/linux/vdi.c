@@ -25,6 +25,8 @@
 #include "../vdi.h"
 #include "../vdi_osal.h"
 
+#include "mme_vpu_compilehelper.h"
+
 
 typedef pthread_mutex_t	MUTEX_HANDLE;
 #define VPU_DEVICE_NAME "/dev/vpu"

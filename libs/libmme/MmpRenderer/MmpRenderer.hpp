@@ -78,6 +78,7 @@ public:
     virtual MMP_RESULT Render() {return MMP_FAILURE;}
     virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
     virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe) = 0;
+    virtual MMP_RESULT Render(class mmp_buffer_imageframe* p_buf_imageframe) = 0;
     
     
     virtual MMP_RESULT RenderPCM(MMP_U8* pcm_buffer, MMP_U32 pcm_byte_size);

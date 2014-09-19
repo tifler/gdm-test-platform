@@ -34,7 +34,7 @@
 #include "mmp_buffer_mgr.hpp"
 #include "mmp_lock.hpp"
 #include "../coda960.h"
-
+#include "mmp_env_mgr.hpp"
 
 static vpu_buffer_t s_vpu_common_buffer;
 
@@ -126,7 +126,7 @@ MMP_RESULT mmp_vpu_dev_ex3::open_vdi_memory() {
     /* open driver */
     if(mmpResult == MMP_SUCCESS) {
 
-        m_vpu_fd = MMP_DRIVER_OPEN(VPU_DEVICE_NAME, O_RDWR);
+        m_vpu_fd = MMP_DRIVER_OPEN(mmp_env_mgr::get_instance()->get_char(mmp_env_mgr::ENV_CHAR_VPU_DRV_NAME), O_RDWR);
         if(m_vpu_fd < 0) {
             mmpResult = MMP_FAILURE;
         }
@@ -137,7 +137,7 @@ MMP_RESULT mmp_vpu_dev_ex3::open_vdi_memory() {
 
     /* alloc instance pool */
     if(mmpResult == MMP_SUCCESS) {
-        sz = MAX_INST_HANDLE_SIZE*(MAX_NUM_INSTANCE+1) + 1024*12;
+        sz = VPU_MAX_INST_HANDLE_SIZE*(VPU_MAX_NUM_INSTANCE+1) + 1024*12;
         m_p_instance_pool_buffer = (MMP_U8*)MMP_MALLOC(sz);
         if(m_p_instance_pool_buffer == NULL) {
             mmpResult = MMP_FAILURE;

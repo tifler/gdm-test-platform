@@ -17,7 +17,7 @@
 
 #define SUPPORT_MULTI_CORE_IN_ONE_DRIVER
 #define MAX_VPU_CORE_NUM MAX_NUM_VPU_CORE
-#define MAX_VPU_BUFFER_POOL (64*MAX_NUM_INSTANCE)
+#define MAX_VPU_BUFFER_POOL (64*VPU_MAX_NUM_INSTANCE)
 #ifdef CNM_HISI_PLATFORM
 /* Added by d00206042 2014-04-26 for SYSMMU start */
 #define VPU_RESERVED_MEMORY_SIZE (49 * 1024 * 1024)
@@ -78,7 +78,7 @@ typedef enum {
 } vdi_gdi_tiled_map;
 
 typedef struct vpu_instance_pool_t {
-	unsigned char codecInstPool[MAX_NUM_INSTANCE][MAX_INST_HANDLE_SIZE];	// Since VDI don't know the size of CodecInst structure, VDI should have the enough space not to overflow.
+	unsigned char codecInstPool[VPU_MAX_NUM_INSTANCE][VPU_MAX_INST_HANDLE_SIZE];	// Since VDI don't know the size of CodecInst structure, VDI should have the enough space not to overflow.
 	int vpu_instance_num;
 	void* vpu_mutex;
 	void* vpu_omx_mutex;

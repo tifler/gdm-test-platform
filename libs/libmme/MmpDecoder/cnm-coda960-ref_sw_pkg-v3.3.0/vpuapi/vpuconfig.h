@@ -17,12 +17,12 @@
 #ifndef _VPU_CONFIG_H_
 #define _VPU_CONFIG_H_
 
-#include "../config.h"
+#include "../vpu_config.h"
 #include "vputypes.h"
 
 
 
-#define MAX_INST_HANDLE_SIZE	        (32*1024)
+#define VPU_MAX_INST_HANDLE_SIZE	        (32*1024)
 
 #define BODA7503_CODE       0x7503
 #define CODA7L_CODE			0x7542
@@ -32,18 +32,18 @@
 #define CODA980_CODE        0x9800
 #define WAVE320_CODE        0x3200
 
-#	define MAX_ENC_PIC_WIDTH        1920
-#	define MAX_ENC_PIC_HEIGHT       1088
-#	define MAX_ENC_AVC_PIC_WIDTH        1920
-#	define MAX_ENC_AVC_PIC_HEIGHT       1088  
-#	define MAX_DEC_PIC_WIDTH   1920
-#	define MAX_DEC_PIC_HEIGHT  1088
-#define MIN_ENC_PIC_WIDTH               96
-#define MIN_ENC_PIC_HEIGHT              16
+#	define VPU_MAX_ENC_PIC_WIDTH        1920
+#	define VPU_MAX_ENC_PIC_HEIGHT       1088
+#	define VPU_MAX_ENC_AVC_PIC_WIDTH        1920
+#	define VPU_MAX_ENC_AVC_PIC_HEIGHT       1088  
+#	define VPU_MAX_DEC_PIC_WIDTH   1920
+#	define VPU_MAX_DEC_PIC_HEIGHT  1088
+#define VPU_MIN_ENC_PIC_WIDTH               96
+#define VPU_MIN_ENC_PIC_HEIGHT              16
 
 // MAX_NUM_INSTANCE can set any value as many as memory size of system. the bellow setting is dedicated for C&M FPGA board.
-#define MAX_NUM_INSTANCE 4
-#define MAX_NUM_VPU_CORE 1
+#define VPU_MAX_NUM_INSTANCE 4
+#define VPU_MAX_NUM_VPU_CORE 1
 
 #if MAX_DEC_PIC_WIDTH > 1920		// 4K		
 

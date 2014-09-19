@@ -71,5 +71,11 @@ MMP_RESULT CMmpRenderer_Dummy::Render(class mmp_buffer_videoframe* p_buf_videofr
     return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpRenderer_Dummy::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
+
+    
+    return MMP_SUCCESS;
+}
+
 
 

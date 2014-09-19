@@ -105,8 +105,6 @@ MMP_RESULT mmp_vpu_dev_shm::open() {
                 mmpResult = MMP_FAILURE;
             }
         
-            
-
             m_p_shm_vdi_obj->app_count++;
         }
 
@@ -158,33 +156,33 @@ MMP_RESULT mmp_vpu_dev_shm::open_vdi_memory() {
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
     MMP_U8* p_instance_pool_buffer;
+    MMP_S32 shm_attach_proc_count;
 
     
     /* open shm */
     if(mmpResult == MMP_SUCCESS) {
-        m_p_shm_vdi = mmp_oal_shm::create_object(VDI_SHM_KEY, sizeof(struct vdi_shm));
+        m_p_shm_vdi = mmp_oal_shm::create_object(mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_VPU_SHM_KEY), sizeof(struct vdi_shm));
         if(m_p_shm_vdi == NULL) {
             MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_vpu_dev_shm::open_vdi_memory] FAIL: mmp_oal_shm::create_object")));
             mmpResult = MMP_FAILURE;
         }
         else {
 
+            shm_attach_proc_count = m_p_shm_vdi->get_attach_process_count();
             m_p_shm_vdi_obj = (struct vdi_shm*)m_p_shm_vdi->get_shm_ptr();
 
-            if(m_p_shm_vdi->is_create() == MMP_TRUE) {
-                MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_vpu_dev_shm::open_vdi_memory] shared memory is created.")));
+            if(shm_attach_proc_count == 1) {
                 memset(m_p_shm_vdi_obj, 0x00, sizeof(struct vdi_shm));
             }
-            else {
-                MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_vpu_dev_shm::open_vdi_memory] attach shered memory")));
-            }
+            
+            MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_vpu_dev_shm::open_vdi_memory] shered memory attach_cnt=%d  app_cnt=%d "), shm_attach_proc_count, m_p_shm_vdi_obj->app_count));
         }
     }
 
     /* open driver */
     if(mmpResult == MMP_SUCCESS) {
 
-        m_vpu_fd = MMP_DRIVER_OPEN(VPU_DEVICE_NAME, O_RDWR);
+        m_vpu_fd = MMP_DRIVER_OPEN(mmp_env_mgr::get_instance()->get_char(mmp_env_mgr::ENV_CHAR_VPU_DRV_NAME), O_RDWR);
         if(m_vpu_fd < 0) {
             mmpResult = MMP_FAILURE;
             MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_vpu_dev_shm::open_vdi_memory] FAIL: open vpu driver")));
@@ -236,7 +234,6 @@ MMP_RESULT mmp_vpu_dev_shm::open_vdi_memory() {
         //else {
         //    m_p_vpu_common_buffer = mmp_buffer_mgr::get_instance()->attach_dma_buffer(m_p_shm_vdi_obj->m_buf_addr_vdi_commmon);
         //}
-
         m_p_vpu_common_buffer = NULL;
         m_p_shm_vdi_obj->m_buf_addr_vdi_commmon.m_phy_addr = this->get_phy_addr_for_common_buffer();
         m_p_shm_vdi_obj->m_buf_addr_vdi_commmon.m_shared_fd = -1;
@@ -296,12 +293,14 @@ MMP_RESULT mmp_vpu_dev_shm::close_vdi_memory() {
         mmp_buffer_mgr::get_instance()->free_buffer(m_p_vpu_common_buffer);
         m_p_vpu_common_buffer = NULL;
     }
-    
+
+#if 0
    /* close shm */
     if(m_p_shm_vdi != NULL) {
         mmp_oal_shm::destroy_object(m_p_shm_vdi, MMP_FALSE);
         m_p_shm_vdi = NULL;
     }
+#endif
 
     if(m_vpu_fd >= 0) {
        MMP_DRIVER_CLOSE(m_vpu_fd);

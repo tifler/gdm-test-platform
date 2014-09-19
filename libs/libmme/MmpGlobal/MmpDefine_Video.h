@@ -106,9 +106,10 @@ typedef enum MMP_VIDEO_CODINGTYPE {
 #define MMP_FOURCC_VIDEO_TSCC      MMPMAKEFOURCC('T','S','C','C')   /* Indeo2 */
 #define MMP_FOURCC_VIDEO_FFMPEG    MMPMAKEFOURCC('F','F','M','P')   
 
-#define MMP_FOURCC_VIDEO_YV12    MMPMAKEFOURCC('Y','V','1','2')  /* http://www.fourcc.org/yuv.php#YV12  8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes.*/
-#define MMP_FOURCC_VIDEO_I420    MMPMAKEFOURCC('I','4','2','0')  /* http://www.fourcc.org/yuv.php#IYUV  0x30323449 	12 	8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes..*/
-
+#define MMP_FOURCC_IMAGE_YV12    MMPMAKEFOURCC('Y','V','1','2')  /* http://www.fourcc.org/yuv.php#YV12  8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes.*/
+#define MMP_FOURCC_IMAGE_I420    MMPMAKEFOURCC('I','4','2','0')  /* http://www.fourcc.org/yuv.php#IYUV  0x30323449 	12 	8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes..*/
+#define MMP_FOURCC_IMAGE_RGB32   MMPMAKEFOURCC('R','G','B','4')  /* 32bit RGB */
+#define MMP_FOURCC_IMAGE_RGB24   MMPMAKEFOURCC('R','G','B','3')  /* 24bit RGB */
 
 #define MMP_YV12_FRAME_SIZE(w,h)  ((((w + 15) & (-16))  * ((h + 15) & (-16)) * 3) / 2)
 

@@ -89,36 +89,28 @@ MMP_RESULT CMmpRenderer_YUVWriter::Close()
     return MMP_SUCCESS;
 }
 
-#if 0
-MMP_RESULT CMmpRenderer_YUVWriter::Render_Ion(CMmpMediaSampleDecodeResult* pDecResult) {
+MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
 
-    MMP_S32 i;
-    MMP_S32 shared_fd;
-    class mmp_buffer_addr buf_addr;
-    MMP_S32 offset, frame_size;
-
-    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
-        shared_fd = pDecResult->uiDecodedBufferPhyAddr[i];
-        buf_addr = mmp_buffer_mgr::get_instance()->get_buffer_addr(shared_fd);
-        offset = pDecResult->uiDecodedBufferLogAddr[i];
-        frame_size = pDecResult->uiDecodedBufferStride[i] * pDecResult->uiDecodedBufferAlignHeight[i];
-        if( frame_size > 0) {
-            fwrite((void*)(buf_addr.m_vir_addr + offset), 1, frame_size, m_fp);
-        }
-    }
-
-    return MMP_SUCCESS;
+    return MMP_FAILURE;
 }
-#endif
 
 MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
 
-    MMP_S32 i;
+    MMP_S32 i, pic_width, pic_height, stride;
     class mmp_buffer_addr buf_addr;
+    int pic_size[MMP_MEDIASAMPLE_PLANE_COUNT];
+
+    pic_width = p_buf_videoframe->get_pic_width();
+    pic_height = p_buf_videoframe->get_pic_height();
+    stride = p_buf_videoframe->get_stride_luma();
+
+    pic_size[0] = stride*pic_height;
+    pic_size[1] = (stride*pic_height)/4;
+    pic_size[2] = (stride*pic_height)/4;
     
     for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
         buf_addr = p_buf_videoframe->get_buf_addr(i);
-        fwrite((void*)buf_addr.m_vir_addr, 1, buf_addr.m_size, m_fp);
+        fwrite((void*)buf_addr.m_vir_addr, 1, pic_size[i], m_fp);
     }
 
     CMmpRenderer::EncodeAndMux(p_buf_videoframe);
@@ -126,10 +118,3 @@ MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_videoframe* p_buf_vid
     return MMP_SUCCESS;
 }
 
-#if 0
-MMP_RESULT CMmpRenderer_YUVWriter::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
-
-    MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_YUVWriter::RenderYUV420Planar] +++ ")));
-    return MMP_SUCCESS;
-}
-#endif

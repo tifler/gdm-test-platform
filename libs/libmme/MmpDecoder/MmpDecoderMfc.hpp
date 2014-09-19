@@ -25,7 +25,7 @@
 #include "MmpOAL.hpp"
 #include "MmpDecoder.hpp"
 
-#if 0//(MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC)
+#if 0//(MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC)
 
 #include "SsbSipMfcApi.h"
 #include "csc.h"
@@ -100,6 +100,6 @@ protected:
     
 };
 
-#endif /* #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /* #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */
 #endif
 

@@ -30,6 +30,7 @@
 #include "MmpPlayerAVEx3.hpp"
 #include "MmpPlayerTONE.hpp"
 #include "MmpPlayerYUV.hpp"
+#include "MmpPlayerJPEG.hpp"
 
 #if (MMP_OS == MMP_OS_LINUX_ANDROID)
 #include "MmpPlayerStagefright.hpp"
@@ -46,40 +47,57 @@ CMmpPlayer* CMmpPlayer::CreateObject(MMP_U32 playerID, CMmpPlayerCreateProp* pPl
 
     MMP_CHAR szext[16];
 
-    CMmpUtil::SplitExtC(pPlayerProp->filename, szext);
-    CMmpUtil::MakeLowerC(szext);
+    if(playerID == CMmpPlayer::DEFAULT) {
 
-    if(strcmp(szext, "pcm") == 0) {
-        pObj=new CMmpPlayerPCM(pPlayerProp);
+        CMmpUtil::SplitExtC(pPlayerProp->filename, szext);
+        CMmpUtil::MakeLowerC(szext);
+
+        if(strcmp(szext, "pcm") == 0) {
+            pObj=new CMmpPlayerPCM(pPlayerProp);
+        }
+        else if( (strcmp(szext, "jpg") == 0) || (strcmp(szext, "jpeg") == 0) ) {
+            pObj=new CMmpPlayerJPEG(pPlayerProp);
+        }
+        else if( strcmp(szext, "yuv") == 0 ) {
+            pObj=new CMmpPlayerYUV(pPlayerProp);
+        }
+        else {
+            pObj=new CMmpPlayerAVEx3(pPlayerProp);
+        }
+
     }
     else {
 
         switch(playerID)
         {
-            case MMP_PLAYER_DEFAULT:
-            case MMP_PLAYER_AUDIO_VIDEO:
+            case CMmpPlayer::DEFAULT:
+            case CMmpPlayer::AUDIO_VIDEO:
                 //pObj=new CMmpPlayerAVEx2(pPlayerProp);
                 pObj=new CMmpPlayerAVEx3(pPlayerProp);
                 break;
 
-            case MMP_PLAYER_VIDEO_ONLY:
+            case CMmpPlayer::VIDEO_ONLY:
                 pObj=new CMmpPlayerVideoEx1(pPlayerProp);
                 break;
 
-            case MMP_PLAYER_AUDIO_ONLY:
+            case CMmpPlayer::AUDIO_ONLY:
                 pObj=new CMmpPlayerAudio(pPlayerProp);
                 break;
 
-            case MMP_PLAYER_TONEPLAYER:
+            case CMmpPlayer::TONEPLAYER:
                 pObj=new CMmpPlayerTONE(pPlayerProp);
                 break;
 
-            case MMP_PLAYER_YUVPLAYER:
+            case CMmpPlayer::YUVPLAYER:
                 pObj=new CMmpPlayerYUV(pPlayerProp);
                 break;
 
+            case CMmpPlayer::JPEG:
+                pObj=new CMmpPlayerJPEG(pPlayerProp);
+                break;
+
     #if (MMP_OS == MMP_OS_LINUX_ANDROID)
-            case MMP_PLAYER_STAGEFRIGHT:
+            case CMmpPlayer::STAGEFRIGHT:
                 pObj=new android::CMmpPlayerStagefright(pPlayerProp);
                 break;
     #endif
@@ -304,6 +322,7 @@ CMmpRenderer* CMmpPlayer::CreateRendererVideo(CMmpDemuxer* pDemuxer) {
     return pRendererVideo;
 }
 
+#if 0
 MMP_RESULT CMmpPlayer::DecodeMediaExtraData(MMP_U32 mediatype, 
                                     CMmpDemuxer* pDemuxer, CMmpDecoder* pDecoder)  {
 
@@ -338,7 +357,75 @@ MMP_RESULT CMmpPlayer::DecodeMediaExtraData(MMP_U32 mediatype,
 
     return mmpResult;
 }
+#endif
 
+MMP_RESULT CMmpPlayer::DecodeAudioExtraData(CMmpDemuxer* pDemuxer, CMmpDecoderAudio* pDecoder)  {
+
+    CMmpMediaSample *pMediaSample = &m_MediaSampleObj;
+    CMmpMediaSampleDecodeResult* pDecResult = &m_DecResultObj;
+    MMP_U32 stream_buf_size;
+    MMP_U8* stream_buf = NULL; 
+    MMP_U32 stream_buf_maxsize = 1024*1024;
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+
+    stream_buf = (MMP_U8*)malloc(stream_buf_maxsize);
+
+    if(stream_buf != NULL) {
+        stream_buf_size = 0;
+        pDemuxer->GetMediaExtraData(MMP_MEDIATYPE_AUDIO, stream_buf, stream_buf_maxsize, &stream_buf_size);
+        if(stream_buf_size > 0) {
+        
+            pMediaSample->pAu = stream_buf;
+            pMediaSample->uiAuSize = stream_buf_size;
+            pMediaSample->uiSampleNumber = 0;
+            pMediaSample->uiTimeStamp = 0;
+            pMediaSample->uiFlag = MMP_MEDIASAMPMLE_FLAG_CONFIGDATA;
+
+            memset((void*)pDecResult, 0x00, sizeof(CMmpMediaSampleDecodeResult));
+                    
+            mmpResult = pDecoder->DecodeAu(pMediaSample, pDecResult);
+        }
+    }
+
+    if(stream_buf) free(stream_buf);
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpPlayer::DecodeVideoExtraData(CMmpDemuxer* pDemuxer, CMmpDecoderVideo* pDecoder)  {
+
+    CMmpMediaSample *pMediaSample = &m_MediaSampleObj;
+    CMmpMediaSampleDecodeResult* pDecResult = &m_DecResultObj;
+    MMP_U32 stream_buf_size;
+    MMP_U8* stream_buf = NULL; 
+    MMP_U32 stream_buf_maxsize = 1024*1024;
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+
+    stream_buf = (MMP_U8*)malloc(stream_buf_maxsize);
+
+    if(stream_buf != NULL) {
+        stream_buf_size = 0;
+        pDemuxer->GetMediaExtraData(MMP_MEDIATYPE_VIDEO, stream_buf, stream_buf_maxsize, &stream_buf_size);
+        if(stream_buf_size > 0) {
+        
+            pMediaSample->pAu = stream_buf;
+            pMediaSample->uiAuSize = stream_buf_size;
+            pMediaSample->uiSampleNumber = 0;
+            pMediaSample->uiTimeStamp = 0;
+            pMediaSample->uiFlag = MMP_MEDIASAMPMLE_FLAG_CONFIGDATA;
+
+            memset((void*)pDecResult, 0x00, sizeof(CMmpMediaSampleDecodeResult));
+                    
+            mmpResult = pDecoder->DecodeAu(pMediaSample, pDecResult);
+        }
+    }
+
+    if(stream_buf) free(stream_buf);
+
+    return mmpResult;
+}
 
 #if (MMPPLAYER_DUMP_PCM == 1)
 void CMmpPlayer::DumpPCM_Write(MMP_U8* pcmdata, MMP_S32 pcmbytesize) {

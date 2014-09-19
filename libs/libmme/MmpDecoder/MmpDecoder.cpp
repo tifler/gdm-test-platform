@@ -21,25 +21,27 @@
 
 
 #include "MmpDecoder.hpp"
-//#include "MmpDecoderVideo_Dvc.hpp"
-//#include "MmpDecoderVideo_Mme.hpp"
 
-//#include "MmpDecoderAudio_Mme.hpp"
-#if (MMP_OS == MMP_OS_LINUX_ANDROID)
-#include "MmpDecoderAudio_AAC_PV.hpp"
-#include "MmpDecoderVideo_Mpeg4_PV.hpp"
+/* Audio */
+#include "MmpDecoderAudio_Ffmpeg.hpp"
+#include "MmpDecoderAudio_Dummy.hpp"
+
+/* Video */
+#include "MmpDecoderVideo_Ffmpeg.hpp"
+#include "MmpDecoderVideo_Dummy.hpp"
+#if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_VPU)
+#include "MmpDecoderVideo_Vpu.hpp"
+#elif ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) )
 #include "MmpDecoderVideo_Mfc.hpp"
 #endif
 
-#include "MmpDecoderAudio_Ffmpeg.hpp"
-#include "MmpDecoderAudio_Dummy.hpp"
-#include "MmpDecoderVideo_Ffmpeg.hpp"
-#include "MmpDecoderVideo_Dummy.hpp"
-
-#if (MMP_HWCODEC == MMP_HWCODEC_VPU)
-#include "MmpDecoderVideo_Vpu.hpp"
+/* Image  */
+#if (MMP_HWCODEC_IMAGE == MMP_HWCODEC_IMAGE_JPU)
+#include "MmpDecoderImage_Jpu.hpp"
 #endif
+#include "MmpDecoderImage_JpegLib.hpp"
 
+/* Util */
 #include "MmpUtil.hpp"
 
 //////////////////////////////////////////////////////////////
@@ -90,7 +92,7 @@ CMmpDecoder* CMmpDecoder::CreateVideoObject(struct MmpDecoderCreateConfig *pCrea
     }
     else { 
 
-#if (MMP_HWCODEC == MMP_HWCODEC_VPU)
+#if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_VPU)
         //if(pCreateConfig->bThumbnailMode == MMP_TRUE) {
         //
         //}
@@ -126,6 +128,41 @@ CMmpDecoder* CMmpDecoder::CreateVideoObject(struct MmpDecoderCreateConfig *pCrea
     return pObj;
 }
 
+CMmpDecoder* CMmpDecoder::CreateImageObject(struct MmpDecoderCreateConfig *pCreateConfig, MMP_BOOL bForceSW) {
+
+	CMmpDecoder* pObj=NULL;
+	
+#ifdef WIN32
+    if(bForceSW == MMP_TRUE) {
+        pObj=new CMmpDecoderImage_JpegLib(pCreateConfig);
+    }
+    else { 
+
+#if (MMP_HWCODEC_IMAGE == MMP_HWCODEC_IMAGE_JPU)
+        pObj=new CMmpDecoderImage_Jpu(pCreateConfig);
+        
+#elif (MMP_HWCODEC_IMAGE == MMP_HWCODEC_IMAGE_SW)
+        pObj=new CMmpDecoderImage_JpegLib(pCreateConfig);
+#else
+#error "ERROR: Select HW Codec "    
+#endif
+    
+    }
+#endif
+
+	if(pObj==NULL) {
+        return (CMmpDecoder*)NULL;
+	}
+
+    if( pObj->Open()!=MMP_SUCCESS )    
+    {
+        pObj->Close();
+        delete pObj;
+        return (CMmpDecoder*)NULL;
+    }
+
+    return pObj;
+}
 
 
 MMP_RESULT CMmpDecoder::DestroyObject(CMmpDecoder* pObj)
@@ -144,7 +181,6 @@ MMP_RESULT CMmpDecoder::DestroyObject(CMmpDecoder* pObj)
 CMmpDecoder::CMmpDecoder(CMmpMediaInfo* pMediaInfo) :
 m_nFormat(0)
 ,m_nStreamType(0)
-,m_bConfigDSI(MMP_FALSE)
 {
 	if(pMediaInfo != NULL) {
 		m_MediaInfo = *pMediaInfo;
@@ -160,7 +196,6 @@ m_nFormat(0)
 CMmpDecoder::CMmpDecoder(MMP_U32 nFormat, MMP_U32 nStreamType) :
 m_nFormat(nFormat)
 ,m_nStreamType(nStreamType)
-,m_bConfigDSI(MMP_FALSE)
 {
 	m_pMediaInfo=&m_MediaInfo;
 

@@ -19,8 +19,8 @@
  * limitations under the License.
  */
 
-#ifndef _MMP_BUFFER_HPP__
-#define _MMP_BUFFER_HPP__
+#ifndef MMP_BUFFER_HPP__
+#define MMP_BUFFER_HPP__
 
 #include "MmpDefine.h"
 #include "mmp_buffer_def.h"
@@ -99,6 +99,7 @@ public:
     virtual class mmp_buffer_addr get_buf_addr() { return m_buf_addr; }
     virtual MMP_S32 get_buf_size() { return m_buf_addr.m_size; }
     virtual MMP_S32 get_buf_shared_fd() { return m_buf_addr.m_shared_fd; }
+    virtual MMP_RESULT sync_buf() { return MMP_SUCCESS; }
 };
 
 #endif

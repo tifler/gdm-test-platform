@@ -78,6 +78,7 @@ protected:
 public:
     virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
     virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe) { return MMP_FAILURE; }
+    virtual MMP_RESULT Render(class mmp_buffer_imageframe* p_buf_imageframe) { return MMP_FAILURE; }
 
 
 };

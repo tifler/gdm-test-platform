@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{e0432853-1551-48ea-96df-50bebc95de76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jdi">
+      <UniqueIdentifier>{908c8c94-5024-40de-9986-f15a9cf6c162}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jpuapi">
+      <UniqueIdentifier>{f0bfeb46-1409-4f5f-85d7-45ecfa88f347}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{c4f7d406-fd39-49f6-92f8-7e99f98e4bc4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jdi\linux">
+      <UniqueIdentifier>{2d964005-68dc-44ad-95fe-17c75a219147}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jdi\nonos">
+      <UniqueIdentifier>{492c46a0-5bc0-4a48-8c09-1e3cfb86cbf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jdi\windows">
+      <UniqueIdentifier>{b6745ae5-92b3-4bb8-9c6a-ab4faed80062}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jdi\socket">
+      <UniqueIdentifier>{dc740cf9-1666-4020-925f-8918b3aad00c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jdi\linux\driver">
+      <UniqueIdentifier>{048004ce-2955-4ab9-b77f-8a27dd97fe5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mmf">
+      <UniqueIdentifier>{fe4bead7-2152-4bd6-aa03-2979b51054ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mmf\skia">
+      <UniqueIdentifier>{b4cd9840-5aef-4bb3-931c-a58cde80cfcd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mmf\skia\test">
+      <UniqueIdentifier>{f60825df-24ab-4a00-b4fd-0d1cadc6675b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mmf\skia\image">
+      <UniqueIdentifier>{c889b3b8-ade4-4ed2-8475-42e0900e86c0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\jpuhelper.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\jpulog.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\jpurun.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mixer.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="jpuapi\jpuapi.h">
+      <Filter>jpuapi</Filter>
+    </ClInclude>
+    <ClInclude Include="jpuapi\jpuapifunc.h">
+      <Filter>jpuapi</Filter>
+    </ClInclude>
+    <ClInclude Include="jpuapi\jpuconfig.h">
+      <Filter>jpuapi</Filter>
+    </ClInclude>
+    <ClInclude Include="jpuapi\jputypes.h">
+      <Filter>jpuapi</Filter>
+    </ClInclude>
+    <ClInclude Include="jpuapi\regdefine.h">
+      <Filter>jpuapi</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h" />
+    <ClInclude Include="jdi\jdi.h">
+      <Filter>jdi</Filter>
+    </ClInclude>
+    <ClInclude Include="jdi\mm.h">
+      <Filter>jdi</Filter>
+    </ClInclude>
+    <ClInclude Include="jdi\windows\hpi.h">
+      <Filter>jdi\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="jdi\socket\hpi_client.h">
+      <Filter>jdi\socket</Filter>
+    </ClInclude>
+    <ClInclude Include="jpuapi\jputable.h">
+      <Filter>jpuapi</Filter>
+    </ClInclude>
+    <ClInclude Include="jdi\linux\driver\jpu.h">
+      <Filter>jdi\linux\driver</Filter>
+    </ClInclude>
+    <ClInclude Include="jdi\linux\driver\jmm.h">
+      <Filter>jdi\linux\driver</Filter>
+    </ClInclude>
+    <ClInclude Include="mmf\skia\src\images\SkImageDecoder_libjpeg.h">
+      <Filter>mmf\skia\image</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="jdi\linux\jdi.c">
+      <Filter>jdi\linux</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\nonos\jdi.c">
+      <Filter>jdi\nonos</Filter>
+    </ClCompile>
+    <ClCompile Include="jpuapi\jpuapi.c">
+      <Filter>jpuapi</Filter>
+    </ClCompile>
+    <ClCompile Include="jpuapi\jpuapifunc.c">
+      <Filter>jpuapi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\jpuhelper.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\jpulog.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\jpurun.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mixer.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\mm.c">
+      <Filter>jdi</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\windows\hpi.c">
+      <Filter>jdi\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\socket\hpi_client.c">
+      <Filter>jdi\socket</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\socket\jdi.c">
+      <Filter>jdi\socket</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\linux\driver\jpu.c">
+      <Filter>jdi\linux\driver</Filter>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\test\SkCommandLineFlags.cpp">
+      <Filter>mmf\skia\test</Filter>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\test\skimage_main.cpp">
+      <Filter>mmf\skia\test</Filter>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\images\SkImageDecoder_libjpeg.cpp">
+      <Filter>mmf\skia\image</Filter>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\images\SkImageDecoder_libjpeghw.cpp">
+      <Filter>mmf\skia\image</Filter>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\images\SkImageEncoder_libjpeghw.cpp">
+      <Filter>mmf\skia\image</Filter>
+    </ClCompile>
+    <ClCompile Include="jdi\windows\jdi.c">
+      <Filter>jdi\windows</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="makefile" />
+    <None Include="jdi\linux\driver\Makefile">
+      <Filter>jdi\linux\driver</Filter>
+    </None>
+    <None Include="jdi\linux\driver\load">
+      <Filter>jdi\linux\driver</Filter>
+    </None>
+  </ItemGroup>
+</Project>

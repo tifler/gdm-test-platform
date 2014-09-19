@@ -22,7 +22,7 @@
 #include "MmpDecoderMfc.hpp"
 #include "../MmpComm/MmpUtil.hpp"
 
-#if 0//(MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC)
+#if 0//(MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC)
 
 #include "sec_format.h"
 
@@ -820,4 +820,4 @@ MMP_BOOL CMmpDecoderMfc::Make_WMV_Stream_MetaData(MMP_U8 *pInputStream, MMP_U32 
     }
 }
 
-#endif /* #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /* #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */

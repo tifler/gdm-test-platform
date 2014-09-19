@@ -236,7 +236,7 @@ class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 
             
             switch(p_mmp_videoframe->m_format) {
 
-                case MMP_FOURCC_VIDEO_I420: 
+                case MMP_FOURCC_IMAGE_I420: 
                     p_mmp_videoframe->m_plane_count = 3;        
 
                     buffer_width = MMP_BYTE_ALIGN(p_mmp_videoframe->m_pic_width, 16);
@@ -395,6 +395,235 @@ class mmp_buffer_videostream* mmp_buffer_mgr_ex1::alloc_media_videostream(MMP_S3
 
 class mmp_buffer_videostream* mmp_buffer_mgr_ex1::attach_media_videostream(MMP_U8* p_stream_data, MMP_S32 stream_size) {
     return this->alloc_media_videostream(stream_size, mmp_buffer::HEAP_ATTACH, p_stream_data);
+}
+
+class mmp_buffer_imagestream* mmp_buffer_mgr_ex1::alloc_media_imagestream(MMP_S32 stream_max_size, MMP_U32 buf_type) {
+
+    MMP_S32 err_cnt = 0;
+    class mmp_buffer* p_mmp_buf;
+    struct mmp_buffer_create_config buffer_create_config;
+    class mmp_buffer_imagestream* p_mmp_imagestream = NULL;
+
+    //if(buf_type == mmp_buffer::HEAP_ATTACH) {
+    //    if(p_stream_data==NULL) {
+    //        err_cnt++;        
+    //    }
+    //}
+        
+    if(err_cnt == 0) {
+        p_mmp_imagestream = new class mmp_buffer_imagestream;
+        if(p_mmp_imagestream != NULL) {
+
+            memset(&buffer_create_config, 0x00, sizeof(buffer_create_config));
+                
+            buffer_create_config.type = buf_type;
+            buffer_create_config.size = stream_max_size;
+
+            //if(buf_type == mmp_buffer::HEAP_ATTACH) {
+            //    buffer_create_config.attach_vir_addr = (MMP_U32)p_stream_data;
+            //    buffer_create_config.attach_offset = 0;
+            //}
+
+            p_mmp_buf = mmp_buffer::create_object(&buffer_create_config);
+            if(p_mmp_buf != NULL) {
+
+                m_p_mutex->lock();
+        
+                p_mmp_imagestream->m_p_mmp_buffer = p_mmp_buf;
+                m_list_buffer.Add(p_mmp_imagestream->m_p_mmp_buffer);
+                
+                m_p_mutex->unlock();
+            }
+        }
+    }
+    
+    return p_mmp_imagestream;
+}
+
+class mmp_buffer_imagestream* mmp_buffer_mgr_ex1::alloc_media_imagestream(MMP_CHAR* image_file_name, MMP_U32 buf_type) {
+
+    FILE* fp;
+    class mmp_buffer_imagestream* p_buf_imagestream = NULL;
+    MMP_S32 file_size, rdsz;
+
+    fp = fopen(image_file_name, "rb");
+    if(fp != NULL) {
+        fseek(fp, 0, SEEK_END);
+        file_size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+
+        p_buf_imagestream = this->alloc_media_imagestream(file_size+1024, buf_type);
+        if(p_buf_imagestream != NULL) {
+            rdsz = fread((void*)p_buf_imagestream->get_buf_vir_addr(), 1, file_size, fp);
+            if(rdsz != file_size) {
+                this->free_media_buffer(p_buf_imagestream);
+                p_buf_imagestream = NULL;
+            }
+            else {
+                p_buf_imagestream->sync_buf();
+                p_buf_imagestream->set_stream_size(file_size);
+                p_buf_imagestream->m_fp_imagefile = fp;
+            }
+        }
+    }
+    
+    return p_buf_imagestream;
+}
+
+class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+                                                                        MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset) {
+
+    class mmp_buffer* p_mmp_buf;
+    struct mmp_buffer_create_config buffer_create_config;
+    MMP_S32 err_cnt = 0;
+
+    class mmp_buffer_imageframe* p_mmp_imageframe = NULL;
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 plane_size[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 stride[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 buffer_height_arr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 buffer_width, buffer_height, luma_size, chroma_size;
+    MMP_S32 i;
+
+    if(type == mmp_buffer::ION_ATTACH) {
+        if( (shared_ion_fd == NULL) || (ion_mem_offset == NULL) ) {
+            /* Error  */
+            err_cnt++;
+        }
+    }
+
+    if(err_cnt == 0) {
+        
+        p_mmp_imageframe = new class mmp_buffer_imageframe;
+        if(p_mmp_imageframe != NULL) {
+        
+            p_mmp_imageframe->m_format = format;
+            p_mmp_imageframe->m_pic_width = pic_width;
+            p_mmp_imageframe->m_pic_height = pic_height;
+            
+            
+            switch(p_mmp_imageframe->m_format) {
+
+                case MMP_FOURCC_IMAGE_I420: 
+                    p_mmp_imageframe->m_plane_count = 3;        
+
+                    buffer_width = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width, 16);
+                    buffer_height = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_height, 16);
+                    
+                    stride[0] = buffer_width;
+                    stride[1] = buffer_width>>1;
+                    stride[2] = buffer_width>>1;
+                
+                    buffer_height_arr[0] = buffer_height;
+                    buffer_height_arr[1] = buffer_height>>1;
+                    buffer_height_arr[2] = buffer_height>>1;
+                    
+                    luma_size = buffer_width*buffer_height;
+                    chroma_size = luma_size>>2;
+
+                    plane_size[0] = luma_size;
+                    plane_size[1] = chroma_size;
+                    plane_size[2] = chroma_size;
+
+                    break;
+
+                case MMP_FOURCC_IMAGE_RGB32:  /* RGB 32 Bit*/
+                    p_mmp_imageframe->m_plane_count = 1;
+                    
+                    stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*4, 4);
+                    buffer_height_arr[0] = p_mmp_imageframe->m_pic_height;
+                    plane_size[0] = stride[0] * buffer_height_arr[0];
+                    
+                    break;
+
+                case MMP_FOURCC_IMAGE_RGB24:  /* RGB 24 Bit*/
+                    p_mmp_imageframe->m_plane_count = 1;
+                    
+                    stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*3, 4);
+                    buffer_height_arr[0] = p_mmp_imageframe->m_pic_height;
+                    plane_size[0] = stride[0] * buffer_height_arr[0];
+                    
+                    break;
+
+                default:
+                    mmpResult = MMP_FAILURE;
+                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_mgr_ex1::attach_media_imageframe] FAIL: not supported video format 0x%08x "), p_mmp_imageframe->m_format ));
+                    break;
+            }
+
+            /* alloc mmp buffer per plane */
+            if(mmpResult == MMP_SUCCESS) {
+
+                for(i = 0; i < p_mmp_imageframe->m_plane_count; i++) {
+                    
+                    buffer_create_config.type = type;
+                    buffer_create_config.size = plane_size[i];
+
+                    if(type == mmp_buffer::ION_ATTACH) {
+                        buffer_create_config.attach_shared_fd = shared_ion_fd[i];
+                        buffer_create_config.attach_phy_addr = 0;
+                        buffer_create_config.attach_offset = ion_mem_offset[i];
+                    }
+
+                    p_mmp_buf = mmp_buffer::create_object(&buffer_create_config);
+                    if(p_mmp_buf == NULL) {
+                        mmpResult = MMP_FAILURE;
+                        break;
+                    }
+                    else {
+                        p_mmp_imageframe->m_p_mmp_buffer[i] = p_mmp_buf;
+                        p_mmp_imageframe->m_buf_stride[i] = stride[i];
+                        p_mmp_imageframe->m_buf_height[i] = buffer_height_arr[i];
+                    }
+                }
+            }
+
+        }
+        else {
+            /* FAIL: new instance */
+            mmpResult = MMP_FAILURE;
+        }
+
+        if(mmpResult == MMP_SUCCESS) {
+        
+            m_p_mutex->lock();
+
+            /* register mmp buffer */
+            for(i = 0; i < p_mmp_imageframe->m_plane_count; i++) {
+                m_list_buffer.Add(p_mmp_imageframe->m_p_mmp_buffer[i]);
+            }
+
+            m_p_mutex->unlock();
+
+        }
+        else {
+            
+            if(p_mmp_imageframe != NULL) {
+        
+                for(i = 0; i < p_mmp_imageframe->m_plane_count; i++) {
+                    if(p_mmp_imageframe->m_p_mmp_buffer[i] != NULL) {
+                        mmp_buffer::destroy_object(p_mmp_imageframe->m_p_mmp_buffer[i]);
+                    }
+                }
+
+                delete p_mmp_imageframe;
+                p_mmp_imageframe = NULL;
+            }
+        }
+
+    }
+    
+    return p_mmp_imageframe;
+}
+
+class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
+    
+    return this->alloc_media_imageframe(pic_width, pic_height, format, mmp_buffer::ION, NULL, NULL);
+}
+
+class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::attach_media_imageframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset, MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
+
+    return this->alloc_media_imageframe(pic_width, pic_height, format, mmp_buffer::ION_ATTACH, shared_ion_fd, ion_mem_offset);
 }
 
 MMP_RESULT mmp_buffer_mgr_ex1::free_media_buffer(class mmp_buffer_media* p_buf_media) {

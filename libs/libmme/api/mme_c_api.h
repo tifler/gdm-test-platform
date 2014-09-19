@@ -69,11 +69,6 @@ extern "C" {
 #endif
 
 /* util */
-int mme_util_get_vpu_fd(void);
-unsigned char* mme_util_get_vpu_instance_pool_buffer(void);
-unsigned int mme_util_get_vpu_reg_vir_addr(void);
-void* mme_util_get_vpu_common_buffer(void);
-
 void mme_util_sleep(int milesec);
 unsigned int mme_util_get_tick_count();
 long long mme_util_get_tick_count_us();

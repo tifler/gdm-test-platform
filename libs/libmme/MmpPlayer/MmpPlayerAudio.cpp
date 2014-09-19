@@ -291,7 +291,7 @@ void CMmpPlayerAudio::Service()
                 MMP_U32 msg;
                 void *data1 = NULL, *data2 = NULL;
 
-                msg = MMP_PLAYER_CALLBACK_PLAYTIME;
+                msg = CMmpPlayer::CALLBACK_PLAYTIME;
                 playtime_st.media_duration  = m_pDemuxer->GetDuration();
                 playtime_st.media_pts = last_render_pts;
 

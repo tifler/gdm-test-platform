@@ -14,6 +14,8 @@
 #include "vpuio.h"
 #include "vpuhelper.h"
 
+#include "mme_vpu_compilehelper.h"
+
 
 #ifdef SUPPORT_FFMPEG_DEMUX
 #else

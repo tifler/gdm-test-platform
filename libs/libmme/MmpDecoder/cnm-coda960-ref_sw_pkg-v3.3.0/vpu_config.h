@@ -6,8 +6,8 @@
 //------------------------------------------------------------------------------
 
 
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __VPU_CONFIG_H__
+#define __VPU_CONFIG_H__
 
 #ifdef __VPU_PLATFORM_MME
 #include "MmpDefine.h"
