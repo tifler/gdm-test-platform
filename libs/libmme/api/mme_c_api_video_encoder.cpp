@@ -22,6 +22,9 @@
 #include "MmpDefine.h"
 #include "mme_c_api.h"
 #include "MmpEncoderVideo.hpp"
+#include <stdio.h>
+
+static FILE *s_fp_yuv_dump = NULL;
 
 void* mme_video_encoder_create_object(struct mme_video_encoder_config* p_video_encoder_config) {
 
@@ -40,6 +43,8 @@ void* mme_video_encoder_create_object(struct mme_video_encoder_config* p_video_e
     if(mmpResult == MMP_SUCCESS) {
         pVideoEncoder = (CMmpEncoderVideo*)CMmpEncoder::CreateVideoObject(&EncoderCreateConfig, p_video_encoder_config->sw_codec_use);
     }
+
+    s_fp_yuv_dump = fopen("/mnt/enc_dump.yuv", "wb");
     
     return (void*)pVideoEncoder;
 }
@@ -52,30 +57,42 @@ int mme_video_encoder_destroy_object(void* hdl) {
         CMmpEncoder::DestroyObject(pVideoEncoder);
     }
 
+    if(s_fp_yuv_dump != NULL) {
+        fclose(s_fp_yuv_dump);    
+    }
+
     return 0;
 }
+
 
 int mme_video_encoder_run(void* hdl, int* shared_ion_fd, int* mem_offset, 
                           unsigned char* p_enc_stream, int stream_max_size, int* enc_stream_size, unsigned int* enc_flag,
                           unsigned char* p_config_data, int config_max_size, int *config_data_size
                           ) {
-
     int iret = 0;
     CMmpEncoderVideo* pVideoEncoder = (CMmpEncoderVideo*)hdl;
     class mmp_buffer_videoframe* p_buf_videoframe = NULL;
     class mmp_buffer_videostream* p_buf_videostream = NULL;
     int dsi_size, stream_size;
     MMP_U32 flag = 0;
+    int pic_width, pic_height;
+    int pic_size[3];
 
     if(enc_stream_size != NULL) *enc_stream_size = 0;
     if(config_data_size!=NULL) *config_data_size = 0;
     if(p_enc_stream == NULL) iret = -1;
-
+    
     if((pVideoEncoder != NULL) && (iret==0) ) {
+
+        pic_width = pVideoEncoder->GetVideoPicWidth();
+        pic_height = pVideoEncoder->GetVideoPicHeight();
+        pic_size[0] = pic_width*pic_height;
+        pic_size[1] = pic_width*pic_height/4;
+        pic_size[2] = pic_width*pic_height/4;
 
         /* attach video frame */
         p_buf_videoframe = mmp_buffer_mgr::get_instance()->attach_media_videoframe((MMP_S32*)shared_ion_fd, (MMP_S32*)mem_offset, 
-                                                                                   pVideoEncoder->GetVideoPicWidth(), pVideoEncoder->GetVideoPicHeight() );
+                                                                                   pic_width, pic_height );
         if(p_buf_videoframe == NULL) {
             iret = -1;
         }
@@ -87,6 +104,14 @@ int mme_video_encoder_run(void* hdl, int* shared_ion_fd, int* mem_offset,
         }
 
         if(iret == 0) {
+
+            int ii;
+            if(s_fp_yuv_dump != NULL) {
+                for(ii = 0; ii < 3; ii++) {
+                    fwrite((void*)p_buf_videoframe->get_buf_vir_addr(ii), 1, pic_size[ii], s_fp_yuv_dump);
+                }
+            }
+
             pVideoEncoder->EncodeAu(p_buf_videoframe, p_buf_videostream);
 
             dsi_size = p_buf_videostream->get_dsi_size();
