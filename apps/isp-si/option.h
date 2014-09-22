@@ -35,6 +35,7 @@ struct Option {
         uint32_t cropRight;
         uint32_t pixelFormat;
         uint32_t bufferCount;
+        int writeYUV;
     } port[STREAM_PORT_COUNT];
 
     struct OptionDisplay {

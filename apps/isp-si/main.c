@@ -17,12 +17,23 @@
 #include "stream.h"
 #include "display.h"
 #include "encoder.h"
+#include "yuv-writer.h"
 #include "option.h"
 #include "debug.h"
 
 /*****************************************************************************/
 
 #define CAPTURE_SIGNAL                      (SIGUSR1)
+
+/*****************************************************************************/
+
+struct PortContext {
+    struct GDMDisplay *display;
+    struct GDMEncoder *encoder;
+    struct GDMYUVWriter *yuvWriter;
+    struct GDMImageInfo yuvInfo;
+    uint32_t yuvCount;
+};
 
 /*****************************************************************************/
 
@@ -40,11 +51,11 @@ static void helpExit(int argc, char **argv)
 
 static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    struct GDMDisplay *disp = (struct GDMDisplay *)param;
+    struct PortContext *dispPort = (struct PortContext *)param;
 
-    if (disp) {
+    if (dispPort->display) {
         //DBG("DISPLAY CALLBACK: Buffer Index = %d, Send Frame.", index);
-        GDispSendFrame(disp, buffer, 1000);
+        GDispSendFrame(dispPort->display, buffer, 1000);
     }
     else {
         //DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
@@ -55,10 +66,21 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 
 static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    struct GDMEncoder *encoder = (struct GDMEncoder *)param;
+    struct PortContext *videoPort = (struct PortContext *)param;
 
-    if (encoder) {
-        GEncEncodeFrame(encoder, buffer);
+    if (videoPort->encoder) {
+        GEncEncodeFrame(videoPort->encoder, buffer);
+    }
+
+    if (videoPort->yuvWriter) {
+        if (videoPort->yuvCount > 0) {
+            GYUVWriterWrite(videoPort->yuvWriter, &videoPort->yuvInfo, buffer);
+            videoPort->yuvCount--;
+        }
+        else {
+            GYUVWriterClose(videoPort->yuvWriter);
+            videoPort->yuvWriter = (struct GDMYUVWriter *)NULL;
+        }
     }
     //DBG("VIDEO CALLBACK: Buffer Index = %d", index);
     return 0;
@@ -112,7 +134,7 @@ static struct STREAM *createStream(
     ASSERT(buffers);
 
     for (i = 0; i < port->bufferCount; i++) {
-        buffers[i] = allocContigMemory(planes, planeSizes, 0);
+        buffers[i] = allocContigMemory(planes, planeSizes, GDM_BUF_FLAG_MAP);
         ASSERT(buffers[i]);
     }
 
@@ -201,6 +223,44 @@ static void installSigHandler(void)
     ASSERT(ret == 0);
 }
 
+static void opt2ImageInfo(
+        const struct Option *opt, struct GDMImageInfo *info, int streamId)
+{
+    int i;
+
+    ASSERT(opt);
+    ASSERT(info);
+
+    memset(info, 0, sizeof(*info));
+
+    info->width = opt->port[streamId].width;
+    info->height = opt->port[streamId].height;
+
+    switch (opt->port[streamId].pixelFormat) {
+        case V4L2_PIX_FMT_YUV420M:
+            info->planeCount = 3;
+            info->plane[0].stride = ((info->width + 7) >> 3) << 3;
+            info->plane[0].bpl = opt->port[streamId].width;
+            info->plane[0].lines = info->height;
+            info->plane[1].stride = ((info->width + 7) >> 3) << 2;
+            info->plane[1].bpl = opt->port[streamId].width >> 1;
+            info->plane[1].lines = info->height >> 1;
+            info->plane[2].stride = ((info->width + 7) >> 3) << 2;
+            info->plane[2].bpl = opt->port[streamId].width >> 1;
+            info->plane[2].lines = info->height >> 1;
+            break;
+
+        default:
+            ASSERT(! "Not implemented.");
+            break;
+    }
+
+    for (i = 0; i < info->planeCount; i++) {
+        DBG("Plane[%d].stride = %u, bpl = %u",
+                i, info->plane[i].stride, info->plane[i].bpl);
+    }
+}
+
 /*****************************************************************************/
 
 int main(int argc, char **argv)
@@ -214,8 +274,9 @@ int main(int argc, char **argv)
     struct DXO *dxo;
     struct STREAM *streams[STREAM_PORT_COUNT];
     struct Option *opt;
-    struct GDMDisplay *display = NULL;
-    struct GDMEncoder *encoder = NULL;
+    struct PortContext portCtx[STREAM_PORT_COUNT];
+
+    memset(&portCtx, 0, sizeof(portCtx));
 
     if (argc != 2)
         helpExit(argc, argv);
@@ -261,17 +322,18 @@ int main(int argc, char **argv)
     if (!opt->port[STREAM_PORT_DISPLAY].disable) {
         if (opt->global.display) {
             struct GDMDispFormat dispFmt;
-            display = GDispOpen(opt->display.unixPath, 0);
-            ASSERT(display);
+            portCtx[STREAM_PORT_DISPLAY].display =
+                GDispOpen(opt->display.unixPath, 0);
+            ASSERT(portCtx[STREAM_PORT_DISPLAY].display);
 
             dispFmt.pixelformat = opt->port[STREAM_PORT_DISPLAY].pixelFormat;
             dispFmt.width = opt->port[STREAM_PORT_DISPLAY].width;
             dispFmt.height = opt->port[STREAM_PORT_DISPLAY].height;
 
-            GDispSetFormat(display, &dispFmt);
+            GDispSetFormat(portCtx[STREAM_PORT_DISPLAY].display, &dispFmt);
         }
-        streams[STREAM_PORT_DISPLAY] =
-            createStream(opt, dxo, STREAM_PORT_DISPLAY, displayCallback, display);
+        streams[STREAM_PORT_DISPLAY] = createStream(opt, dxo,
+                STREAM_PORT_DISPLAY, displayCallback, &portCtx[STREAM_PORT_DISPLAY]);
         ASSERT(streams[STREAM_PORT_DISPLAY]);
     }
 
@@ -287,13 +349,24 @@ int main(int argc, char **argv)
             encConf.encFormat = opt->videoEncoder.format;
             encConf.useSWEnc = 0;
 
-            encoder = GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
-            ASSERT(encoder);
+            portCtx[STREAM_PORT_VIDEO].encoder =
+                GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
+            ASSERT(portCtx[STREAM_PORT_VIDEO].encoder);
 
-            GEncStart(encoder);
+            GEncStart(portCtx[STREAM_PORT_VIDEO].encoder);
         }
-        streams[STREAM_PORT_VIDEO] = 
-            createStream(opt, dxo, STREAM_PORT_VIDEO, videoCallback, encoder);
+
+        if (opt->port[STREAM_PORT_VIDEO].writeYUV > 0) {
+            portCtx[STREAM_PORT_VIDEO].yuvWriter = GYUVWriterOpen("video.yuv");
+            ASSERT(portCtx[STREAM_PORT_VIDEO].yuvWriter);
+            portCtx[STREAM_PORT_VIDEO].yuvCount =
+                opt->port[STREAM_PORT_VIDEO].writeYUV;
+            opt2ImageInfo(opt,
+                    &portCtx[STREAM_PORT_VIDEO].yuvInfo, STREAM_PORT_VIDEO);
+        }
+
+        streams[STREAM_PORT_VIDEO] = createStream(opt, dxo,
+                STREAM_PORT_VIDEO, videoCallback, &portCtx[STREAM_PORT_VIDEO]);
         ASSERT(streams[STREAM_PORT_VIDEO]);
     }
 
@@ -323,11 +396,11 @@ int main(int argc, char **argv)
     for (i = 0; i < STREAM_PORT_COUNT; i++) {
         if (streams[i])
             destroyStream(streams[i]);
-    }
 
-    if (encoder) {
-        GEncStop(encoder);
-        GEncClose(encoder);
+        if (portCtx[i].encoder) {
+            GEncStop(portCtx[i].encoder);
+            GEncClose(portCtx[i].encoder);
+        }
     }
 
     return 0;

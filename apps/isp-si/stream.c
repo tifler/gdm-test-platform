@@ -73,6 +73,9 @@ static void *streamThread(void *arg)
             continue;
         }
 
+        if (!(stream->status & STREAM_STAT_START))
+            break;
+
         idx = v4l2_dqbuf(pollfd.fd, 3);
         if (idx < 0) {
             perror("v4l2_dqbuf");

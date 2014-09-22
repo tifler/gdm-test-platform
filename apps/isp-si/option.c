@@ -109,6 +109,9 @@ static void parsePort(dictionary *dict, struct Option *option, int index)
 
     snprintf(key, sizeof(key) - 1, "Port-%s:BufferCount", portName[index]);
     port->bufferCount = iniparser_getint(dict, key, DEFAULT_BUFFER_COUNT);
+
+    snprintf(key, sizeof(key) - 1, "Port-%s:WriteYUV", portName[index]);
+    port->writeYUV = iniparser_getint(dict, key, 0);
 }
 
 static void parseDisplay(dictionary *dict, struct Option *option)
