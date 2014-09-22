@@ -24,11 +24,6 @@
 
 #include "mmp_vpu_def.h"
 
-#define MMP_VPU_CNM     1 
-#define MMP_VPU_ANAPASS 2 
-
-#define MMP_VPU MMP_VPU_ANAPASS
-
 struct mmp_vpu_if_create_config {
 	MMP_S32 dummy;
 };

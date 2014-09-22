@@ -23,7 +23,7 @@
 #include "../MmpComm/MmpUtil.hpp"
 #include "MmpH264Tool.hpp"
 
-#if 1//(MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44)
+#if 1//(MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44)
 
 extern "C"  {
 #include "color_space_convertor.h"
@@ -878,4 +878,4 @@ void csc_tiled_to_linear_uv_deinterleave_neon(
 
 #endif
 
-#endif /* #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /* #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */

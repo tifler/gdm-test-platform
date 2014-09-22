@@ -37,6 +37,8 @@ protected:
     virtual MMP_RESULT open();
     virtual MMP_RESULT close();
 
+public:
+    virtual MMP_RESULT sync_buf();
 
 };
 

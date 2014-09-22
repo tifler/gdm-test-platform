@@ -22,7 +22,7 @@
 #include "MmpEncoderVideo_Mfc.hpp"
 #include "../MmpComm/MmpUtil.hpp"
 
-#if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) )
+#if ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) )
 
 extern "C"  {
 #include "color_space_convertor.h"
@@ -346,4 +346,4 @@ extern "C" void csc_linear_to_tiled_uv(
 
 #endif
 
-#endif /*  #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /*  #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */

@@ -120,7 +120,7 @@ int mme_command_player_start(int argc, char* argv[]) {
     MMP_S32 player_index = 0;
 
     MMP_BOOL bForceSWCodec = MMP_FALSE;
-    MMP_U32 player_type = MMP_PLAYER_VIDEO_ONLY;
+    MMP_U32 player_type = CMmpPlayer::VIDEO_ONLY;
     
     /* Get Player Index */
     for(i = 0; i < MAX_PLAYER_COUNT; i++) {
@@ -140,8 +140,8 @@ int mme_command_player_start(int argc, char* argv[]) {
     }
     if(argc == 2) {
         if(strcmp(argv[1], "a") == 0) {
-            player_type = MMP_PLAYER_AUDIO_ONLY;
-            MMESHELL_PRINT(MMESHELL_ERROR, ("Player Typer is MMP_PLAYER_AUDIO_ONLY \n"));
+            player_type = CMmpPlayer::AUDIO_ONLY;
+            MMESHELL_PRINT(MMESHELL_ERROR, ("Player Typer is CMmpPlayer::AUDIO_ONLY \n"));
         }
     }
 
@@ -207,10 +207,10 @@ int mme_command_player_start(int argc, char* argv[]) {
         player_create_config.bForceSWCodec = bForceSWCodec;
         
         pPlayer = CMmpPlayer::CreateObject(player_type, &player_create_config);
-        //s_pMmpPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_STAGEFRIGHT, &player_create_config);
-        //pPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_AUDIO_VIDEO, &player_create_config);
-        //pPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_VIDEO_ONLY, &player_create_config);
-        //pPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_AUDIO_ONLY, &player_create_config);
+        //s_pMmpPlayer = CMmpPlayer::CreateObject(CMmpPlayer::STAGEFRIGHT, &player_create_config);
+        //pPlayer = CMmpPlayer::CreateObject(CMmpPlayer::AUDIO_VIDEO, &player_create_config);
+        //pPlayer = CMmpPlayer::CreateObject(CMmpPlayer::VIDEO_ONLY, &player_create_config);
+        //pPlayer = CMmpPlayer::CreateObject(CMmpPlayer::AUDIO_ONLY, &player_create_config);
 #if 1
         if(pPlayer != NULL) {
             pPlayer->PlayStart();
@@ -517,7 +517,7 @@ int mme_command_player_loop(int argc, char* argv[]) {
 
         MMESHELL_PRINT(MMESHELL_ERROR, ("[LongRun Test] %d. %s  \n", file_index, file_name));
 
-        pMmpPlayer = CMmpPlayer::CreateObject(MMP_PLAYER_STAGEFRIGHT, &player_create_config);
+        pMmpPlayer = CMmpPlayer::CreateObject(CMmpPlayer::STAGEFRIGHT, &player_create_config);
         if(pMmpPlayer != NULL) {
             pMmpPlayer->PlayStart();
 

@@ -22,7 +22,7 @@
 #include "MmpDecoderVideo_Mfc.hpp"
 #include "../MmpComm/MmpUtil.hpp"
 
-#if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) )
+#if ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) )
 
 /////////////////////////////////////////////////////////////
 //CMmpDecoderVideo_Mfc Member Functions
@@ -359,4 +359,4 @@ MMP_RESULT CMmpDecoderVideo_Mfc::DecodeAu(CMmpMediaSample* pMediaSample, CMmpMed
 
 }
 #endif
-#endif /* #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /* #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */

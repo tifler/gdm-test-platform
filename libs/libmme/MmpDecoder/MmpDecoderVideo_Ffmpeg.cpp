@@ -147,7 +147,7 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeDSI(class mmp_buffer_videostream* p_bu
                 mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_videoframe);
                 m_p_buf_videoframe = NULL;
             }
-            m_p_buf_videoframe = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_VIDEO_I420);
+            m_p_buf_videoframe = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_IMAGE_I420);
         }
 
         MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[CMmpDecoderVideo_Ffmpeg::DecodeDSI] Success nForamt=(0x%08x %s) \n\r"), 
@@ -237,7 +237,7 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeAu(CMmpMediaSample* pMediaSample, CMmp
                 m_p_buf_videoframe = NULL;
             }
             
-            m_p_buf_videoframe = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_VIDEO_I420);
+            m_p_buf_videoframe = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_IMAGE_I420);
             if(m_p_buf_videoframe == NULL) {
                 mmpResult = MMP_FAILURE;
             }
@@ -386,7 +386,7 @@ MMP_RESULT CMmpDecoderVideo_Ffmpeg::DecodeAu(class mmp_buffer_videostream* p_buf
                 mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_videoframe);
                 m_p_buf_videoframe = NULL;
             }
-            m_p_buf_videoframe = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_VIDEO_I420);
+            m_p_buf_videoframe = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_IMAGE_I420);
         }
 
         if(m_p_buf_videoframe != NULL) 

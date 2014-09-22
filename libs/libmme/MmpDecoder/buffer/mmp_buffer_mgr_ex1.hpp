@@ -19,8 +19,8 @@
  * limitations under the License.
  */
 
-#ifndef _MMP_BUFFER_MGR_EX1_HPP__
-#define _MMP_BUFFER_MGR_EX1_HPP__
+#ifndef MMP_BUFFER_MGR_EX1_HPP__
+#define MMP_BUFFER_MGR_EX1_HPP__
 
 #include "mmp_buffer_mgr.hpp"
 #include "TemplateList.hpp"
@@ -50,22 +50,41 @@ public:
     virtual class mmp_buffer* get_buffer(MMP_S32 shared_fd);
     virtual class mmp_buffer_addr get_buffer_addr(MMP_S32 shared_fd);
 
+/* alloc video frame */
 private:
     virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
                                                                 MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset);
 public:
-    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_VIDEO_I420);
+    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
     virtual class mmp_buffer_videoframe* attach_media_videoframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset,
-                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_VIDEO_I420);
+                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
     
+/* alloc video steam */
 private:
     virtual class mmp_buffer_videostream* alloc_media_videostream(MMP_S32 stream_max_size, MMP_U32 buf_type, MMP_U8* p_stream_data);
 public:
     virtual class mmp_buffer_videostream* alloc_media_videostream(MMP_S32 stream_max_size, MMP_U32 buf_type=mmp_buffer::HEAP);
     virtual class mmp_buffer_videostream* attach_media_videostream(MMP_U8* p_stream_data, MMP_S32 stream_size);
 
+/* alloc image steam */
+public:
+    virtual class mmp_buffer_imagestream* alloc_media_imagestream(MMP_S32 stream_max_size, MMP_U32 buf_type=mmp_buffer::HEAP);
+    virtual class mmp_buffer_imagestream* alloc_media_imagestream(MMP_CHAR* image_file_name, MMP_U32 buf_type=mmp_buffer::HEAP);
+
+/* alloc image frame */
+private:
+    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+                                                                MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset);
+public:
+    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
+    virtual class mmp_buffer_imageframe* attach_media_imageframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset,
+                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
+    
+/* fream media data */
+public:
     virtual MMP_RESULT free_media_buffer(class mmp_buffer_media* p_buf_media);
 
+public:
     virtual void print_info();
 };
 

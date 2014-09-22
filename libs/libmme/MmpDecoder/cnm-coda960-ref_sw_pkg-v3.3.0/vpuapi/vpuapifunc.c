@@ -17,6 +17,7 @@
 #include "vpuapifunc.h"
 #include "regdefine.h"
 
+#include "mme_vpu_compilehelper.h"
 
 
 #ifndef MIN

@@ -31,6 +31,7 @@ public:
         ID_ENV_MGR=0,
         ID_BUFFER_MGR,
         ID_VPU_DEV,
+        ID_JPU_DEV,
         ID_MAX
     };
 private:

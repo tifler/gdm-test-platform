@@ -19,8 +19,8 @@
  * limitations under the License.
  */
 
-#ifndef _MMP_SIMPLE_HEAP_HPP__
-#define _MMP_SIMPLE_HEAP_HPP__
+#ifndef MMP_SIMPLE_HEAP_HPP__
+#define MMP_SIMPLE_HEAP_HPP__
 
 #include "MmpDefine.h"
 #include "mmp_oal_mutex.hpp"

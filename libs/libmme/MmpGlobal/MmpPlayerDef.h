@@ -106,17 +106,6 @@ typedef struct CMmpRenderCreateProp_st
 
 }CMmpRendererCreateProp;
 
-#define MMP_PLAYER_CALLBACK_DURATION  0x100
-#define MMP_PLAYER_CALLBACK_PLAYTIME  0x101
-
-struct mmp_player_callback_playtime {
-    //MMP_S64 player_start_time;
-    //MMP_S64 player_cur_time;
-    MMP_S64 media_duration;
-    MMP_S64 media_pts;
-    //MMP_S64 last_packet_pts[MMP_MEDIATYPE_MAX];
-    //MMP_S64 last_render_time[MMP_MEDIATYPE_MAX];
-};
 
 struct mmp_player_option_yuv {
     MMP_S32 width;

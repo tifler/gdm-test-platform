@@ -42,9 +42,7 @@ protected:
 public:
     virtual MMP_RESULT Render(CMmpMediaSampleDecodeResult* pDecResult);
     virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe);
-    
-    
-    
+    virtual MMP_RESULT Render(class mmp_buffer_imageframe* p_buf_iamgeframe);
 };
 
 

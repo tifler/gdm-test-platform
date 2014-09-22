@@ -47,6 +47,7 @@ class CMmpDecoder
 public:
     static CMmpDecoder* CreateAudioObject(struct MmpDecoderCreateConfig *pCreateConfig /*MMP_U32 nFormat, MMP_U32 nStreamType, MMP_U8* pStream, MMP_U32 nStreamSize*/);
     static CMmpDecoder* CreateVideoObject(struct MmpDecoderCreateConfig *pCreateConfig, MMP_BOOL bForceFfmpeg = MMP_FALSE);
+    static CMmpDecoder* CreateImageObject(struct MmpDecoderCreateConfig *pCreateConfig, MMP_BOOL bForceSW = MMP_FALSE);
 
     static MMP_RESULT DestroyObject(CMmpDecoder* pObj);
 
@@ -56,10 +57,7 @@ protected:
 
 	MMP_U32 m_nFormat;
 	MMP_U32 m_nStreamType;
-
-	MMP_BOOL m_bConfigDSI;
-
-    MMP_U32 m_nClassStartTick;
+	MMP_U32 m_nClassStartTick;
 
 protected:
     CMmpDecoder(CMmpMediaInfo* pMediaInfo);
@@ -70,20 +68,6 @@ protected:
 	virtual MMP_RESULT Open(MMP_U8* pStream, MMP_U32 nStreamSize) = 0;
     virtual MMP_RESULT Close();
 
-public:
-	virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize, MMP_BOOL* bConfigChange) {return MMP_FAILURE;}
-    virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult) {return MMP_FAILURE;}
-	
-    virtual int GetPicWidth() { return 0; }
-    virtual int GetPicHeight() { return 0; }
-
-	virtual MMP_U32 GetAudioSampleRate() { return 0; }
-	virtual MMP_U32 GetAudioChannelCount() { return 0; }
-
-	MMP_BOOL IsConfigDSI() { return m_bConfigDSI; }
-	virtual MMP_RESULT GetWF(MMPWAVEFORMATEX* pwf) {return MMP_FAILURE;}
-	
-    virtual MMP_RESULT Flush() {return MMP_FAILURE;}
 };
 
 #endif

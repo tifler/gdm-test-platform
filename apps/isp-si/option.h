@@ -44,7 +44,7 @@ struct Option {
 
     struct OptionVideoEncoder {
         char *basePath;
-        char *muxer;
+        int format;
     } videoEncoder;
 
     struct OptionJPEGEncoder {

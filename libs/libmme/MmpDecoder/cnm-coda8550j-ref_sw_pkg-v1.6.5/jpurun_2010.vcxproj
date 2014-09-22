@@ -1,0 +1,408 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="64Bit Debug FFmpeg|Win32">
+      <Configuration>64Bit Debug FFmpeg</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="64Bit Debug|Win32">
+      <Configuration>64Bit Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_Embedded_Linux|Win32">
+      <Configuration>Debug_Embedded_Linux</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_NativeLinux|Win32">
+      <Configuration>Debug_NativeLinux</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_NonOS|Win32">
+      <Configuration>Debug_NonOS</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_Windows_Socket|Win32">
+      <Configuration>Debug_Windows_Socket</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D54C54FF-0E71-404F-8AE7-D761EB8CB168}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>jpurun_2010</RootNamespace>
+    <ProjectName>jpurun</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>Z:\work\android_telechips\external\skia\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>Z:\work\android_telechips\external\skia\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;SK_BUILD_FOR_ANDROID;ANDROID_RGB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./include;./include/msvc;./jpuapi;./jdi</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CNM_FPGA_PLATFORM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./include;./include/msvc;./jpuapi;./jdi</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CNM_FPGA_PLATFORM;SUPPORT_FFMPEG_DEMUX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./include;./include/msvc;./jpuapi;./jdi;./ffmpeg/include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>libavformat.a;libavcodec.a;libmingwex.a;libavutil.a;libgcc.a;libwsock32.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>./ffmpeg/lib/win32</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CNM_FPGA_PLATFORM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./include;./include/msvc;./jpuapi;./jdi</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>linux;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CNM_FPGA_PLATFORM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./include;./include/msvc;./jpuapi;./jdi</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CNM_FPGA_PLATFORM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>./include;./include/msvc;./jpuapi;./jdi</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_NativeLinux|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>CNM_FPGA_PLATFORM</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="config.h" />
+    <ClInclude Include="include\jpuhelper.h" />
+    <ClInclude Include="include\jpulog.h" />
+    <ClInclude Include="include\jpurun.h" />
+    <ClInclude Include="include\mixer.h" />
+    <ClInclude Include="jdi\jdi.h" />
+    <ClInclude Include="jdi\linux\driver\jmm.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="jdi\linux\driver\jpu.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="jdi\mm.h" />
+    <ClInclude Include="jdi\socket\hpi_client.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="jdi\windows\hpi.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="jpuapi\jpuapi.h" />
+    <ClInclude Include="jpuapi\jpuapifunc.h" />
+    <ClInclude Include="jpuapi\jpuconfig.h" />
+    <ClInclude Include="jpuapi\jputable.h" />
+    <ClInclude Include="jpuapi\jputypes.h" />
+    <ClInclude Include="jpuapi\regdefine.h" />
+    <ClInclude Include="mmf\skia\src\images\SkImageDecoder_libjpeg.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="jdi\linux\driver\jpu.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jdi\linux\jdi.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jdi\mm.c" />
+    <ClCompile Include="jdi\nonos\jdi.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jdi\socket\hpi_client.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jdi\socket\jdi.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jdi\windows\hpi.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jdi\windows\jdi.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="jpuapi\jpuapi.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">Level4</WarningLevel>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="jpuapi\jpuapifunc.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">Level4</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">Level4</WarningLevel>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug_Embedded_Linux|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug_NonOS|Win32'">true</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\images\SkImageDecoder_libjpeg.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\images\SkImageDecoder_libjpeghw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\images\SkImageEncoder_libjpeghw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\test\SkCommandLineFlags.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="mmf\skia\src\test\skimage_main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='64Bit Debug FFmpeg|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Windows_Socket|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\jpuhelper.c" />
+    <ClCompile Include="src\jpulog.c" />
+    <ClCompile Include="src\jpurun.c" />
+    <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\mixer.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jdi\linux\driver\load" />
+    <None Include="jdi\linux\driver\Makefile" />
+    <None Include="makefile" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileCompilerC="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileCompilerCXX="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileAR="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileRM="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileMKDIR="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileIntDir="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileDestDir="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileCFLAGS="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileCXXFLAGS="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMakefileLDFLAGS="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteBuildCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteRebuildCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteCleanCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteDeployCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathRemoteBuildDirectory="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteBuildVariables="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bDeployBeforeStartDebugging="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bDeployOnlyIfFileChanged="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathDeployFile="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathDeployTargetDirectory="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteSolutionBuildCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteSolutionRebuildCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteSolutionCleanCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteSolutionDeployCommand="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathRemoteSolutionBuildDirectory="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strRemoteSolutionBuildVariables="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bSolutionDeployOnlyIfFileChanged="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathSolutionDeployFile="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathSolutionDeployTargetDirectory="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathCore="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathWorkingDirectory="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strLaunchArguments="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strLaunchEnvironment="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bStopInMain="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strMainFunctionName="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strTarget="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathLoadProgramPath="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathExecutableOnTarget="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bServerAutoLaunch="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bUseSysroot="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathDynamicLinker="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathServerLibraryPaths="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathServerPath="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bServerPortIsForwarded="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathExecutable="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathCustomPreLoadInitScript="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathCustomInitScript="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathCustomCondPreLoadInitScript="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathCondCustomInitScript="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strAdditionalDebuggerOptions="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathSourceDirectories="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathDebugInfoDirectory="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathSysrootOnHost="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathSysrootOnTarget="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathSharedLibraryDirectories="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strVisualizerProfile="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bSourceSession="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bDisableHangReporter="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bUseProtoCtl="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathProtoCtlLogFile="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathDebugger="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_pathToolchain="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_bReuseStandardBuildCommand="false" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strDebugHostLogin="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strBuildHostLogin="" WinGDB_Bz5lky_oMM66DY4CwxYEaw_strDebugTargetLogin="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileCompilerC="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileCompilerCXX="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileAR="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileRM="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileMKDIR="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileIntDir="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileDestDir="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileCFLAGS="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileCXXFLAGS="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMakefileLDFLAGS="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteBuildCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteRebuildCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteCleanCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteDeployCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathRemoteBuildDirectory="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteBuildVariables="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bDeployBeforeStartDebugging="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_bDeployOnlyIfFileChanged="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathDeployFile="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathDeployTargetDirectory="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteSolutionBuildCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteSolutionRebuildCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteSolutionCleanCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteSolutionDeployCommand="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathRemoteSolutionBuildDirectory="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strRemoteSolutionBuildVariables="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bSolutionDeployOnlyIfFileChanged="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathSolutionDeployFile="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathSolutionDeployTargetDirectory="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathCore="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathWorkingDirectory="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strLaunchArguments="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strLaunchEnvironment="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bStopInMain="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_strMainFunctionName="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strTarget="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathLoadProgramPath="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathExecutableOnTarget="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bServerAutoLaunch="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_bUseSysroot="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathDynamicLinker="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathServerLibraryPaths="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathServerPath="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bServerPortIsForwarded="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathExecutable="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathCustomPreLoadInitScript="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathCustomInitScript="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathCustomCondPreLoadInitScript="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathCondCustomInitScript="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strAdditionalDebuggerOptions="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathSourceDirectories="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathDebugInfoDirectory="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathSysrootOnHost="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathSysrootOnTarget="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathSharedLibraryDirectories="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strVisualizerProfile="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bSourceSession="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_bDisableHangReporter="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_bUseProtoCtl="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathProtoCtlLogFile="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathDebugger="" WinGDB_qVB57QUOT0lynJh0o1aKEg_pathToolchain="" WinGDB_qVB57QUOT0lynJh0o1aKEg_bReuseStandardBuildCommand="false" WinGDB_qVB57QUOT0lynJh0o1aKEg_strDebugHostLogin="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strBuildHostLogin="" WinGDB_qVB57QUOT0lynJh0o1aKEg_strDebugTargetLogin="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileCompilerC="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileCompilerCXX="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileAR="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileRM="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileMKDIR="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileIntDir="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileDestDir="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileCFLAGS="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileCXXFLAGS="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMakefileLDFLAGS="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteBuildCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteRebuildCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteCleanCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteDeployCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathRemoteBuildDirectory="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteBuildVariables="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bDeployBeforeStartDebugging="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bDeployOnlyIfFileChanged="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathDeployFile="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathDeployTargetDirectory="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteSolutionBuildCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteSolutionRebuildCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteSolutionCleanCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteSolutionDeployCommand="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathRemoteSolutionBuildDirectory="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strRemoteSolutionBuildVariables="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bSolutionDeployOnlyIfFileChanged="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathSolutionDeployFile="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathSolutionDeployTargetDirectory="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathCore="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathWorkingDirectory="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strLaunchArguments="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strLaunchEnvironment="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bStopInMain="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strMainFunctionName="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strTarget="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathLoadProgramPath="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathExecutableOnTarget="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bServerAutoLaunch="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bUseSysroot="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathDynamicLinker="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathServerLibraryPaths="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathServerPath="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bServerPortIsForwarded="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathExecutable="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathCustomPreLoadInitScript="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathCustomInitScript="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathCustomCondPreLoadInitScript="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathCondCustomInitScript="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strAdditionalDebuggerOptions="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathSourceDirectories="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathDebugInfoDirectory="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathSysrootOnHost="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathSysrootOnTarget="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathSharedLibraryDirectories="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strVisualizerProfile="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bSourceSession="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bDisableHangReporter="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bUseProtoCtl="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathProtoCtlLogFile="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathDebugger="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_pathToolchain="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_bReuseStandardBuildCommand="false" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strDebugHostLogin="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strBuildHostLogin="" WinGDB_t9PcGLz5xpomZIqSBHIjFw_strDebugTargetLogin="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileCompilerC="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileCompilerCXX="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileAR="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileRM="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileMKDIR="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileIntDir="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileDestDir="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileCFLAGS="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileCXXFLAGS="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMakefileLDFLAGS="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteBuildCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteRebuildCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteCleanCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteDeployCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathRemoteBuildDirectory="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteBuildVariables="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bDeployBeforeStartDebugging="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_bDeployOnlyIfFileChanged="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathDeployFile="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathDeployTargetDirectory="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteSolutionBuildCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteSolutionRebuildCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteSolutionCleanCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteSolutionDeployCommand="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathRemoteSolutionBuildDirectory="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strRemoteSolutionBuildVariables="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bSolutionDeployOnlyIfFileChanged="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathSolutionDeployFile="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathSolutionDeployTargetDirectory="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathCore="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathWorkingDirectory="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strLaunchArguments="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strLaunchEnvironment="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bStopInMain="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_strMainFunctionName="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strTarget="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathLoadProgramPath="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathExecutableOnTarget="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bServerAutoLaunch="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_bUseSysroot="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathDynamicLinker="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathServerLibraryPaths="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathServerPath="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bServerPortIsForwarded="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathExecutable="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathCustomPreLoadInitScript="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathCustomInitScript="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathCustomCondPreLoadInitScript="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathCondCustomInitScript="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strAdditionalDebuggerOptions="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathSourceDirectories="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathDebugInfoDirectory="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathSysrootOnHost="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathSysrootOnTarget="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathSharedLibraryDirectories="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strVisualizerProfile="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bSourceSession="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_bDisableHangReporter="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_bUseProtoCtl="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathProtoCtlLogFile="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathDebugger="" WinGDB_TWdaRyclTWdkYdOXLdSygg_pathToolchain="" WinGDB_TWdaRyclTWdkYdOXLdSygg_bReuseStandardBuildCommand="false" WinGDB_TWdaRyclTWdkYdOXLdSygg_strDebugHostLogin="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strBuildHostLogin="" WinGDB_TWdaRyclTWdkYdOXLdSygg_strDebugTargetLogin="" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

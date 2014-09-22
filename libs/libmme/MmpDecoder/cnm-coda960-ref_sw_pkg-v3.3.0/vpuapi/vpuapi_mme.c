@@ -29,7 +29,6 @@ int VPU_GetCodecInstanceUse(void* CodecHdl) {
 
 void VPU_GetCodecInfo(int idx, struct mmp_video_hw_codec_instance_info *p_info) {
 
-    int i;
     CodecInst * pCodecInst = 0;
     vpu_instance_pool_t *vip;
 	vip = (vpu_instance_pool_t *)vdi_get_instance_pool(0);
@@ -37,7 +36,7 @@ void VPU_GetCodecInfo(int idx, struct mmp_video_hw_codec_instance_info *p_info) 
     pCodecInst = (CodecInst *)vip->codecInstPool[idx];
 
     p_info->instance_index = idx;
-    p_info->instance_max_count = MAX_NUM_INSTANCE;
+    p_info->instance_max_count = VPU_MAX_NUM_INSTANCE;
     p_info->is_use = pCodecInst->inUse;
     //p_info->is_decoder = 
 

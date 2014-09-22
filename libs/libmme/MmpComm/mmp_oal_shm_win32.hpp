@@ -47,6 +47,7 @@ public:
     virtual void* get_shm_ptr() { return m_p_shm; }
     virtual MMP_S32 get_shm_size() { return m_create_config.size; }
     virtual MMP_BOOL is_create()  { return m_is_create; }
+    virtual MMP_S32 get_attach_process_count() { return 10; }
 };
 
 

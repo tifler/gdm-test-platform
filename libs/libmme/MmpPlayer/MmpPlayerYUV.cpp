@@ -93,7 +93,7 @@ MMP_RESULT CMmpPlayerYUV::Open()
 
     /* create video frame buffer */
     if(mmpResult == MMP_SUCCESS) {
-        m_p_framebuf = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_create_config.option.yuv.width, m_create_config.option.yuv.height, MMP_FOURCC_VIDEO_I420);
+        m_p_framebuf = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_create_config.option.yuv.width, m_create_config.option.yuv.height, MMP_FOURCC_IMAGE_I420);
         if(m_p_framebuf == NULL) {
             mmpResult = MMP_FAILURE;
         }

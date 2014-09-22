@@ -14,14 +14,19 @@
 #include "gisp/gisp-dxo.h"
 #include "v4l2.h"
 #include "gdm-buffer.h"
-#include "display.h"
 #include "stream.h"
+#include "display.h"
+#include "encoder.h"
 #include "option.h"
 #include "debug.h"
 
 /*****************************************************************************/
 
 #define CAPTURE_SIGNAL                      (SIGUSR1)
+
+/*****************************************************************************/
+
+static int mainStop;
 
 /*****************************************************************************/
 
@@ -50,6 +55,11 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 
 static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
 {
+    struct GDMEncoder *encoder = (struct GDMEncoder *)param;
+
+    if (encoder) {
+        GEncEncodeFrame(encoder, buffer);
+    }
     //DBG("VIDEO CALLBACK: Buffer Index = %d", index);
     return 0;
 }
@@ -130,10 +140,22 @@ static struct STREAM *createStream(
     return stream;
 }
 
+static void destroyStream(struct STREAM *stream)
+{
+    streamStop(stream);
+    streamClose(stream);
+}
+
 static void captureSignalHandler(int signo)
 {
     ASSERT(signo == CAPTURE_SIGNAL);
     DBG("[PID=%d] Capture Signal(%d) received.", getpid(), signo);
+}
+
+static void closeHandler(int signo)
+{
+    ASSERT(signo == SIGINT);
+    mainStop = 1;
 }
 
 /*****************************************************************************/
@@ -144,6 +166,7 @@ static void blockSignals(void)
     sigset_t set;
 
     sigemptyset(&set);
+    sigaddset(&set, SIGINT);
     sigaddset(&set, CAPTURE_SIGNAL);
     ret = pthread_sigmask(SIG_BLOCK, &set, NULL);
     ASSERT(ret == 0);
@@ -155,6 +178,7 @@ static void unblockSignals(void)
     sigset_t set;
 
     sigemptyset(&set);
+    sigaddset(&set, SIGINT);
     sigaddset(&set, CAPTURE_SIGNAL);
     ret = pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     ASSERT(ret == 0);
@@ -166,9 +190,14 @@ static void installSigHandler(void)
     struct sigaction act;
 
     memset(&act, 0, sizeof(act));
-    act.sa_handler = captureSignalHandler;
     sigemptyset(&act.sa_mask);
+
+    act.sa_handler = captureSignalHandler;
     ret = sigaction(CAPTURE_SIGNAL, &act, NULL);
+    ASSERT(ret == 0);
+
+    act.sa_handler = closeHandler;
+    ret = sigaction(SIGINT, &act, NULL);
     ASSERT(ret == 0);
 }
 
@@ -176,6 +205,7 @@ static void installSigHandler(void)
 
 int main(int argc, char **argv)
 {
+    int i;
     struct DXOSystemConfig conf;
     struct DXOControl ctrl;
     struct SIFConfig sifConf;
@@ -185,6 +215,7 @@ int main(int argc, char **argv)
     struct STREAM *streams[STREAM_PORT_COUNT];
     struct Option *opt;
     struct GDMDisplay *display = NULL;
+    struct GDMEncoder *encoder = NULL;
 
     if (argc != 2)
         helpExit(argc, argv);
@@ -209,6 +240,7 @@ int main(int argc, char **argv)
     conf.frmTimeDiv = 1;
     conf.needPostEvent = opt->global.needPostEvent;
     conf.estimateIRQ = opt->global.estimateIRQ;
+    conf.sensorId = opt->sensor.id;
 
     dxo = DXOInit(&conf);
 
@@ -245,8 +277,23 @@ int main(int argc, char **argv)
 
     // Video
     if (!opt->port[STREAM_PORT_VIDEO].disable) {
+        if (opt->global.videoEncode) {
+            struct GDMEncConfig encConf;
+            encConf.width = opt->port[STREAM_PORT_VIDEO].width;
+            encConf.height = opt->port[STREAM_PORT_VIDEO].height;
+            encConf.gopSize = 10;
+            encConf.bitrate = 4 * 1024 * 1024;
+            encConf.fps = opt->sensor.fps;
+            encConf.encFormat = opt->videoEncoder.format;
+            encConf.useSWEnc = 0;
+
+            encoder = GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
+            ASSERT(encoder);
+
+            GEncStart(encoder);
+        }
         streams[STREAM_PORT_VIDEO] = 
-            createStream(opt, dxo, STREAM_PORT_VIDEO, videoCallback, NULL);
+            createStream(opt, dxo, STREAM_PORT_VIDEO, videoCallback, encoder);
         ASSERT(streams[STREAM_PORT_VIDEO]);
     }
 
@@ -270,8 +317,18 @@ int main(int argc, char **argv)
 
     installSigHandler();
 
-    while (1)
-        sleep (1);
+    while (!mainStop)
+        pause();
+
+    for (i = 0; i < STREAM_PORT_COUNT; i++) {
+        if (streams[i])
+            destroyStream(streams[i]);
+    }
+
+    if (encoder) {
+        GEncStop(encoder);
+        GEncClose(encoder);
+    }
 
     return 0;
 }

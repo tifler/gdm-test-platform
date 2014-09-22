@@ -74,6 +74,23 @@ class mmp_env_mgr* mmp_env_mgr::get_instance() {
 }
 
 /**********************************************************
+env define
+**********************************************************/
+
+#define MMP_VPU_DEVICE_NAME "/dev/vpu"
+
+#define MMP_JPU_DEVICE_NAME "/dev/jpu"
+#define MMP_JPU_BIT_REG_SIZE		0x300
+#define MMP_JPU_BIT_REG_BASE		(0x10000000 + 0x3000)
+#define MMP_JDI_DRAM_PHYSICAL_BASE	0x00
+#define MMP_JDI_DRAM_PHYSICAL_SIZE	(128*1024*1024)
+
+#define MMP_SHARED_MEM_VPU_KEY      0xAAAA9829
+#define MMP_SHARED_MEM_JPU_KEY      0xBBBB9829
+#define MMP_EXTERNAL_MUTEX_MEM_VPU_KEY      0xCCCC9829
+#define MMP_EXTERNAL_MUTEX_MEM_JPU_KEY      0xDDDD9829
+
+/**********************************************************
 class members
 **********************************************************/
 
@@ -85,7 +102,30 @@ m_vpu_fd(-1)
 ,m_vpu_common_buffer(NULL)
 
 {
+    MMP_S32 i;
 
+    /* int env_int */
+    for(i = 0; i < ENV_UINT_MAX; i++) {
+        m_env_uint[i] = 0;
+    }
+
+    /* int env_char */
+    for(i = 0; i < ENV_CHAR_MAX; i++) {
+        m_env_char[i][0] = '\0';
+    }
+
+    /* Init VPU Env Value */
+    this->set_uint(ENV_UINT_VPU_SHM_KEY, 0xAAAA9829);  /* VPU Shared Memory Key */
+    this->set_char(ENV_CHAR_VPU_DRV_NAME, MMP_VPU_DEVICE_NAME);
+    this->set_uint(ENV_UINT_VPU_EXTERNAL_MUTEX_KEY, MMP_EXTERNAL_MUTEX_MEM_VPU_KEY);
+    
+    /* Init JPU Env Value */
+    this->set_uint(ENV_UINT_JPU_SHM_KEY, 0xCCCC9829);  /* JPU Shared Memory Key */
+    this->set_uint(ENV_UINT_JPU_REG_PHY_ADDR, MMP_JPU_BIT_REG_BASE); /* JPU Register Phy Addr */
+    this->set_uint(ENV_UINT_JPU_REG_SIZE, MMP_JPU_BIT_REG_SIZE); /* JPU Register Size */
+    this->set_char(ENV_CHAR_JPU_DRV_NAME, MMP_JPU_DEVICE_NAME);
+    this->set_uint(ENV_UINT_JPU_EXTERNAL_MUTEX_KEY, MMP_EXTERNAL_MUTEX_MEM_JPU_KEY);
+    
 }
 
 mmp_env_mgr::~mmp_env_mgr() {

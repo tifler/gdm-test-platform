@@ -25,6 +25,7 @@ SENSOR_OBJS		+= gisp/VIGEN/vigen.o
 GISP_OBJS		:= gisp/gisp-isp.o gisp/gisp-dxo.o gisp/gisp-sif.o
 GISP_OBJS		+= gisp/gisp-iodev.o gisp/gisp-sensor.o
 OBJS			:= main.o v4l2.o gdm-buffer.o display.o stream.o option.o
+OBJS			+= encoder.o
 OBJS			+= v4l2.o
 OBJS			+= $(CALIB_OBJS)
 OBJS			+= $(SENSOR_OBJS)
@@ -49,6 +50,7 @@ LOCAL_CFLAGS	+=-g
 # for display
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libhwc
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmsgio
+LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmme
 LOCAL_CFLAGS    += -I$(BASEDIR)/include
 
 #LOCAL_CFLAGS	+=-D__USE_IOCTL_IO
@@ -62,6 +64,7 @@ LOCAL_LFLAGS	+=-L$(BASEDIR)/libs/libini -lini
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libsync -lsync
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmsgio -lmsgio
+LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmme -lmme
 
 COPY_TARGET_DIR	:= /usr/bin
 

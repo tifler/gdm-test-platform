@@ -124,11 +124,11 @@ typedef struct {
 	int codecMode;
 	int numMulti;
 	int saveYuv;
-	int  multiMode[MAX_NUM_INSTANCE];
-    char multiFileName[MAX_NUM_INSTANCE][MAX_FILE_PATH];
-	char multiYuvFileName[MAX_NUM_INSTANCE][MAX_FILE_PATH];	
-	DecConfigParam decConfig[MAX_NUM_INSTANCE];
-	EncConfigParam encConfig[MAX_NUM_INSTANCE];
+	int  multiMode[VPU_MAX_NUM_INSTANCE];
+    char multiFileName[VPU_MAX_NUM_INSTANCE][MAX_FILE_PATH];
+	char multiYuvFileName[VPU_MAX_NUM_INSTANCE][MAX_FILE_PATH];	
+	DecConfigParam decConfig[VPU_MAX_NUM_INSTANCE];
+	EncConfigParam encConfig[VPU_MAX_NUM_INSTANCE];
 } MultiConfigParam;
 
 

@@ -30,17 +30,8 @@
 #include "MmpDecoder.hpp"
 #include "MmpDecoderVideo.hpp"
 #include "MmpDecoderAudio.hpp"
+#include "MmpDecoderImage.hpp"
 #include "MmpRenderer.hpp"
-
-
-#define MMP_PLAYER_DEFAULT      0x100
-#define MMP_PLAYER_VIDEO_ONLY   0x101
-#define MMP_PLAYER_AUDIO_ONLY   0x102
-#define MMP_PLAYER_AUDIO_VIDEO  0x103  
-#define MMP_PLAYER_STAGEFRIGHT  0x104  
-#define MMP_PLAYER_TONEPLAYER   0x105  
-#define MMP_PLAYER_YUVPLAYER    0x106
-
 
 #if (MMP_OS == MMP_OS_WIN32)
 #define MMPPLAYER_DUMP_PCM  1
@@ -51,8 +42,36 @@
 #define MMPPLAYER_DUMP_PCM_FILENAME "d:\\work\\dump8000.pcm"
 #endif
 
+struct mmp_player_callback_playtime {
+    //MMP_S64 player_start_time;
+    //MMP_S64 player_cur_time;
+    MMP_S64 media_duration;
+    MMP_S64 media_pts;
+    //MMP_S64 last_packet_pts[MMP_MEDIATYPE_MAX];
+    //MMP_S64 last_render_time[MMP_MEDIATYPE_MAX];
+};
+
 class CMmpPlayer : public CMmpPlayerService
 {
+public:
+    /* Player Type */
+    enum {
+        DEFAULT     = 0x100,
+        VIDEO_ONLY,
+        AUDIO_ONLY,
+        AUDIO_VIDEO,
+        STAGEFRIGHT,
+        TONEPLAYER,
+        YUVPLAYER,
+        JPEG
+    };
+
+    /* Plyaer Callback Message */
+    enum {
+        CALLBACK_DURATION = 0x1000,
+        CALLBACK_PLAYTIME
+    };
+    
 public:
     static CMmpPlayer* CreateObject(MMP_U32 playerID, CMmpPlayerCreateProp* pPlayerProp);
     static MMP_RESULT DestroyObject(CMmpPlayer* pObj);
@@ -79,8 +98,8 @@ protected:
     CMmpRenderer* CreateRendererAudio(CMmpDecoderAudio* pDecoderAudio);
     CMmpRenderer* CreateRendererVideo(CMmpDemuxer* pDemuxer);
 
-    MMP_RESULT DecodeMediaExtraData(MMP_U32 mediatype, 
-                                    CMmpDemuxer* pDemuxer, CMmpDecoder* pDecoder);
+    MMP_RESULT DecodeAudioExtraData(CMmpDemuxer* pDemuxer, CMmpDecoderAudio* pDecoder);
+    MMP_RESULT DecodeVideoExtraData(CMmpDemuxer* pDemuxer, CMmpDecoderVideo* pDecoder);
 
     
 #if (MMPPLAYER_DUMP_PCM == 1)

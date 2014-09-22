@@ -24,7 +24,7 @@
 #include "MmpEncoderVideo_Ffmpeg.hpp"
 #include "MmpEncoderVideo_Mfc.hpp"
 
-#if (MMP_HWCODEC == MMP_HWCODEC_VPU)
+#if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_VPU)
 #include "MmpEncoderVideo_Vpu.hpp"
 #endif
 
@@ -47,9 +47,9 @@ CMmpEncoder* CMmpEncoder::CreateVideoObject(struct MmpEncoderCreateConfig *pCrea
             case MMP_FOURCC_VIDEO_H263:
             case MMP_FOURCC_VIDEO_H264:
             case MMP_FOURCC_VIDEO_MPEG4:
-    #if ((MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) || (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44) )
+    #if ((MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) || (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44) )
                 pObj=new CMmpEncoderVideo_Mfc(pCreateConfig);
-    #elif (MMP_HWCODEC == MMP_HWCODEC_VPU)
+    #elif (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_VPU)
                 pObj=new CMmpEncoderVideo_Vpu(pCreateConfig);
     #else
                 pObj=new CMmpEncoderVideo_Ffmpeg(pCreateConfig);

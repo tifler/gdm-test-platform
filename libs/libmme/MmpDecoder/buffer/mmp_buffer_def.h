@@ -19,8 +19,8 @@
  * limitations under the License.
  */
 
-#ifndef _MMP_BUFFER_DEF_H__
-#define _MMP_BUFFER_DEF_H__
+#ifndef MMP_BUFFER_DEF_H__
+#define MMP_BUFFER_DEF_H__
 
 #define CLASS_BUFFER_MGR mmp_buffer_mgr_ex1
 

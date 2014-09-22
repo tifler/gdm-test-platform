@@ -150,4 +150,17 @@ MMP_RESULT mmp_oal_shm_linux::close(MMP_BOOL is_remove_from_system) {
 	return MMP_SUCCESS;
 }
 
+MMP_S32 mmp_oal_shm_linux::get_attach_process_count() {
+    
+    MMP_S32 proc_count = 0;
+    struct shmid_ds shm_buf;
+    
+    if(m_shm_id >= 0) {
+        shmctl(m_shm_id, IPC_STAT, &shm_buf);
+        proc_count = (MMP_S32)shm_buf.shm_nattch;
+    }
+
+    return proc_count;
+}
+
 #endif

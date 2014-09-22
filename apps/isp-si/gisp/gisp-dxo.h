@@ -39,6 +39,7 @@ struct DXOSystemConfig {
     uint32_t frmTimeDiv;
     int needPostEvent;
     int estimateIRQ;
+    uint8_t sensorId;
 
     // callback functions & params
     int (*printf)(const char *, ...);

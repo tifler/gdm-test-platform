@@ -29,7 +29,7 @@
 #include "MmpDecoder.hpp"
 #include "mmp_oal_mutex.hpp"
 
-#if 1//(MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC_ANDROID44)
+#if 1//(MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44)
 
 #include "SsbSipMfcApi.h"
 
@@ -103,6 +103,6 @@ protected:
     
 };
 
-#endif /* #if (MMP_HWCODEC == MMP_HWCODEC_EXYNOS4_MFC) */
+#endif /* #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_EXYNOS4_MFC) */
 #endif
 

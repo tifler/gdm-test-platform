@@ -131,3 +131,17 @@ MMP_RESULT mmp_buffer_ion_attach::close() {
     return MMP_SUCCESS;
 }
 
+
+MMP_RESULT mmp_buffer_ion_attach::sync_buf() {
+    
+    MMP_S32 ion_fd;
+
+    ion_fd = ion_open();
+    if(ion_fd >= 0) {
+        if(this->m_buf_addr.m_shared_fd >= 0) {
+            ion_sync_fd(ion_fd, this->m_buf_addr.m_shared_fd);
+        }
+        ion_close(ion_fd);
+    }
+    return MMP_SUCCESS;
+}

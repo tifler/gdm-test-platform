@@ -9,6 +9,8 @@
 #define safeFree(p)                     do { if (p) free(p); } while (0)
 #define MAKE_COLOR_FORMAT(fmt)          .name = #fmt, .pixelformat = fmt
 
+#define ARRAY_SIZE(a)                   (sizeof(a) / sizeof(a[0]))
+
 /*****************************************************************************/
 
 static uint32_t str2PixelFormat(const char *name)
@@ -120,17 +122,23 @@ static void parseDisplay(dictionary *dict, struct Option *option)
 
 static void parseVideoEncoder(dictionary *dict, struct Option *option)
 {
+    int i;
     char *tmp;
+    static const char *fmtString[] = { "h264", "mpeg4", "h263" };
 
     tmp = iniparser_getstring(dict, "VideoEncoder:BasePath", NULL);
     ASSERT(tmp);
     option->videoEncoder.basePath = strdup(tmp);
     ASSERT(option->videoEncoder.basePath);
 
-    tmp = iniparser_getstring(dict, "VideoEncoder:Muxer", NULL);
+    option->videoEncoder.format = -1;
+    tmp = iniparser_getstring(dict, "VideoEncoder:Format", NULL);
     ASSERT(tmp);
-    option->videoEncoder.muxer = strdup(tmp);
-    ASSERT(option->videoEncoder.muxer);
+    for (i = 0; i < ARRAY_SIZE(fmtString); i++) {
+        if (strcasecmp(tmp, fmtString[i]) == 0)
+            option->videoEncoder.format = i;
+    }
+    ASSERT(option->videoEncoder.format >= 0);
 }
 
 static void parseJPEGEncoder(dictionary *dict, struct Option *option)
@@ -189,7 +197,6 @@ void deleteOption(struct Option *option)
     ASSERT(option);
     safeFree(option->display.unixPath);
     safeFree(option->videoEncoder.basePath);
-    safeFree(option->videoEncoder.muxer);
     safeFree(option->jpegEncoder.basePath);
     safeFree(option);
 }

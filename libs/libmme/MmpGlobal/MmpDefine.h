@@ -91,30 +91,52 @@
 #endif//#ifdef MMPDEBUG
 
 /**********************************************************************************
-  HW Video Codec Selection
+  HW Codec Video Selection
 ***********************************************************************************/
 
-#define MMP_HWCODEC_NONE                  0x00
-#define MMP_HWCODEC_ANAPASS_VPU_V10       0x10
-#define MMP_HWCODEC_EXYNOS4_MFC           0x222  /* Exynos4 Android 4.3 */
-#define MMP_HWCODEC_EXYNOS4_MFC_ANDROID44 0x223  /* Exynos4 Android 4.4 */
-#define MMP_HWCODEC_VPU                   0x224  /* Exynos4 Android 4.3 */
+#define MMP_HWCODEC_VIDEO_NONE                  0x00
+#define MMP_HWCODEC_VIDEO_SW                    0x10
+#define MMP_HWCODEC_VIDEO_VPU                   0x20
+#define MMP_HWCODEC_VIDEO_EXYNOS4_MFC           0x30  /* Exynos4 Android 4.3 */
+#define MMP_HWCODEC_VIDEO_EXYNOS4_MFC_ANDROID44 0x31  /* Exynos4 Android 4.4 */
 
 #if (MMP_OS == MMP_OS_LINUX_ODYSSEUS_FPGA)
-#define MMP_HWCODEC MMP_HWCODEC_VPU
+#define MMP_HWCODEC_VIDEO MMP_HWCODEC_VIDEO_VPU
 
 #elif (MMP_OS == MMP_OS_LINUX_ANDROID)
-//#define MMP_HWCODEC MMP_HWCODEC_EXYNOS4_MFC
-#define MMP_HWCODEC MMP_HWCODEC_NONE
+//#define MMP_HWCODEC_VIDEO MMP_HWCODEC_VIDEO_EXYNOS4_MFC
+#define MMP_HWCODEC_VIDEO MMP_HWCODEC_VIDEO_NONE
 
 #elif (MMP_OS == MMP_OS_WIN32)
-#define MMP_HWCODEC MMP_HWCODEC_VPU
+#define MMP_HWCODEC_VIDEO MMP_HWCODEC_VIDEO_VPU
 
 #else
-#define MMP_HWCODEC MMP_HWCODEC_NONE
+#define MMP_HWCODEC_VIDEO MMP_HWCODEC_VIDEO_NONE
 
 #endif
 
+/**********************************************************************************
+  HW Codec Image Selection  ( Imgae : OpenMax IL Term)
+***********************************************************************************/
+
+#define MMP_HWCODEC_IMAGE_NONE               0x00
+#define MMP_HWCODEC_IMAGE_SW                 0x10
+#define MMP_HWCODEC_IMAGE_JPU                0x20
+
+#if (MMP_OS == MMP_OS_LINUX_ODYSSEUS_FPGA)
+#define MMP_HWCODEC_IMAGE MMP_HWCODEC_IMAGE_JPU
+
+#elif (MMP_OS == MMP_OS_LINUX_ANDROID)
+#define MMP_HWCODEC_IMAGE MMP_HWCODEC_IMAGE_JPU
+
+#elif (MMP_OS == MMP_OS_WIN32)
+#define MMP_HWCODEC_IMAGE MMP_HWCODEC_IMAGE_JPU
+//#define MMP_HWCODEC_IMAGE MMP_HWCODEC_IMAGE_SW
+
+#else
+#define MMP_HWCODEC_IMAGE MMP_HWCODEC_IMAGE_NONE
+
+#endif
 
 /**********************************************************************************
   Debug Option Define

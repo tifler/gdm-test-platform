@@ -50,7 +50,9 @@ protected:
     virtual MMP_RESULT Close();
 
 public:
-
+//virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize, MMP_BOOL* bConfigChange) {return MMP_FAILURE;}
+    virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult) = 0;
+	
     inline const MMPWAVEFORMATEX& GetWF_In() { return m_wf_in; }
     inline const MMPWAVEFORMATEX& GetWF_Out() { return m_wf_out; }
 

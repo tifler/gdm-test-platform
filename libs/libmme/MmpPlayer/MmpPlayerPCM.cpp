@@ -207,7 +207,7 @@ void CMmpPlayerPCM::Service()
                 struct mmp_player_callback_playtime playtime_st;
                 MMP_U32 msg;
                 
-                msg = MMP_PLAYER_CALLBACK_PLAYTIME;
+                msg = CMmpPlayer::CALLBACK_PLAYTIME;
                 playtime_st.media_duration  = this->m_play_duration;
                 playtime_st.media_pts = packet_pts;
 

@@ -19,8 +19,8 @@
  * limitations under the License.
  */
 
-#ifndef _MMP_BUFFER_VIDEOFRAME_HPP__
-#define _MMP_BUFFER_VIDEOFRAME_HPP__
+#ifndef MMP_BUFFER_VIDEOFRAME_HPP__
+#define MMP_BUFFER_VIDEOFRAME_HPP__
 
 #include "mmp_buffer_media.hpp"
 

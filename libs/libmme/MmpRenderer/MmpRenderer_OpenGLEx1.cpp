@@ -225,7 +225,39 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
 
     return MMP_SUCCESS;
 }
+
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
+
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    MMP_U32 format;
+
+    format = p_buf_imageframe->get_format();
+    switch(format) {
+        
+        case MMP_FOURCC_IMAGE_RGB24:
+            mmpResult = this->Render_RGB24(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), p_buf_imageframe->get_buf_vir_addr());
+            break;
+    }
+
+    return mmpResult;
+}
     
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_RGB24(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image) {
+
+    unsigned char* pImageBuffer;
+
+    if(m_pMmpGL != NULL) {
+
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
+        
+        memcpy(pImageBuffer, p_image, MMP_BYTE_ALIGN(pic_width*3,4)*pic_height);
+    
+        m_pMmpGL->Draw();
+    }
+
+    return MMP_SUCCESS;
+}
+
 #if 0
 MMP_RESULT CMmpRenderer_OpenGLEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
 

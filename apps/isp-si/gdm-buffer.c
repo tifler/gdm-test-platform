@@ -86,6 +86,9 @@ struct GDMBuffer *allocContigMemory(
     buf = calloc(1, sizeof(*buf));
     ASSERT(buf);
 
+    for (i = 0; i < GDM_MAX_PLANES; i++)
+        buf->plane[i].fd = -1;
+
     ion->flags = 0;
     ion->heapMask = (1 << ION_HEAP_TYPE_CARVEOUT);
     ion->fd = ion_open();
