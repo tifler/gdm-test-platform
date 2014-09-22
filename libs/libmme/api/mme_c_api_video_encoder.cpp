@@ -44,7 +44,9 @@ void* mme_video_encoder_create_object(struct mme_video_encoder_config* p_video_e
         pVideoEncoder = (CMmpEncoderVideo*)CMmpEncoder::CreateVideoObject(&EncoderCreateConfig, p_video_encoder_config->sw_codec_use);
     }
 
-    //s_fp_yuv_dump = fopen("/mnt/enc_dump.yuv", "wb");
+    if(p_video_encoder_config->test_dump_key == MME_VIDEO_ENCODER_TEST_DUMP_KEY) {
+        s_fp_yuv_dump = fopen("/mnt/enc_dump.yuv", "wb");
+    }
     
     return (void*)pVideoEncoder;
 }
@@ -105,9 +107,8 @@ int mme_video_encoder_run(void* hdl, int* shared_ion_fd, int* mem_offset,
 
         if(iret == 0) {
 
-            int ii;
             if(s_fp_yuv_dump != NULL) {
-                for(ii = 0; ii < 3; ii++) {
+                for(int ii = 0; ii < 3; ii++) {
                     fwrite((void*)p_buf_videoframe->get_buf_vir_addr(ii), 1, pic_size[ii], s_fp_yuv_dump);
                 }
             }
