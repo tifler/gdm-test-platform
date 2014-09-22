@@ -84,7 +84,7 @@ static void *vsync_loop(void *param)
 		snprintf(vsync_node_path, sizeof(vsync_node_path),
 				"/sys/class/graphics/fb%d/vsync_event",
 				dpy == HWC_DISPLAY_PRIMARY ? 0 : 1);
-		ALOGI("%s: Reading vsync for dpy=%d from %s", __FUNCTION__, dpy,
+		ALOGI("%s: Reading vsync for dpy=%d from %s\n", __FUNCTION__, dpy,
 				vsync_node_path);
 		fb_fd[dpy] = open(vsync_node_path, O_RDONLY);
 
@@ -126,9 +126,9 @@ static void *vsync_loop(void *param)
 									NULL, 0);
 						}
 						// send timestamp to SurfaceFlinger
-						if(logvsync)
-							ALOGD("%s: timestamp %llu sent to SF for dpy=%d",
-								__FUNCTION__, timestamp[dpy], dpy);
+						//if(logvsync)
+						//	ALOGD("%s: timestamp %llu sent to SF for dpy=%d\n",
+						//		__FUNCTION__, timestamp[dpy], dpy);
 
 						// TODO:
 						//ctx->proc->vsync(ctx->proc, dpy, timestamp[dpy]);

@@ -196,8 +196,8 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 	req->pipe_type = GDM_DSS_PIPE_TYPE_VIDEO;
 
 	req->src_rect.x = req->src_rect.y = 0;
-	req->src_rect.w = req->src.width;
-	req->src_rect.h = req->src.height;
+	req->src_rect.w = gplayer->video_info.src_w;
+	req->src_rect.h = gplayer->video_info.src_h;
 
 
 	//	req->dst_rect.w = gplayer->vi.xres;
@@ -665,6 +665,12 @@ int main(int argc, char **argv)
 		close(pvideo->fd);
 		return -1;
 	}
+
+	//if(pvideo->format == GDMFB_YUV420P3) {
+	//	pvideo->width = ((pvideo->width + 15) & ~(15));
+	//	pvideo->height = ((pvideo->height + 15) & ~(15));
+
+	//}
 
 	gplayer.frame[0].size[0] = pvideo->width * pvideo->height;
 	gplayer.frame[0].size[1] = gplayer.frame[0].size[2] = pvideo->width * pvideo->height / 4;

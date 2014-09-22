@@ -119,7 +119,6 @@ static int open_framebuffer_device(struct hwc_context_t *ctx)
 			ctx->gfx_cfg[i].ov_data_front.data[j].memory_id = -1;
 			ctx->gfx_cfg[i].ov_data_back.data[j].memory_id = -1;
 		}
-
 	}
 
 
@@ -252,6 +251,9 @@ static int register_overlay_data(struct hwc_context_t *hwc_ctx,
 			}
 		}
 
+		if(cur_ov->ov_data_back.dst_data.memory_id > 0)
+			close(cur_ov->ov_data_back.dst_data.memory_id);
+
 		memcpy(&cur_ov->ov_data_back, req_data, sizeof(*req_data));
 		cur_ov->ov_data_back.id = cur_ov->ov_id;
 		cur_ov->is_new_data = 1;
@@ -323,7 +325,8 @@ void *commit_thread(void *argp)
 					if(!hwc_ctx->vid_cfg[i].status) {
 						hwc_ctx->vid_cfg[i].status =
 							gdss_io_set_overlay(fb_fd, &hwc_ctx->vid_cfg[i].ov_cfg);
-						hwc_ctx->vid_cfg[i].application_id = 0;
+						if(hwc_ctx->vid_cfg[i].status)
+							hwc_ctx->vid_cfg[i].application_id = 0;
 					}
 					hwc_ctx->vid_cfg[i].ov_id = hwc_ctx->vid_cfg[i].ov_cfg.id;
 					hwc_ctx->vid_cfg[i].is_update = 0;
@@ -352,7 +355,8 @@ void *commit_thread(void *argp)
 					if(!hwc_ctx->gfx_cfg[i].status) {
 						hwc_ctx->gfx_cfg[i].status =
 							gdss_io_set_overlay(fb_fd, &hwc_ctx->gfx_cfg[i].ov_cfg);
-						hwc_ctx->gfx_cfg[i].application_id = 0;
+						if(hwc_ctx->gfx_cfg[i].status)
+							hwc_ctx->gfx_cfg[i].application_id = 0;
 					}
 					hwc_ctx->gfx_cfg[i].ov_id = hwc_ctx->gfx_cfg[i].ov_cfg.id;
 					hwc_ctx->gfx_cfg[i].is_update = 0;

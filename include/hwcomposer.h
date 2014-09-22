@@ -129,8 +129,6 @@ struct hwc_context_t {
 	struct overlay_context_t gfx_cfg[MAX_GFX_OVERLAY];
 	struct overlay_context_t fb_cfg;
 
-
-
 	struct writeback_ctx_t *wb_ctx;
 };
 

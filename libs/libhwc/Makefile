@@ -15,7 +15,7 @@ endif
 #------------------------------------------------------------------------------
 
 TARGET			:= libhwc.so
-OBJS			:= gdm_dss_wrapper.o writeback.o
+OBJS			:= gdm_dss_wrapper.o writeback.o hwc_vsync.o
 # hwc_utils.o
 LOCAL_CFLAGS	:= -I$(BASEDIR)/include -fPIC
 LOCAL_LFLAGS	:= -shared
