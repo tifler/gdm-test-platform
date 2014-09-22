@@ -77,12 +77,13 @@ void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf)
 
     for (i = 0; ; i++) {
         if (SensorGetMode(conf->id, i, &mode) < 0) {
-            ASSERT(! "Sensor Not Found.");
+            ASSERT(! "Sensor Mode Not Found.");
         }
 
         if (mode.width == conf->width &&
                 mode.height == conf->height && mode.fps == conf->fps) {
-            DBG("Sensor Found.");
+            DBG("Sensor Mode Found.(%u, %u, %u)",
+                    mode.width, mode.height, mode.fps);
             break;
         }
     }

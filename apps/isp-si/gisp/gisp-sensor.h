@@ -10,9 +10,10 @@
 /*****************************************************************************/
 
 enum {
-    SENSOR_ID_FRONT,
-    SENSOR_ID_BACK,
-    SENSOR_ID_COUNT,
+    SENSOR_ID_OVT2715 = 10,
+    SENSOR_ID_VIGEN = 254,
+    SENSOR_ID_INVALID = 255,    /* From test, this id is *NOT* valid */
+    SENSOR_ID_COUNT = 256,
 };
 
 #define  ISP_PRINTF                         DBG

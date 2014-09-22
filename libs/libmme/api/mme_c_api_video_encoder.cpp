@@ -44,7 +44,7 @@ void* mme_video_encoder_create_object(struct mme_video_encoder_config* p_video_e
         pVideoEncoder = (CMmpEncoderVideo*)CMmpEncoder::CreateVideoObject(&EncoderCreateConfig, p_video_encoder_config->sw_codec_use);
     }
 
-    s_fp_yuv_dump = fopen("/mnt/enc_dump.yuv", "wb");
+    //s_fp_yuv_dump = fopen("/mnt/enc_dump.yuv", "wb");
     
     return (void*)pVideoEncoder;
 }

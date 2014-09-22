@@ -2129,6 +2129,8 @@ void DxOSensor_OVT2715_Initialize (struct SENSOR *sensor) {
 
     struct OVT2715Private *priv;
 
+    __CHECK_LINE__;
+
     ASSERT(!THIS_SENSOR);
 
     THIS_SENSOR = sensor;
