@@ -47,24 +47,11 @@ use_merged_upsample (j_decompress_ptr cinfo)
   /* Merging is the equivalent of plain box-filter upsampling */
   if (cinfo->do_fancy_upsampling || cinfo->CCIR601_sampling)
     return FALSE;
-
-#ifdef ANDROID_RGB
-  /* jdmerge.c only supports YCC=>RGB565 and YCC=>RGB color conversion */
-  if (cinfo->jpeg_color_space != JCS_YCbCr || 
-      cinfo->num_components != 3 ||
-      cinfo->out_color_components != 3 ||
-      (cinfo->out_color_space != JCS_RGB_565 && 
-         cinfo->out_color_space != JCS_RGB)) {
-    return FALSE;
-  }
-#else
   /* jdmerge.c only supports YCC=>RGB color conversion */
   if (cinfo->jpeg_color_space != JCS_YCbCr || cinfo->num_components != 3 ||
       cinfo->out_color_space != JCS_RGB ||
       cinfo->out_color_components != RGB_PIXELSIZE)
     return FALSE;
-#endif
-
   /* and it only handles 2h1v or 2h2v sampling ratios */
   if (cinfo->comp_info[0].h_samp_factor != 2 ||
       cinfo->comp_info[1].h_samp_factor != 1 ||
@@ -103,12 +90,8 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
 #endif
 
   /* Prevent application from calling me at wrong times */
-#if ANDROID_TILE_BASED_DECODE
-  // Tile based decoding may call this function several times.
-  if (!cinfo->tile_decode)
-#endif
-    if (cinfo->global_state != DSTATE_READY)
-      ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
+  if (cinfo->global_state != DSTATE_READY)
+    ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
 
 #ifdef IDCT_SCALING_SUPPORTED
 
@@ -196,17 +179,11 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
     cinfo->out_color_components = RGB_PIXELSIZE;
     break;
 #endif /* else share code with YCbCr */
-#ifdef ANDROID_RGB
-  case JCS_RGB_565:
-#endif
   case JCS_YCbCr:
     cinfo->out_color_components = 3;
     break;
   case JCS_CMYK:
   case JCS_YCCK:
-#ifdef ANDROID_RGB
-  case JCS_RGBA_8888:
-#endif
     cinfo->out_color_components = 4;
     break;
   default:			/* else must be same colorspace as in file */
@@ -240,7 +217,7 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
  * For most steps we can mathematically guarantee that the initial value
  * of x is within MAXJSAMPLE+1 of the legal range, so a table running from
  * -(MAXJSAMPLE+1) to 2*MAXJSAMPLE+1 is sufficient.  But for the initial
- * limiting step (just after the IDCT), a wildly out-of-range value is
+ * limiting step (just after the IDCT), a wildly out-of-range value is 
  * possible if the input data is corrupt.  To avoid any chance of indexing
  * off the end of memory and getting a bad-pointer trap, we perform the
  * post-IDCT limiting thus:

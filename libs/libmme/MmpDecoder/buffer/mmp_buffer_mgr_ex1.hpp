@@ -52,12 +52,12 @@ public:
 
 /* alloc video frame */
 private:
-    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 fourcc, 
                                                                 MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset);
 public:
-    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
+    virtual class mmp_buffer_videoframe* alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 fourcc=MMP_FOURCC_IMAGE_I420);
     virtual class mmp_buffer_videoframe* attach_media_videoframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset,
-                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
+                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 fourcc=MMP_FOURCC_IMAGE_I420);
     
 /* alloc video steam */
 private:
@@ -73,12 +73,12 @@ public:
 
 /* alloc image frame */
 private:
-    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc, 
                                                                 MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset);
 public:
-    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
+    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc=MMP_FOURCC_IMAGE_I420);
     virtual class mmp_buffer_imageframe* attach_media_imageframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset,
-                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420);
+                                                                 MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc=MMP_FOURCC_IMAGE_I420);
     
 /* fream media data */
 public:

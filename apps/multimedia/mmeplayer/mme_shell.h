@@ -42,12 +42,19 @@ int mme_command_player_seek(int argc, char* argv[]);
 int mme_command_player_status(int argc, char* argv[]);
 int mme_command_player_loop(int argc, char* argv[]);
 int mme_command_player_set_first_renderer(int argc, char* argv[]);
+int mme_command_player_set_rotate(int argc, char* argv[]);
 int mme_command_player_meminfo(int argc, char* argv[]);
 
 /* encoder */
 int mme_command_encoder_test01(int argc, char* argv[]);
 int mme_command_player_enc_start(int argc, char* argv[]);
 int mme_command_player_enc_stop(int argc, char* argv[]);
+
+/* jpeg */
+int mme_command_jpegviewer_start(int argc, char* argv[]);
+int mme_command_jpegviewer_stop(int argc, char* argv[]);
+int mme_command_jpegviewer_stop_all(int argc, char* argv[]);
+
 
 /* vpu */
 int mme_command_vpu_load(int argc, char* argv[]);

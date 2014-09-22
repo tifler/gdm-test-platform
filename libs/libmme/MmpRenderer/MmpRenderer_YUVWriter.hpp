@@ -43,6 +43,9 @@ protected:
     //virtual MMP_RESULT Render_Ion(CMmpMediaSampleDecodeResult* pDecResult);
 
 public:
+    virtual void SetFirstRenderer();
+    virtual void SetRotate(enum MMP_ROTATE rotate);
+
     virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe);
     virtual MMP_RESULT Render(class mmp_buffer_imageframe* p_buf_imageframe);
     

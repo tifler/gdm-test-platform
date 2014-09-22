@@ -4,7 +4,7 @@
 
 
 #if (MMP_OS == MMP_OS_WIN32)
-#define CONTENTS_PATH "C:\\MediaSample\\AVI\\"
+#define CONTENTS_PATH "C:\\MediaSample\\JPEG\\"
 #else
 #define CONTENTS_PATH "/mnt/"
 #endif
@@ -15,86 +15,16 @@ struct mme_support_extension {
     char ext[8];
 };
 
-#if 1
 static struct mme_support_extension mme_exts[] = { 
-    { 0, "wmv" },  
-    { 0, "asf" },  
-    { 0, "avi" },  
-    //{ 0, "divx" },  
-    { 0, "rm" },  
-    { 0, "rmvb" },  
-    { 0, "mp4" },  
-    { 0, "mov" },  
-    { 0, "k3g" },  
-    //{ 0, "ogv" },  
-    { 0, "ogg" },  
-    { 0, "3gp" },  
-    //{ 0, "m4a" },  
+    { 0, "jpg" },  
   
-    { 0, "mkv" },  
-    { 0, "webm" },  
-    
-    //{ 0, "flv" },  
-    //{ 0, "tp" },  
-    //{ 0, "ts" },  
-  
-    //{ 0, "skm" },  
-    //{ 0, "mpeg" },  
-    //{ 0, "mpg" },  
-  
-    //{ 0, "mp3" },  
-    //{ 0, "mid" },  //ERROR : Stagefright Player
-    //{ 0, "aac" },  
-    //{ 0, "wma" },  
-    //{ 0, "flac" },  
-    //{ 0, "wav" },  
-
-    { 0, "ammf" },  
 };
-#else
-
-struct mme_support_extension mme_exts[] = { 
-    //{ 0, "wmv" },  
-    //{ 0, "asf" },  
-    //{ 0, "avi" },  
-    //{ 0, "divx" },  
-    { 0, "rm" },  
-    { 0, "rmvb" },  
-  					  
-    //{ 0, "mp4" },  
-    //{ 0, "mov" },  
-    //{ 0, "k3g" },  
-    //{ 0, "ogv" },  
-    //{ 0, "ogg" },  
-    //{ 0, "3gp" },  
-    //{ 0, "m4a" },  
-  
-    //{ 0, "mkv" },  
-    //{ 0, "webm" },  
-  
-    //{ 0, "flv" },  
-    //{ 0, "tp" },  
-    //{ 0, "ts" },  
-  
-    //{ 0, "skm" },  
-    //{ 0, "mpeg" },  
-    //{ 0, "mpg" },  
-  
-    //{ 0, "mp3" },  
-    //{ 0, "mid" },  
-    //{ 0, "aac" },  
-    //{ 0, "wma" },  
-    //{ 0, "flac" },  
-    //{ 0, "wav" },  
-
-};
-#endif
 				  
 
 #define MAX_PLAYER_COUNT 4
 static CMmpPlayer* s_pMmpPlayer_Arr[MAX_PLAYER_COUNT] = {NULL, NULL, NULL, NULL};
 
-int mme_command_player_start(int argc, char* argv[]) {
+int mme_command_jpegviewer_start(int argc, char* argv[]) {
 
     CMmpPlayer* pPlayer;
     CMmpPlayerCreateProp player_create_config;
@@ -119,7 +49,7 @@ int mme_command_player_start(int argc, char* argv[]) {
     MMP_S32 player_index = 0;
 
     MMP_BOOL bForceSWCodec = MMP_FALSE;
-    MMP_U32 player_type = CMmpPlayer::VIDEO_ONLY;
+    MMP_U32 player_type = CMmpPlayer::DEFAULT;
     
     /* Get Player Index */
     for(i = 0; i < MAX_PLAYER_COUNT; i++) {
@@ -206,10 +136,6 @@ int mme_command_player_start(int argc, char* argv[]) {
         player_create_config.bForceSWCodec = bForceSWCodec;
         
         pPlayer = CMmpPlayer::CreateObject(player_type, &player_create_config);
-        //s_pMmpPlayer = CMmpPlayer::CreateObject(CMmpPlayer::STAGEFRIGHT, &player_create_config);
-        //pPlayer = CMmpPlayer::CreateObject(CMmpPlayer::AUDIO_VIDEO, &player_create_config);
-        //pPlayer = CMmpPlayer::CreateObject(CMmpPlayer::VIDEO_ONLY, &player_create_config);
-        //pPlayer = CMmpPlayer::CreateObject(CMmpPlayer::AUDIO_ONLY, &player_create_config);
 #if 1
         if(pPlayer != NULL) {
             pPlayer->PlayStart();
@@ -257,7 +183,7 @@ static MMP_S32 get_player_index(int argc, char* argv[]) {
     return player_index;
 }
 
-int mme_command_player_stop(int argc, char* argv[]) {
+int mme_command_jpegviewer_stop(int argc, char* argv[]) {
 
     MMP_S32 player_index = 0;
     CMmpPlayer* pPlayer;
@@ -278,7 +204,7 @@ int mme_command_player_stop(int argc, char* argv[]) {
     return 0;
 }   
 
-int mme_command_player_stop_all(int argc, char* argv[]) {
+int mme_command_jpegviewer_stop_all(int argc, char* argv[]) {
 
     MMP_S32 player_index = 0;
     CMmpPlayer* pPlayer;
@@ -298,7 +224,7 @@ int mme_command_player_stop_all(int argc, char* argv[]) {
     return 0;
 }
 
-int mme_command_player_seek(int argc, char* argv[]) {
+int mme_command_jpegviewer_seek(int argc, char* argv[]) {
 
 #if 0
     MMP_S32 hour, min, sec;
@@ -325,7 +251,7 @@ int mme_command_player_seek(int argc, char* argv[]) {
     return 0;
 }
 
-int mme_command_player_status(int argc, char* argv[]) {
+int mme_command_jpegviewer_status(int argc, char* argv[]) {
 
     MMP_S32 dur_hour, dur_min, dur_sec, dur_msec;
     MMP_S32 pos_hour, pos_min, pos_sec, pos_msec;
@@ -377,7 +303,7 @@ int mme_command_player_status(int argc, char* argv[]) {
     return 0;
 }
 
-int mme_command_player_set_first_renderer(int argc, char* argv[]) {
+int mme_command_jpegviewer_set_first_renderer(int argc, char* argv[]) {
 
     MMP_S32 player_index = 0;
     CMmpPlayer* pPlayer;
@@ -405,48 +331,7 @@ int mme_command_player_set_first_renderer(int argc, char* argv[]) {
     return 0;
 }
 
-int mme_command_player_set_rotate(int argc, char* argv[]) {
-
-    MMP_S32 player_index = 0, rotate_degree;
-    CMmpPlayer* pPlayer;
-    
-    if(argc != 3) {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("FAIL:  argument err  e.g. rotate [player_idx] [rotate_degree] \n"));
-        return -1;
-    }
-
-    player_index = atoi(argv[1]);
-    if( (player_index <0) || (player_index >= MAX_PLAYER_COUNT) ) {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: player index = %d (0~%d) \n", player_index, MAX_PLAYER_COUNT-1));
-        return -1;
-    }
-
-    rotate_degree = atoi(argv[2]);
-    if( (rotate_degree == 0) || (rotate_degree == 90) || (rotate_degree == 180) || (rotate_degree == 270) ) {
-        
-    }
-    else {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: rotate degree is  one of 0, 90, 180, 270 \n"));
-        return -1;
-    }
-
-    MMESHELL_PRINT(MMESHELL_ERROR, ("player_index = %d  rotate = %d  \n", player_index, rotate_degree ));
-
-
-    pPlayer = s_pMmpPlayer_Arr[player_index];
-    if(pPlayer == NULL) {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: Player %d  is stopped \n", player_index));
-        return -1;
-    }
-
-    
-    pPlayer->SetVideoRotate((enum MMP_ROTATE)rotate_degree);
-    pPlayer->SetFirstVideoRenderer();
-
-    return 0;
-}
-
-int mme_command_player_loop(int argc, char* argv[]) {
+int mme_command_jpegviewer_loop(int argc, char* argv[]) {
 
     CMmpPlayerCreateProp player_create_config;
     int file_array_max = 256;
@@ -620,7 +505,7 @@ int mme_command_player_loop(int argc, char* argv[]) {
 }
 
 
-int mme_command_player_meminfo(int argc, char* argv[]) {
+int mme_command_jpegviewer_meminfo(int argc, char* argv[]) {
 
     /* display mmp_buffer list */  
     mmp_buffer_mgr::get_instance()->print_info();

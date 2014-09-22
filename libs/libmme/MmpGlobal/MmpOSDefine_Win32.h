@@ -30,16 +30,25 @@
 #include <wchar.h>
 #include <errno.h>
 
+#ifdef __cplusplus
+#include <typeinfo>
+#endif
+
 #define MMP_ALIGN_8 
 #define MMP_DLL_EXPORT extern _declspec(dllexport)
 
 #define MMPDEBUG
 #ifdef MMPDEBUG
-//#define MMPDEBUGMSG(cond,printf_exp) ((void)((cond)?(CMmpDebug::GetInstance()->Printf printf_exp ),1:0))
 #define MMPDEBUGMSG(cond,printf_exp) ((void)((cond)?(CMmpUtil::Printf printf_exp ),1:0))
-//#define MMPDEBUGMSG RETAILMSG
+
 #else
 #define MMPDEBUGMSG(a,b) //DEBUGMSG
+#endif
+
+#ifdef __cplusplus
+#define MMP_CLASS_NAME typeid(*this).name()
+#define MMP_CLASS_FUNC __FUNCTION__
+#define MMPDEBUGTRACE CMmpUtil::Printf("!!!MmpTrace   %s::%s  %d \n\r", MMP_CLASS_NAME, MMP_CLASS_FUNC, __LINE__ )
 #endif
 
 typedef TCHAR* MMPSTR;

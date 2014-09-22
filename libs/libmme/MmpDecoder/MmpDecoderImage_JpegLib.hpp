@@ -30,7 +30,8 @@ class CMmpDecoderImage_JpegLib : public CMmpDecoderImage
 friend class CMmpDecoder;
 
 private:
-    class mmp_buffer_imageframe* m_p_buf_imageframe;
+    class mmp_buffer_imageframe* m_p_buf_imageframe_yuv;
+    class mmp_buffer_imageframe* m_p_buf_imageframe_rgb;
         
 protected:
     CMmpDecoderImage_JpegLib(struct MmpDecoderCreateConfig *pCreateConfig);

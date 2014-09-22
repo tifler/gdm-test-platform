@@ -189,7 +189,7 @@ extern "C"{
 		  int frameIdx,
 		  int packed);
 
-	int GetFrameBufSize(int framebufFormat, int picWidth, int picHeight);
+	int JPU_Helper_GetFrameBufSize(int framebufFormat, int picWidth, int picHeight);
 	void GetMcuUnitSize(int format, int *mcuWidth, int *mcuHeight);
 
 	typedef enum { YUV444, YUV422, YUV420, NV12, NV21, YUV400, YUYV, YVYU, UYVY, VYUY, YYY, RGB_PLANAR, RGB32, RGB24, RGB16 } yuv2rgb_color_format;

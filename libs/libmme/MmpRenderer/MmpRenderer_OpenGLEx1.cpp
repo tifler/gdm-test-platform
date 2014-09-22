@@ -22,6 +22,7 @@
 #include "MmpRenderer_OpenGLEx1.hpp"
 #include "MmpUtil.hpp"
 #include "../MmpComm/colorspace/colorspace.h"
+#include "MmpImageTool.hpp"
 
 /////////////////////////////////////////////////////////////
 //CMmpRenderer_OpenGLEx1 Member Functions
@@ -229,28 +230,36 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
 MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
 
     MMP_RESULT mmpResult = MMP_FAILURE;
-    MMP_U32 format;
+    MMP_U32 fourcc;
 
-    format = p_buf_imageframe->get_format();
-    switch(format) {
+    fourcc = p_buf_imageframe->get_fourcc();
+    switch(fourcc) {
         
-        case MMP_FOURCC_IMAGE_RGB24:
-            mmpResult = this->Render_RGB24(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), p_buf_imageframe->get_buf_vir_addr());
+        case MMP_FOURCC_IMAGE_RGB888:
+            mmpResult = this->Render_RGB888(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), p_buf_imageframe->get_buf_vir_addr());
+            break;
+        case MMP_FOURCC_IMAGE_BGR888:
+            mmpResult = this->Render_RGB888(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), p_buf_imageframe->get_buf_vir_addr());
+            break;
+
+        case MMP_FOURCC_IMAGE_I420:
+            mmpResult = this->Render_I420(p_buf_imageframe);
             break;
     }
 
     return mmpResult;
 }
     
-MMP_RESULT CMmpRenderer_OpenGLEx1::Render_RGB24(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image) {
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_RGB888(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image) {
 
     unsigned char* pImageBuffer;
 
     if(m_pMmpGL != NULL) {
 
         pImageBuffer= m_pMmpGL->GetImageBuffer();
-        
         memcpy(pImageBuffer, p_image, MMP_BYTE_ALIGN(pic_width*3,4)*pic_height);
+
+        CMmpImageTool::Flip_V(pic_width, pic_height, pImageBuffer, MMP_FOURCC_IMAGE_RGB888);
     
         m_pMmpGL->Draw();
     }
@@ -258,44 +267,67 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render_RGB24(MMP_S32 pic_width, MMP_S32 pic_h
     return MMP_SUCCESS;
 }
 
-#if 0
-MMP_RESULT CMmpRenderer_OpenGLEx1::RenderYUV420Planar(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_BGR888(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image) {
 
-    int picWidth, picHeight;
-    int lumaSize;
     unsigned char* pImageBuffer;
 
     if(m_pMmpGL != NULL) {
 
-        picWidth=m_pMmpGL->GetPicWidth();
-        picHeight=m_pMmpGL->GetPicHeight();
-        pImageBuffer=m_pMmpGL->GetImageBuffer();
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
+        memcpy(pImageBuffer, p_image, MMP_BYTE_ALIGN(pic_width*3,4)*pic_height);
+        
+        CMmpImageTool::Flip_V(pic_width, pic_height, pImageBuffer, MMP_FOURCC_IMAGE_BGR888);
+    
+        m_pMmpGL->Draw();
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_I420(class mmp_buffer_imageframe* p_buf_imageframe) {
+
+    MMP_U8 *Y,*Cb,*Cr;
+    int picWidth, picHeight;
+    int lumaSize, y_stride, uv_stride;
+    unsigned char* pImageBuffer;
+
+    if(m_pMmpGL != NULL) {
+
+        picWidth = m_pMmpGL->GetPicWidth();
+        picHeight = m_pMmpGL->GetPicHeight();
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
         lumaSize=picWidth*picHeight;
-                
+        
+        Y = p_buf_imageframe->get_buf_vir_addr_y();
+        Cb = p_buf_imageframe->get_buf_vir_addr_cb();
+        Cr = p_buf_imageframe->get_buf_vir_addr_cr();
+
+        y_stride = p_buf_imageframe->get_stride_luma();
+        uv_stride = p_buf_imageframe->get_stride_chroma();
+            
         (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
-				        picWidth*3, //int x_stride,
+				        MMP_BYTE_ALIGN(picWidth*3,4), //int x_stride,
 					    Y, //uint8_t * y_src,
-					    V, //uint8_t * v_src,
-					    U, //uint8_t * u_src,
-					    picWidth, //buffer_width,//int y_stride,
-					    picWidth/2, //buffer_width/2, //int uv_stride,
+					    Cr, //uint8_t * v_src,
+					    Cb, //uint8_t * u_src,
+					    y_stride,//int y_stride,
+					    uv_stride, //int uv_stride,
 					    picWidth, //int width,
 					    picHeight, //int height,
 					    1 //int vflip
                         );
 
-    
-        m_pMmpGL->Draw();
-    }
-    
-    m_iRenderCount++;
-    this->Dump(Y, U, V, buffer_width, buffer_height);
 
-    CMmpRenderer::EncodeAndMux(Y, U, V, buffer_width, buffer_height);
+    
+       m_pMmpGL->Draw();
+
+    }
+
+    m_iRenderCount++;
 
     return MMP_SUCCESS;
 }
-#endif
+
 
 void CMmpRenderer_OpenGLEx1::Dump(MMP_U8* Y, MMP_U8* U, MMP_U8* V, MMP_U32 buffer_width, MMP_U32 buffer_height) {
     

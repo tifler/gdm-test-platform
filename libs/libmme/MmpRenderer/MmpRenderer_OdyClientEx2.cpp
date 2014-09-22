@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-#include "MmpRenderer_OdyClientEx1.hpp"
+#include "MmpRenderer_OdyClientEx2.hpp"
 
 #include "MmpUtil.hpp"
 #include <stdlib.h>
@@ -54,6 +54,7 @@
 
 #include "mmp_buffer_mgr.hpp"
 #include "MmpImageTool.hpp"
+#include "mmp_lock.hpp"
 
 #if (MMP_OS == MMP_OS_WIN32)
 struct sockaddr_un {
@@ -95,42 +96,63 @@ struct sockaddr_un {
 #endif
 
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
-static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer);
+static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer, enum MMP_ROTATE rotate);
 static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req);
 static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data);
 static int dss_overlay_unset(int sockfd);
 
 /////////////////////////////////////////////////////////////
-//CMmpRenderer_OdyClientEx1 Member Functions
+//CMmpRenderer_OdyClientEx2 Member Functions
 
 
-CMmpRenderer_OdyClientEx1::CMmpRenderer_OdyClientEx1(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(MMP_MEDIATYPE_VIDEO, pRendererProp)
+CMmpRenderer_OdyClientEx2::CMmpRenderer_OdyClientEx2(CMmpRendererCreateProp* pRendererProp) :  CMmpRenderer(MMP_MEDIATYPE_VIDEO, pRendererProp)
+
+,m_p_mutex(NULL)
+
 ,m_sock_fd(-1)
 ,m_buf_idx(0)
+
+,m_rend_rot_buf_idx(0)
+,m_rotate(MMP_ROTATE_0)
 
 #if (MMP_OS==MMP_OS_WIN32)
 ,m_msg_res(256)
 #endif
 {
+    MMP_S32 i;
+
     memset(&m_gplayer, 0x00, sizeof(struct ody_player));
     m_gplayer.release_fd = -1;
 
+    for(i = 0; i < ROTATE_BUF_COUNT; i++) {
+        this->m_p_buf_rotate[i] = NULL;
+    }
+
 }
 
-CMmpRenderer_OdyClientEx1::~CMmpRenderer_OdyClientEx1()
+CMmpRenderer_OdyClientEx2::~CMmpRenderer_OdyClientEx2()
 {
 
 }
 
-MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
+MMP_RESULT CMmpRenderer_OdyClientEx2::Open()
 {
     MMP_RESULT mmpResult = MMP_SUCCESS;
     int iret;
     struct ody_player *gplayer = &m_gplayer;
     struct ody_framebuffer *pfb;
 	struct ody_videofile *pvideo;
+    MMP_S32 i, j;
 
     mmpResult=CMmpRenderer::Open();
+
+    if(mmpResult == MMP_SUCCESS) {
+        m_p_mutex = mmp_oal_mutex::create_object();
+        if(m_p_mutex == NULL) {
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s::%s] FAIL: create mutex "), MMP_CLASS_NAME, MMP_CLASS_FUNC ));
+            mmpResult = MMP_FAILURE;
+        }
+    }
 
     MMPDEBUGMSG(1, (TEXT("[%s::%s] +++ W:%d H:%d "), MMP_CLASS_NAME, MMP_CLASS_FUNC, m_pRendererProp->m_iPicWidth, m_pRendererProp->m_iPicHeight));
 
@@ -167,6 +189,19 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
                 pvideo->width = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16);
                 pvideo->height = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
         }
+
+        /* alloc rotate buffer */
+        m_rend_rot_buf_idx = 0;
+        j = pvideo->width * pvideo->height * 4;
+        for(i = 0; i < ROTATE_BUF_COUNT; i++) {
+            m_p_buf_rotate[i] = mmp_buffer_mgr::get_instance()->alloc_dma_buffer(j);
+            if(m_p_buf_rotate[i] == NULL) {
+                MMPDEBUGMSG(1, (TEXT("[%s::%s] FAIL: alloc rotate buffer (idx=%d w=%d, h=%d, sz=%d )"), MMP_CLASS_NAME, MMP_CLASS_FUNC, 
+                                       i, pvideo->width, pvideo->height, j));
+                mmpResult = MMP_FAILURE;
+             }
+        }
+        
     }
 
     /* STEP1. connect to server */
@@ -191,7 +226,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 			iret = connect(m_sock_fd,(struct sockaddr *)&server_addr, sizeof(server_addr));
 #endif
             if(iret != 0) {
-                MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx1::Open] FAIL: connect ")));
+                MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx2::Open] FAIL: connect ")));
                 mmpResult = MMP_FAILURE;
             }
             else {
@@ -206,7 +241,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
     // step-02: request overlay to display
     if(mmpResult == MMP_SUCCESS) {
 
-	    dss_overlay_default_config(&m_req, gplayer);
+	    dss_overlay_default_config(&m_req, gplayer, m_rotate);
 	    dss_overlay_set(m_sock_fd, &m_req);
     }
 
@@ -214,16 +249,17 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 	m_chroma_size = m_luma_size/4;
 
 #if (MMP_OS==MMP_OS_WIN32)
-    m_msg_res.open(CMmpRenderer_OdyClientEx1::service_render_stub, this);
+    m_msg_res.open(CMmpRenderer_OdyClientEx2::service_render_stub, this);
 #endif
 
     return mmpResult;
 }
 
 
-MMP_RESULT CMmpRenderer_OdyClientEx1::Close()
+MMP_RESULT CMmpRenderer_OdyClientEx2::Close()
 {
     MMP_RESULT mmpResult;
+    MMP_S32 i;
 
 #if (MMP_OS==MMP_OS_WIN32)
     m_msg_res.close();
@@ -245,22 +281,42 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Close()
         m_sock_fd = -1;
     }
 
+    for(i = 0; i < ROTATE_BUF_COUNT; i++) {
+        if(this->m_p_buf_rotate[i] != NULL) {
+            mmp_buffer_mgr::get_instance()->free_buffer(this->m_p_buf_rotate[i]);
+            this->m_p_buf_rotate[i] = NULL;
+        }
+    }
+
+    if(m_p_mutex != NULL) {
+        mmp_oal_mutex::destroy_object(m_p_mutex);
+        m_p_mutex = NULL;
+    }
+
     return mmpResult;
 }
 
-void CMmpRenderer_OdyClientEx1::SetFirstRenderer() {
+void CMmpRenderer_OdyClientEx2::SetFirstRenderer() {
+
+    class mmp_lock autolock(m_p_mutex);
 
     if(m_sock_fd >= 0) {
+        //m_rotate = rotate;
+
         CMmpRenderer::SetFirstRenderer();
+        dss_overlay_default_config(&m_req, &this->m_gplayer, m_rotate);
         dss_overlay_set(m_sock_fd, &m_req);
     }
 }
 
-MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
+MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_videoframe* p_buf_videoframe) {
 
     int iret;
 	unsigned int t1, t2;
     MMP_S32 i;
+
+    class mmp_lock autolock(m_p_mutex);
+
 
     if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
 
@@ -271,11 +327,18 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
 
 	memset(&m_req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 	m_req_data.id = (uint32_t)this;
-	m_req_data.num_plane = 3;
+    m_req_data.num_plane = 3;
     for(i = 0; i < (MMP_S32)m_req_data.num_plane; i++) {
         m_req_data.data[i].memory_id = p_buf_videoframe->get_buf_shared_fd(i);
         m_req_data.data[i].offset = 0;
     }
+
+    if(this->m_rotate != MMP_ROTATE_0) {
+        m_req_data.dst_data.memory_id = this->m_p_buf_rotate[m_rend_rot_buf_idx]->get_buf_shared_fd();
+    	m_req_data.dst_data.offset = 0;
+        m_rend_rot_buf_idx = (m_rend_rot_buf_idx+1)%ROTATE_BUF_COUNT;
+    }
+    
 
 #if (MMP_OS == MMP_OS_WIN32)
     this->dss_overlay_queue_win32(m_sock_fd, &m_req_data);
@@ -294,7 +357,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
 		t2 = CMmpUtil::GetTickCount();
 
         MMP_DRIVER_CLOSE(m_gplayer.release_fd);
-        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx1::RenderYUV420Planar] sync_wait %d"), t2-t1));
+        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx2::RenderYUV420Planar] sync_wait %d"), t2-t1));
 
         m_gplayer.release_fd = -1;
 		if( (t2-t1) < 100) {
@@ -311,13 +374,15 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_videoframe* p_buf_
 }
 
 
-MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
+MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
     int iret;
 	unsigned int t1, t2;
     MMP_S32 i;
     enum MMP_FOURCC fourcc;
+
+    class mmp_lock autolock(m_p_mutex);
 
     if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
         return MMP_SUCCESS;
@@ -351,7 +416,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_imageframe* p_buf_
 		t2 = CMmpUtil::GetTickCount();
 
         MMP_DRIVER_CLOSE(m_gplayer.release_fd);
-        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx1::RenderYUV420Planar] sync_wait %d"), t2-t1));
+        //MMPDEBUGMSG(1, (TEXT("[CMmpRenderer_OdyClientEx2::RenderYUV420Planar] sync_wait %d"), t2-t1));
 
         m_gplayer.release_fd = -1;
 		if( (t2-t1) < 100) {
@@ -384,7 +449,7 @@ static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screenin
 
 }
 
-static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer)
+static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer, enum MMP_ROTATE rotate)
 {
 
 	memset(req, 0x00, sizeof(*req));
@@ -410,6 +475,27 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_p
 	req->flags = GDM_DSS_FLAG_SCALING;
 	req->id = GDMFB_NEW_REQUEST;
 
+    switch(rotate) {
+
+      case MMP_ROTATE_180:
+	    req->dst_rect.w = gplayer->vi.xres;
+	    req->dst_rect.h = gplayer->vi.yres;
+	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_180);
+        break;
+
+      case MMP_ROTATE_90:
+	    req->dst_rect.w = gplayer->vi.yres;
+	    req->dst_rect.h = gplayer->vi.yres;
+	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_90);
+        break;
+
+      case MMP_ROTATE_270:
+	    req->dst_rect.w = gplayer->vi.yres;
+	    req->dst_rect.h = gplayer->vi.yres;
+	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_270);
+        break;
+
+    }
 
 }
 
@@ -484,7 +570,7 @@ static int dss_overlay_unset(int sockfd)
 
 #if (MMP_OS == MMP_OS_WIN32)
 
-int CMmpRenderer_OdyClientEx1::dss_overlay_queue_win32(int sockfd, struct gdm_dss_overlay_data *req_data) {
+int CMmpRenderer_OdyClientEx2::dss_overlay_queue_win32(int sockfd, struct gdm_dss_overlay_data *req_data) {
 
     class mmp_msg_packet* p_packet;
 
@@ -494,12 +580,12 @@ int CMmpRenderer_OdyClientEx1::dss_overlay_queue_win32(int sockfd, struct gdm_ds
 
 }
 
-void CMmpRenderer_OdyClientEx1::service_render_stub(void* parm) {
-    CMmpRenderer_OdyClientEx1* p_obj = (CMmpRenderer_OdyClientEx1*)parm;
+void CMmpRenderer_OdyClientEx2::service_render_stub(void* parm) {
+    CMmpRenderer_OdyClientEx2* p_obj = (CMmpRenderer_OdyClientEx2*)parm;
     p_obj->service_render();
 }
 
-void CMmpRenderer_OdyClientEx1::service_render() {
+void CMmpRenderer_OdyClientEx2::service_render() {
 
     class mmp_msg_packet* p_packet;
     MMP_RESULT mmpResult;

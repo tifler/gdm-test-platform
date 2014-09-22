@@ -100,6 +100,7 @@ public:
     /* Video Renderer */
     virtual void SetFirstVideoRenderer() { }
     virtual MMP_BOOL IsFirstVideoRenderer() { return MMP_FALSE; }
+    virtual void SetVideoRotate(enum MMP_ROTATE rotate) { }
     
 };
 

@@ -224,6 +224,7 @@ enum MMP_MEDIATYPE
                 ((MMP_U32)(MMP_U8)(ch0) | ((MMP_U32)(MMP_U8)(ch1) << 8) |   \
                 ((MMP_U32)(MMP_U8)(ch2) << 16) | ((MMP_U32)(MMP_U8)(ch3) << 24 ))
 #define MMPGETFOURCC(fourcc,ch) (MMP_U8)(fourcc>>(8*ch))
+#define MMPGETFOURCCARG(fourcc)  MMPGETFOURCC(fourcc,0),MMPGETFOURCC(fourcc,1),MMPGETFOURCC(fourcc,2),MMPGETFOURCC(fourcc,3)
 #define MMP_BYTE_ALIGN(x, align)   (((x) + (align) - 1) & ~((align) - 1))
 
 #if (MMP_OS==MMP_OS_WIN32 || MMP_OS==MMP_OS_WINCE60)

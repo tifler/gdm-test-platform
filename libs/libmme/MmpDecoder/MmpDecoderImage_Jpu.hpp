@@ -32,8 +32,11 @@ class CMmpDecoderImage_Jpu : public CMmpDecoderImage
 friend class CMmpDecoder;
 
 private:
-    class mmp_buffer_imageframe* m_p_buf_imageframe;
     class mmp_jpu_if* m_p_jpu_if;
+
+    class mmp_buffer_imageframe* m_p_buf_imageframe_yuv;
+    class mmp_buffer_imageframe* m_p_buf_imageframe_rgb;
+    
         
 protected:
     CMmpDecoderImage_Jpu(struct MmpDecoderCreateConfig *pCreateConfig);

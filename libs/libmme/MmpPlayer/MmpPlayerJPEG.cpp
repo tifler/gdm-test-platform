@@ -22,9 +22,23 @@
 #include "MmpPlayerJPEG.hpp"
 #include "MmpUtil.hpp"
 #include "mmp_buffer_mgr.hpp"
+#include "MmpImageTool.hpp"
 
-/////////////////////////////////////////////////////////////
-//CMmpPlayerJPEG Member Functions
+/***********************************************************************************************
+*  CMmpPlayerJPEG Define
+***********************************************************************************************/
+
+#if (MMP_OS == MMP_OS_WIN32)
+#define BMP_SAVE_PATH "d:\\work\\"
+#elif (MMP_OS == MMP_OS_LINUX_ODYSSEUS_FPGA)
+#define BMP_SAVE_PATH "/tmp/"
+#else
+#error "ERROR: Select Bmp Save Path on class CMmpPlayerJPEG"
+#endif
+
+/***********************************************************************************************
+*  CMmpPlayerJPEG Member Functions
+***********************************************************************************************/
 
 CMmpPlayerJPEG::CMmpPlayerJPEG(CMmpPlayerCreateProp* pPlayerProp) : CMmpPlayer(pPlayerProp)
 
@@ -49,6 +63,9 @@ MMP_RESULT CMmpPlayerJPEG::Open()
     MMP_RESULT mmpResult = MMP_SUCCESS;
     CMmpRendererCreateProp* pRendererProp=&m_RendererProp; 
     struct MmpDecoderCreateConfig DecoderCreateConfig;
+    MMP_CHAR bmp_filename[256];
+    MMP_CHAR buffer[256], tmpbuf[32];
+    enum MMP_FOURCC fourcc;
 
     /* load image file */
     if(mmpResult == MMP_SUCCESS) {
@@ -68,6 +85,21 @@ MMP_RESULT CMmpPlayerJPEG::Open()
             m_pDecoderImage->DecodeAu(m_p_buf_imagestream, &m_p_buf_imageframe);
             if(m_p_buf_imageframe == NULL) {
                 mmpResult = MMP_FAILURE;
+            }
+            else {
+                fourcc = m_p_buf_imageframe->get_fourcc();
+                
+                if( CMmpImageTool::IsRGB(fourcc) == MMP_TRUE) {
+
+                    CMmpUtil::SplitFileName(this->m_create_config.filename, buffer);
+                    sprintf(bmp_filename, "%s%s_%s.bmp", BMP_SAVE_PATH, buffer, CMmpImageTool::Bmp_GetName(fourcc, tmpbuf) );
+
+                    CMmpImageTool::Bmp_SaveFile(bmp_filename, 
+                                                m_p_buf_imageframe->get_pic_width(), m_p_buf_imageframe->get_pic_height(), 
+                                                m_p_buf_imageframe->get_buf_vir_addr(), 
+                                                fourcc);
+                }
+
             }
         }
     }
@@ -101,6 +133,7 @@ MMP_RESULT CMmpPlayerJPEG::Open()
 
         pRendererProp->m_iPicWidth = m_pDecoderImage->GetPicWidth();
         pRendererProp->m_iPicHeight = m_pDecoderImage->GetPicHeight();
+        pRendererProp->pic_format = m_pDecoderImage->GetPicFormat();
 
         m_pRendererVideo = CMmpRenderer::CreateVideoObject(pRendererProp);
         if(m_pRendererVideo == NULL) {

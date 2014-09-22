@@ -202,7 +202,7 @@ class mmp_buffer_addr mmp_buffer_mgr_ex1::get_buffer_addr(MMP_S32 shared_fd) {
     return buf_addr;
 }
 
-class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 fourcc, 
                                                                         MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset) {
 
     class mmp_buffer* p_mmp_buf;
@@ -229,12 +229,12 @@ class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 
         p_mmp_videoframe = new class mmp_buffer_videoframe;
         if(p_mmp_videoframe != NULL) {
         
-            p_mmp_videoframe->m_format = format;
+            p_mmp_videoframe->m_fourcc = fourcc;
             p_mmp_videoframe->m_pic_width = pic_width;
             p_mmp_videoframe->m_pic_height = pic_height;
             
             
-            switch(p_mmp_videoframe->m_format) {
+            switch(p_mmp_videoframe->m_fourcc) {
 
                 case MMP_FOURCC_IMAGE_I420: 
                     p_mmp_videoframe->m_plane_count = 3;        
@@ -261,7 +261,7 @@ class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 
 
                 default:
                     mmpResult = MMP_FAILURE;
-                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_mgr_ex1::attach_media_videoframe] FAIL: not supported video format 0x%08x "), p_mmp_videoframe->m_format ));
+                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_mgr_ex1::attach_media_videoframe] FAIL: not supported video format %c%c%c%c "), MMPGETFOURCCARG(p_mmp_videoframe->m_fourcc) ));
                     break;
             }
 
@@ -452,7 +452,7 @@ class mmp_buffer_imagestream* mmp_buffer_mgr_ex1::alloc_media_imagestream(MMP_CH
         file_size = ftell(fp);
         fseek(fp, 0, SEEK_SET);
 
-        p_buf_imagestream = this->alloc_media_imagestream(file_size+1024, buf_type);
+        p_buf_imagestream = this->alloc_media_imagestream(MMP_BYTE_ALIGN(file_size, 1024), buf_type);
         if(p_buf_imagestream != NULL) {
             rdsz = fread((void*)p_buf_imagestream->get_buf_vir_addr(), 1, file_size, fp);
             if(rdsz != file_size) {
@@ -470,7 +470,7 @@ class mmp_buffer_imagestream* mmp_buffer_mgr_ex1::alloc_media_imagestream(MMP_CH
     return p_buf_imagestream;
 }
 
-class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format, 
+class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc, 
                                                                         MMP_U32 type, MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset) {
 
     class mmp_buffer* p_mmp_buf;
@@ -497,12 +497,12 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
         p_mmp_imageframe = new class mmp_buffer_imageframe;
         if(p_mmp_imageframe != NULL) {
         
-            p_mmp_imageframe->m_format = format;
+            p_mmp_imageframe->m_fourcc = fourcc;
             p_mmp_imageframe->m_pic_width = pic_width;
             p_mmp_imageframe->m_pic_height = pic_height;
             
             
-            switch(p_mmp_imageframe->m_format) {
+            switch(p_mmp_imageframe->m_fourcc) {
 
                 case MMP_FOURCC_IMAGE_I420: 
                     p_mmp_imageframe->m_plane_count = 3;        
@@ -527,7 +527,41 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
 
                     break;
 
-                case MMP_FOURCC_IMAGE_RGB32:  /* RGB 32 Bit*/
+               case MMP_FOURCC_IMAGE_YUV444P3: 
+                    p_mmp_imageframe->m_plane_count = 3;        
+
+                    buffer_width = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width, 16);
+                    buffer_height = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_height, 16);
+                    
+                    stride[0] = buffer_width;
+                    stride[1] = buffer_width;
+                    stride[2] = buffer_width;
+                
+                    buffer_height_arr[0] = buffer_height;
+                    buffer_height_arr[1] = buffer_height;
+                    buffer_height_arr[2] = buffer_height;
+                    
+                    luma_size = buffer_width*buffer_height;
+                    chroma_size = luma_size;
+
+                    plane_size[0] = luma_size;
+                    plane_size[1] = chroma_size;
+                    plane_size[2] = chroma_size;
+
+                    break;
+
+               case MMP_FOURCC_IMAGE_YUV444Packed:
+                    p_mmp_imageframe->m_plane_count = 1;
+
+                    buffer_width = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*3, 16);
+                    buffer_height = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_height, 16);
+                    
+                    stride[0] = buffer_width;
+                    buffer_height_arr[0] = buffer_height;
+                    plane_size[0] = buffer_width*buffer_height;
+                    break;
+
+                case MMP_FOURCC_IMAGE_ARGB8888:  /* RGB 32 Bit*/
                     p_mmp_imageframe->m_plane_count = 1;
                     
                     stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*4, 4);
@@ -536,7 +570,8 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
                     
                     break;
 
-                case MMP_FOURCC_IMAGE_RGB24:  /* RGB 24 Bit*/
+                case MMP_FOURCC_IMAGE_BGR888:
+                case MMP_FOURCC_IMAGE_RGB888:  /* RGB 24 Bit*/
                     p_mmp_imageframe->m_plane_count = 1;
                     
                     stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*3, 4);
@@ -547,7 +582,8 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
 
                 default:
                     mmpResult = MMP_FAILURE;
-                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_buffer_mgr_ex1::attach_media_imageframe] FAIL: not supported video format 0x%08x "), p_mmp_imageframe->m_format ));
+                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s::%s] FAIL: not supported video format %c%c%c%c "), MMP_CLASS_NAME, MMP_CLASS_FUNC,
+                                              MMPGETFOURCCARG(p_mmp_imageframe->m_fourcc) ));
                     break;
             }
 
@@ -616,14 +652,14 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
     return p_mmp_imageframe;
 }
 
-class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
+class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc) {
     
-    return this->alloc_media_imageframe(pic_width, pic_height, format, mmp_buffer::ION, NULL, NULL);
+    return this->alloc_media_imageframe(pic_width, pic_height, fourcc, mmp_buffer::ION, NULL, NULL);
 }
 
-class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::attach_media_imageframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset, MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format) {
+class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::attach_media_imageframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset, MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc) {
 
-    return this->alloc_media_imageframe(pic_width, pic_height, format, mmp_buffer::ION_ATTACH, shared_ion_fd, ion_mem_offset);
+    return this->alloc_media_imageframe(pic_width, pic_height, fourcc, mmp_buffer::ION_ATTACH, shared_ion_fd, ion_mem_offset);
 }
 
 MMP_RESULT mmp_buffer_mgr_ex1::free_media_buffer(class mmp_buffer_media* p_buf_media) {

@@ -30,8 +30,7 @@
 #include <sys/time.h>
 
 #include "mmp_jpu_if.hpp"
-//#include "mmp_jpu_if_cnm.hpp" /* C&M v3.3 */
-//#include "mmp_jpu_if_ana.hpp"
+#include "mmp_jpu_if_ana.hpp"
 
 /**********************************************************
 create/destroy object
@@ -50,7 +49,7 @@ class mmp_jpu_if* mmp_jpu_if::create_object(struct mmp_jpu_if_create_config* p_c
 	class mmp_jpu_if* p_obj = NULL;
 
 #if (MMP_JPU == MMP_JPU_ANAPASS)
-	p_obj = NULL;//new class mmp_jpu_if_ana(p_create_config);
+	p_obj = new class mmp_jpu_if_ana(p_create_config);
 
 #elif (MMP_JPU == MMP_JPU_CNM)
 	p_obj = new class mmp_jpu_if_cnm(p_create_config);

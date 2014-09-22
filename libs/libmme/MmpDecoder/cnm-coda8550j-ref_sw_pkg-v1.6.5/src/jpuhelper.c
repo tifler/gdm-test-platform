@@ -1539,7 +1539,7 @@ void GetMcuUnitSize(int format, int *mcuWidth, int *mcuHeight)
 	}
 }
 
-int GetFrameBufSize(int framebufFormat, int picWidth, int picHeight)
+int JPU_Helper_GetFrameBufSize(int framebufFormat, int picWidth, int picHeight)
 {
 	int framebufSize = 0;
 	int framebufWidth, framebufHeight;

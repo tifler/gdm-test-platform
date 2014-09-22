@@ -71,6 +71,7 @@ public:
     /* Video Renderer */
     virtual void SetFirstVideoRenderer();
     virtual MMP_BOOL IsFirstVideoRenderer();
+    virtual void SetVideoRotate(enum MMP_ROTATE rotate);
     
 };
 

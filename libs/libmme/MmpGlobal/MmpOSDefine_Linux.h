@@ -33,6 +33,10 @@
 #include <limits.h>
 #include <pthread.h>
 
+#ifdef __cplusplus
+#include <typeinfo>
+#endif
+
 #define MMP_ALIGN_8 
 #define MMP_DLL_EXPORT //extern _declspec(dllexport)
 
@@ -46,6 +50,14 @@
 //#define MMPDEBUGMSG(cond,printf_exp) do { if(cond) printf printf_exp; }while(0);
 #define MMPDEBUGMSG(cond,printf_exp) do { if(cond) CMmpUtil::Printf printf_exp; }while(0);
 #endif
+
+
+#ifdef __cplusplus
+#define MMP_CLASS_NAME typeid(*this).name()
+#define MMP_CLASS_FUNC __func__
+#define MMPDEBUGTRACE printf("!!!MmpTrace!!!   [%s::%s]  %d \n\r", MMP_CLASS_NAME, MMP_CLASS_FUNC, __LINE__ )
+#endif
+
 
 typedef char* MMPSTR;
 typedef char MMPCHAR;

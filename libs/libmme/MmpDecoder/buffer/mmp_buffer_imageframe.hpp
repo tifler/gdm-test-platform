@@ -33,7 +33,7 @@ private:
     MMP_S32 m_pic_width;
     MMP_S32 m_pic_height;
     MMP_S32 m_plane_count;
-    MMP_U32 m_format;
+    enum MMP_FOURCC m_fourcc;
 
     MMP_S32 m_buf_stride[MMP_MEDIASAMPLE_PLANE_COUNT];
     MMP_S32 m_buf_height[MMP_MEDIASAMPLE_PLANE_COUNT];
@@ -50,12 +50,19 @@ public:
     MMP_S32 get_buf_shared_fd(MMP_S32 frame_id = 0);
     MMP_U32 get_buf_phy_addr(MMP_S32 frame_id = 0);
 
-    inline MMP_S32 get_buf_stride(MMP_S32 frame_id = 0) { return m_buf_stride[frame_id]; }
+    inline MMP_U8* get_buf_vir_addr_y() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_Y); }
+    inline MMP_U8* get_buf_vir_addr_cb() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_CB); }
+    inline MMP_U8* get_buf_vir_addr_cr() { return this->get_buf_vir_addr(MMP_MEDIASAMPLE_BUF_CR); }
+
+    inline MMP_S32 get_stride(MMP_S32 frame_id = 0) { return m_buf_stride[frame_id]; }
     inline MMP_S32 get_buf_height(MMP_S32 frame_id = 0) { return m_buf_height[frame_id]; }
 
+    inline MMP_S32 get_stride_luma() { return m_buf_stride[MMP_MEDIASAMPLE_BUF_Y]; }
+    inline MMP_S32 get_stride_chroma() { return m_buf_stride[MMP_MEDIASAMPLE_BUF_CB]; }
+    
     inline MMP_S32 get_pic_width() { return m_pic_width; }
     inline MMP_S32 get_pic_height() { return m_pic_height; }
-    inline MMP_U32 get_format() { return m_format; }
+    inline enum MMP_FOURCC get_fourcc() { return m_fourcc; }
 };
 
 #endif

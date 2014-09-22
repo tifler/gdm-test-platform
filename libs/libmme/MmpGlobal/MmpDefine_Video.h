@@ -22,6 +22,28 @@
 #ifndef MMPDEFINE_VIDEO_H__
 #define MMPDEFINE_VIDEO_H__
 
+#if (MMP_OS == MMP_OS_WIN32)
+#include <pshpack2.h>
+#endif
+
+typedef struct tagMMPBITMAPFILEHEADER {
+        MMP_U16    bfType;
+        MMP_U32   bfSize;
+        MMP_U16    bfReserved1;
+        MMP_U16    bfReserved2;
+        MMP_U32   bfOffBits;
+
+#if (MMP_OS == MMP_OS_WIN32)
+}MMPBITMAPFILEHEADER;
+#include <poppack.h>
+#elif (MMP_OS == MMP_OS_LINUX)
+} __attribute__((packed)) MMPBITMAPFILEHEADER;
+#else
+#error "ERROR : need attribute packed of OS "
+#endif
+
+
+
 typedef struct MMPBITMAPINFOHEADER
 {
         MMP_U32      biSize;
@@ -36,6 +58,14 @@ typedef struct MMPBITMAPINFOHEADER
         MMP_U32      biClrUsed;
         MMP_U32      biClrImportant;
 }MMPBITMAPINFOHEADER;
+
+#define MMP_BI_RGB        0L
+#define MMP_BI_RLE8       1L
+#define MMP_BI_RLE4       2L
+#define MMP_BI_BITFIELDS  3L
+#define MMP_BI_JPEG       4L
+#define MMP_BI_PNG        5L
+
 
 struct mmp_video_hw_codec_instance_info {
 
@@ -64,55 +94,75 @@ typedef enum MMP_VIDEO_CODINGTYPE {
     MMP_VIDEO_CodingMax = 0x7FFFFFFF
 } MMP_VIDEO_CODINGTYPE;
 
-#define MMP_FOURCC_VIDEO_UNKNOWN  MMPMAKEFOURCC('X','X','X','X')
-#define MMP_FOURCC_VIDEO_H264     MMPMAKEFOURCC('H','2','6','4')
-#define MMP_FOURCC_VIDEO_H263     MMPMAKEFOURCC('H','2','6','3')
-#define MMP_FOURCC_VIDEO_MPEG4    MMPMAKEFOURCC('M','P','4','V')
-#define MMP_FOURCC_VIDEO_MPEG2    MMPMAKEFOURCC('M','P','G','2')
-#define MMP_FOURCC_VIDEO_MPEG4_V2 MMPMAKEFOURCC('M','P','4','2')
-#define MMP_FOURCC_VIDEO_XVID     MMPMAKEFOURCC('X','V','I','D')
+enum MMP_FOURCC {
+    MMP_FOURCC_VIDEO_UNKNOWN = MMPMAKEFOURCC('X','X','X','X'),
+    MMP_FOURCC_VIDEO_H264    = MMPMAKEFOURCC('H','2','6','4'),
+    MMP_FOURCC_VIDEO_H263    = MMPMAKEFOURCC('H','2','6','3'),
+    MMP_FOURCC_VIDEO_MPEG4   = MMPMAKEFOURCC('M','P','4','V'),
+    MMP_FOURCC_VIDEO_MPEG2   = MMPMAKEFOURCC('M','P','G','2'),
+    MMP_FOURCC_VIDEO_MPEG4_V2= MMPMAKEFOURCC('M','P','4','2'),
+    MMP_FOURCC_VIDEO_XVID    = MMPMAKEFOURCC('X','V','I','D'),
 
-#define MMP_FOURCC_VIDEO_VC1       MMPMAKEFOURCC('V','C','1',' ')
-#define MMP_FOURCC_VIDEO_WMV3      MMPMAKEFOURCC('W','M','V','3')  //VC1-WMV9 
-#define MMP_FOURCC_VIDEO_WMV2      MMPMAKEFOURCC('W','M','V','2')  //VC1-WMV8 
-#define MMP_FOURCC_VIDEO_WMV1      MMPMAKEFOURCC('W','M','V','1')  //VC1-WMV7 
-#define MMP_FOURCC_VIDEO_MSS1      MMPMAKEFOURCC('M','S','S','1')  
-#define MMP_FOURCC_VIDEO_MSS2      MMPMAKEFOURCC('M','S','S','2')  
+    MMP_FOURCC_VIDEO_VC1      = MMPMAKEFOURCC('V','C','1',' '),
+    MMP_FOURCC_VIDEO_WMV3     = MMPMAKEFOURCC('W','M','V','3'),  //VC1-WMV9 
+    MMP_FOURCC_VIDEO_WMV2     = MMPMAKEFOURCC('W','M','V','2'),  //VC1-WMV8 
+    MMP_FOURCC_VIDEO_WMV1     = MMPMAKEFOURCC('W','M','V','1'),  //VC1-WMV7 
+    MMP_FOURCC_VIDEO_MSS1     = MMPMAKEFOURCC('M','S','S','1'),  
+    MMP_FOURCC_VIDEO_MSS2     = MMPMAKEFOURCC('M','S','S','2'),  
 
-#define MMP_FOURCC_VIDEO_VP60      MMPMAKEFOURCC('V','P','6','0')  
-#define MMP_FOURCC_VIDEO_VP6F      MMPMAKEFOURCC('V','P','6','F')  
-#define MMP_FOURCC_VIDEO_VP6A      MMPMAKEFOURCC('V','P','6','A') 
-#define MMP_FOURCC_VIDEO_VP80      MMPMAKEFOURCC('V','P','8','0') 
+    MMP_FOURCC_VIDEO_VP60     = MMPMAKEFOURCC('V','P','6','0'),  
+    MMP_FOURCC_VIDEO_VP6F     = MMPMAKEFOURCC('V','P','6','F'),  
+    MMP_FOURCC_VIDEO_VP6A     = MMPMAKEFOURCC('V','P','6','A'), 
+    MMP_FOURCC_VIDEO_VP80     = MMPMAKEFOURCC('V','P','8','0'), 
 
-#define MMP_FOURCC_VIDEO_RV30      MMPMAKEFOURCC('R','V','3','0')  
-#define MMP_FOURCC_VIDEO_RV40      MMPMAKEFOURCC('R','V','4','0')  
+    MMP_FOURCC_VIDEO_RV30     = MMPMAKEFOURCC('R','V','3','0'),  
+    MMP_FOURCC_VIDEO_RV40     = MMPMAKEFOURCC('R','V','4','0'),  
 
-#define MMP_FOURCC_VIDEO_SVQ1      MMPMAKEFOURCC('S','V','Q','1')   //Sorenson 1
-#define MMP_FOURCC_VIDEO_SVQ3      MMPMAKEFOURCC('S','V','Q','3')   //Sorenson 3
-#define MMP_FOURCC_VIDEO_THEORA      MMPMAKEFOURCC('T','H','E','O')   
-#define MMP_FOURCC_VIDEO_MJPEG      MMPMAKEFOURCC('M','J','P','G')   
-#define MMP_FOURCC_VIDEO_FLV1      MMPMAKEFOURCC('F','L','V','1')   
+    MMP_FOURCC_VIDEO_SVQ1     = MMPMAKEFOURCC('S','V','Q','1'),   //Sorenson 1
+    MMP_FOURCC_VIDEO_SVQ3     = MMPMAKEFOURCC('S','V','Q','3'),   //Sorenson 3
+    MMP_FOURCC_VIDEO_THEORA   =   MMPMAKEFOURCC('T','H','E','O'),   
+    MMP_FOURCC_VIDEO_MJPEG    =  MMPMAKEFOURCC('M','J','P','G'),   
+    MMP_FOURCC_VIDEO_FLV1     = MMPMAKEFOURCC('F','L','V','1'),   
 
-#define MMP_FOURCC_VIDEO_MSMPEG4V1    MMPMAKEFOURCC('M','S','M','1')   
-#define MMP_FOURCC_VIDEO_MSMPEG4V2    MMPMAKEFOURCC('M','S','M','2')   
-#define MMP_FOURCC_VIDEO_MSMPEG4V3    MMPMAKEFOURCC('M','S','M','3')   //Divx3
+    MMP_FOURCC_VIDEO_MSMPEG4V1 =   MMPMAKEFOURCC('M','S','M','1'),   
+    MMP_FOURCC_VIDEO_MSMPEG4V2 =   MMPMAKEFOURCC('M','S','M','2'),   
+    MMP_FOURCC_VIDEO_MSMPEG4V3 =   MMPMAKEFOURCC('M','S','M','3'),   //Divx3
 
-#define MMP_FOURCC_VIDEO_SVQ3      MMPMAKEFOURCC('S','V','Q','3')   
-#define MMP_FOURCC_VIDEO_INDEO2    MMPMAKEFOURCC('I','N','D','2')   /* Indeo2 */
-#define MMP_FOURCC_VIDEO_INDEO3    MMPMAKEFOURCC('I','N','D','3')   /* Indeo2 */
-#define MMP_FOURCC_VIDEO_INDEO4    MMPMAKEFOURCC('I','N','D','4')   /* Indeo2 */
-#define MMP_FOURCC_VIDEO_INDEO5    MMPMAKEFOURCC('I','N','D','5')   /* Indeo2 */
+    MMP_FOURCC_VIDEO_INDEO2    = MMPMAKEFOURCC('I','N','D','2'),   /* Indeo2 */
+    MMP_FOURCC_VIDEO_INDEO3    = MMPMAKEFOURCC('I','N','D','3'),   /* Indeo2 */
+    MMP_FOURCC_VIDEO_INDEO4    = MMPMAKEFOURCC('I','N','D','4'),   /* Indeo2 */
+    MMP_FOURCC_VIDEO_INDEO5    = MMPMAKEFOURCC('I','N','D','5'),   /* Indeo2 */
 
-#define MMP_FOURCC_VIDEO_TSCC      MMPMAKEFOURCC('T','S','C','C')   /* Indeo2 */
-#define MMP_FOURCC_VIDEO_FFMPEG    MMPMAKEFOURCC('F','F','M','P')   
+    MMP_FOURCC_VIDEO_TSCC      = MMPMAKEFOURCC('T','S','C','C'),   /* Indeo2 */
+    MMP_FOURCC_VIDEO_FFMPEG    = MMPMAKEFOURCC('F','F','M','P'),   
 
-#define MMP_FOURCC_IMAGE_YV12    MMPMAKEFOURCC('Y','V','1','2')  /* http://www.fourcc.org/yuv.php#YV12  8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes.*/
-#define MMP_FOURCC_IMAGE_I420    MMPMAKEFOURCC('I','4','2','0')  /* http://www.fourcc.org/yuv.php#IYUV  0x30323449 	12 	8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes..*/
-#define MMP_FOURCC_IMAGE_RGB32   MMPMAKEFOURCC('R','G','B','4')  /* 32bit RGB */
-#define MMP_FOURCC_IMAGE_RGB24   MMPMAKEFOURCC('R','G','B','3')  /* 24bit RGB */
+    MMP_FOURCC_IMAGE_YV12    = MMPMAKEFOURCC('Y','V','1','2'),  /* http://www.fourcc.org/yuv.php#YV12  8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes.*/
+    MMP_FOURCC_IMAGE_I420    = MMPMAKEFOURCC('I','4','2','0'),  /* http://www.fourcc.org/yuv.php#IYUV  0x30323449 	12 	8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes..*/
+    MMP_FOURCC_IMAGE_YUV444Packed  = MMPMAKEFOURCC('P','4','4','4'),  /* 8 bit Y/U/V Packed Format */
+    MMP_FOURCC_IMAGE_YUV444P3      = MMPMAKEFOURCC('I','4','4','4'),  /* 8 bit YUV 444  Plane 3 */
+    
+    MMP_FOURCC_IMAGE_RGB888 = MMPMAKEFOURCC('R','G','2','4'),   /* 24bit RGB */
+	MMP_FOURCC_IMAGE_BGR888 = MMPMAKEFOURCC('B','G','2','4'),   /* 24bit BGR */
+	MMP_FOURCC_IMAGE_RGB565 = MMPMAKEFOURCC('R','G','1','5'),   /* 15bit RGB565 */
+	MMP_FOURCC_IMAGE_BGR565 = MMPMAKEFOURCC('B','G','1','5'),   /* 15bit BGR565 */
+	MMP_FOURCC_IMAGE_ARGB1555 = MMPMAKEFOURCC('A','R','1','6'),   /* 16bit ARGB1555 */
+	MMP_FOURCC_IMAGE_BGRA1555 = MMPMAKEFOURCC('B','G','1','6'),   /* 16bit BGRA1555 */
+	MMP_FOURCC_IMAGE_RGBA1555 = MMPMAKEFOURCC('R','G','1','6'),   /* 16bit RGBA1555 */
+	MMP_FOURCC_IMAGE_ABGR1555 = MMPMAKEFOURCC('A','B','1','6'),   /* 16bit ABGR1555 */
+	MMP_FOURCC_IMAGE_ARGB8888 = MMPMAKEFOURCC('A','R','3','2'),   /* 32bit ARGB8888 */
+	MMP_FOURCC_IMAGE_BGRA8888 = MMPMAKEFOURCC('B','R','3','2'),   /* 32bit BGRA8888 */
+	MMP_FOURCC_IMAGE_RGBA8888 = MMPMAKEFOURCC('R','G','3','2'),   /* 32bit RGBA8888 */
+	MMP_FOURCC_IMAGE_ABGR8888 = MMPMAKEFOURCC('A','B','3','2'),   /* 32bit ABGR8888 */
+};
 
 #define MMP_YV12_FRAME_SIZE(w,h)  ((((w + 15) & (-16))  * ((h + 15) & (-16)) * 3) / 2)
 
+enum MMP_ROTATE {
+    MMP_ROTATE_0   = 0,
+    MMP_ROTATE_90  = 90,
+    MMP_ROTATE_180 = 180,
+    MMP_ROTATE_270 = 270
+};
 
 
 /** 

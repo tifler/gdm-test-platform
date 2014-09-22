@@ -19,13 +19,16 @@
  * limitations under the License.
  */
 
-#ifndef MMPRENDERER_ODYCLIENTEX1_HPP__
-#define MMPRENDERER_ODYCLIENTEX1_HPP__
+#ifndef MMPRENDERER_ODYCLIENTEX2_HPP__
+#define MMPRENDERER_ODYCLIENTEX2_HPP__
 
 #include "MmpRenderer.hpp"
 #include "mmp_msg_proc.hpp"
+#include "mmp_oal_mutex.hpp"
 
-#if 1//(MMP_OS == MMP_OS_LINUX)
+/*
+    add rotate function 
+*/
 
 #include "gdm_fb.h"
 #include "gdm-msgio.h"
@@ -41,6 +44,10 @@ struct ody_videoframe {
 	int shared_fd[3];
 	unsigned char *address[3];	/* virtual address */
 	int size[3];
+	#if ROTATOR_FEATURE_ENABLE
+	int rot_shared_fd;
+	unsigned char *rot_address;	
+	#endif
 };
 
 struct ody_framebuffer {
@@ -54,25 +61,39 @@ struct ody_player {
     struct fb_var_screeninfo vi;
 	struct ody_framebuffer fb_info;
 	struct ody_videofile video_info;
-	
+	//struct ody_videoframe frame[2];
+
 	int release_fd;
 	int buf_index;
 	int stop;
 };
 
-class CMmpRenderer_OdyClientEx1 : public CMmpRenderer
+class CMmpRenderer_OdyClientEx2 : public CMmpRenderer
 {
 friend class CMmpRenderer;
 
 private:
+    enum {
+        ROTATE_BUF_COUNT = 2
+    };
+
+private:
+    class mmp_oal_mutex* m_p_mutex;
+
     int m_sock_fd;
     int m_buf_idx;
     int m_luma_size, m_chroma_size;
-    
+	#if ROTATOR_FEATURE_ENABLE
+    int m_rend_rot_buf_idx;
+	#endif
     struct ody_player m_gplayer;
 
     struct gdm_dss_overlay m_req;
 	struct gdm_dss_overlay_data m_req_data;
+
+    class mmp_buffer* m_p_buf_rotate[ROTATE_BUF_COUNT];
+    MMP_S32 m_rend_rot_buf_idx;
+    MMP_ROTATE m_rotate;
 
 #if (MMP_OS==MMP_OS_WIN32)
     class mmp_msg_res m_msg_res;
@@ -82,8 +103,8 @@ private:
 #endif
 
 protected:
-    CMmpRenderer_OdyClientEx1(CMmpRendererCreateProp* pRendererProp);
-    virtual ~CMmpRenderer_OdyClientEx1();
+    CMmpRenderer_OdyClientEx2(CMmpRendererCreateProp* pRendererProp);
+    virtual ~CMmpRenderer_OdyClientEx2();
 
     virtual MMP_RESULT Open();
     virtual MMP_RESULT Close();
@@ -91,6 +112,8 @@ protected:
 
 public:
     virtual void SetFirstRenderer();
+    virtual void SetRotate(enum MMP_ROTATE rotate) { m_rotate = rotate; }
+    virtual enum MMP_ROTATE GetRotate() { return m_rotate; }
 
     virtual MMP_RESULT Render(class mmp_buffer_videoframe* p_buf_videoframe);
     virtual MMP_RESULT Render(class mmp_buffer_imageframe* p_buf_imageframe);
@@ -100,5 +123,4 @@ public:
 };
 
 
-#endif
 #endif

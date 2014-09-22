@@ -26,12 +26,14 @@
 extern "C" {
 #include "jpeglib.h"
 }
+#include "MmpImageTool.hpp"
 
 /////////////////////////////////////////////////////////////
 //CMmpDecoderImage_JpegLib Member Functions
 
 CMmpDecoderImage_JpegLib::CMmpDecoderImage_JpegLib(struct MmpDecoderCreateConfig *pCreateConfig) : CMmpDecoderImage(pCreateConfig, MMP_FALSE)
-,m_p_buf_imageframe(NULL)
+,m_p_buf_imageframe_rgb(NULL)
+,m_p_buf_imageframe_yuv(NULL)
 {
     
 }
@@ -73,9 +75,14 @@ MMP_RESULT CMmpDecoderImage_JpegLib::Close()
         return mmpResult;
     }
 
-    if(m_p_buf_imageframe != NULL) {
-        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_imageframe);
-        m_p_buf_imageframe = NULL;
+    if(m_p_buf_imageframe_rgb != NULL) {
+        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_imageframe_rgb);
+        m_p_buf_imageframe_rgb = NULL;
+    }
+
+    if(m_p_buf_imageframe_yuv != NULL) {
+        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_imageframe_yuv);
+        m_p_buf_imageframe_yuv = NULL;
     }
         
     //MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[CMmpDecoderImage_JpegLib::Close] Success nForamt=(0x%08x %s) \n\r"), 
@@ -116,6 +123,8 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
     FILE * infile;		/* source file */
     JSAMPARRAY buffer;		/* Output row buffer */
     int row_stride;		/* physical row width in output buffer */
+    enum MMP_FOURCC fourcc_rgb;
+    
 
     if(pp_buf_imageframe != NULL) {
         *pp_buf_imageframe = NULL;
@@ -188,24 +197,38 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
     //buffer = (JSAMPARRAY)malloc(cinfo.output_width*4);
     buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
 
-    if(m_p_buf_imageframe != NULL) {
-        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_imageframe);
-        m_p_buf_imageframe = NULL;
+    if(m_p_buf_imageframe_yuv != NULL) {
+        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_imageframe_yuv);
+        m_p_buf_imageframe_yuv = NULL;
     }
-    if(cinfo.output_components == 3) {
-        m_p_buf_imageframe = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(cinfo.output_width, cinfo.output_height, MMP_FOURCC_IMAGE_RGB24);
+    if(m_p_buf_imageframe_rgb != NULL) {
+        mmp_buffer_mgr::get_instance()->free_media_buffer(m_p_buf_imageframe_rgb);
+        m_p_buf_imageframe_rgb = NULL;
     }
-    else if(cinfo.output_components == 4) {
-        m_p_buf_imageframe = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(cinfo.output_width, cinfo.output_height, MMP_FOURCC_IMAGE_RGB32);
-    }
-
-    m_bih_out.biWidth = cinfo.output_width;
-    m_bih_out.biHeight = cinfo.output_height;
-    m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*4;
-
+    
+    
     m_bih_in.biWidth = cinfo.output_width;
     m_bih_in.biHeight = cinfo.output_height;
-
+    m_bih_out.biWidth = cinfo.output_width;
+    m_bih_out.biHeight = cinfo.output_height;
+    
+    if(cinfo.output_components == 3) {
+        fourcc_rgb = MMP_FOURCC_IMAGE_RGB888;
+        m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*3;
+    }
+    else if(cinfo.output_components == 4) {
+        fourcc_rgb = MMP_FOURCC_IMAGE_ARGB8888;
+        m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*4;
+    }
+    else {
+        fourcc_rgb = MMP_FOURCC_IMAGE_RGB888;
+        m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*3;
+    }
+    m_p_buf_imageframe_rgb = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(m_bih_out.biWidth, m_bih_out.biHeight, fourcc_rgb);
+    m_p_buf_imageframe_yuv = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_IMAGE_I420);
+    
+    //m_bih_out.biCompression = fourcc_rgb;
+    m_bih_out.biCompression = MMP_FOURCC_IMAGE_I420;
 
     /* Step 6: while (scan lines remain to be read) */
     /*           jpeg_read_scanlines(...); */
@@ -214,8 +237,8 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
     * loop counter, so that we don't have to keep track ourselves.
     */
     MMP_U8* p_image;
-    //p_image = (MMP_U8*)(m_p_buf_imageframe->get_buf_vir_addr());
-    p_image = (MMP_U8*)(m_p_buf_imageframe->get_buf_vir_addr() + m_p_buf_imageframe->get_buf_stride()*(m_p_buf_imageframe->get_pic_height()-1) );
+    p_image = (MMP_U8*)(m_p_buf_imageframe_rgb->get_buf_vir_addr());
+    //p_image = (MMP_U8*)(m_p_buf_imageframe->get_buf_vir_addr() + m_p_buf_imageframe->get_buf_stride()*(m_p_buf_imageframe->get_pic_height()-1) );
     while (cinfo.output_scanline < cinfo.output_height) {
         /* jpeg_read_scanlines expects an array of pointers to scanlines.
         * Here the array is only one element long, but you could ask for
@@ -223,12 +246,12 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
         */
         (void) jpeg_read_scanlines(&cinfo, buffer, 1);
         /* Assume put_scanline_someplace wants a pointer and sample count. */
-#ifndef WIN32
-        put_scanline_someplace(buffer[0], row_stride);
-#endif
+//#ifndef WIN32
+        //put_scanline_someplace(buffer[0], row_stride);
+//#endif
         memcpy(p_image, (void*)(*((unsigned int*)buffer)), row_stride);
-        //p_image += m_p_buf_imageframe->get_buf_stride();
-        p_image -= m_p_buf_imageframe->get_buf_stride();
+        p_image += m_p_buf_imageframe_rgb->get_stride();
+        //p_image -= m_p_buf_imageframe->get_buf_stride();
     }
 
     /* Step 7: Finish decompression */
@@ -244,7 +267,24 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
     jpeg_destroy_decompress(&cinfo);
 
     if(pp_buf_imageframe != NULL) {
-        *pp_buf_imageframe = m_p_buf_imageframe;
+
+        if(m_bih_out.biCompression == MMP_FOURCC_IMAGE_I420 ) {
+
+            CMmpImageTool::ConvertRGBtoYUV(m_bih_out.biWidth, m_bih_out.biHeight, 
+                                      (MMP_U8*)m_p_buf_imageframe_rgb->get_buf_vir_addr(), fourcc_rgb,
+
+                                      (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_y(),
+                                      (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_cb(),
+                                      (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_cr(),
+                                      (enum MMP_FOURCC)m_bih_out.biCompression,
+                                      m_p_buf_imageframe_yuv->get_stride_luma());
+
+            *pp_buf_imageframe = m_p_buf_imageframe_yuv;
+        }
+        else {
+
+            *pp_buf_imageframe = m_p_buf_imageframe_rgb;
+        }
     }
 
     return mmpResult;

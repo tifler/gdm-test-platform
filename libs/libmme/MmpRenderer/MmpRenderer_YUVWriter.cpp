@@ -89,6 +89,15 @@ MMP_RESULT CMmpRenderer_YUVWriter::Close()
     return MMP_SUCCESS;
 }
 
+void CMmpRenderer_YUVWriter::SetFirstRenderer() {
+
+    MMPDEBUGMSG(1, (TEXT("[%s::%s] "), MMP_CLASS_NAME, MMP_CLASS_FUNC ));
+}
+
+void CMmpRenderer_YUVWriter::SetRotate(enum MMP_ROTATE rotate) {
+    MMPDEBUGMSG(1, (TEXT("[%s::%s] "), MMP_CLASS_NAME, MMP_CLASS_FUNC ));
+}
+
 MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_imageframe* p_buf_imageframe) {
 
     return MMP_FAILURE;

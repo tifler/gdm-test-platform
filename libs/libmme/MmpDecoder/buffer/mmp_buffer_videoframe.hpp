@@ -33,7 +33,7 @@ private:
     MMP_S32 m_pic_width;
     MMP_S32 m_pic_height;
     MMP_S32 m_plane_count;
-    MMP_U32 m_format;
+    MMP_U32 m_fourcc;
 
     MMP_S32 m_buf_stride[MMP_MEDIASAMPLE_PLANE_COUNT];
     MMP_S32 m_buf_height[MMP_MEDIASAMPLE_PLANE_COUNT];

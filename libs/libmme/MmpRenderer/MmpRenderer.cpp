@@ -45,7 +45,7 @@
 #error "ERROR : Select OS"
 #endif
 
-#include "MmpRenderer_OdyClientEx1.hpp"
+#include "MmpRenderer_OdyClientEx2.hpp"
 #include "MmpRenderer_YUVWriter.hpp"
 #include "MmpRenderer_Dummy.hpp"
 
@@ -120,7 +120,7 @@ CMmpRenderer* CMmpRenderer::CreateVideoObject(CMmpRendererCreateProp* pRendererP
             //pObj=new CMmpRenderer_OdyFpgaDisplay(pRendererProp);
 			//pObj=new CMmpRenderer_Dummy(pRendererProp);
 			//pObj=new CMmpRenderer_OdyClient(pRendererProp);
-            pObj=new CMmpRenderer_OdyClientEx1(pRendererProp);
+            pObj=new CMmpRenderer_OdyClientEx2(pRendererProp);
             //pObj=new CMmpRenderer_YUVWriter(pRendererProp);
 #else
 #error "ERROR : Select OS to create VideoRenderer"
@@ -352,8 +352,7 @@ void mmp_render_video_init(void* hwnd, void* hdc,
 	renderprop.m_iScreenHeight = scrheight;
 	renderprop.m_iPicWidth = picwidht;
 	renderprop.m_iPicHeight = picheight;
-	renderprop.m_renderPixelFormat = MMP_PIXELFORMAT_RGB24;
-	//renderprop.m_renderPixelFormat = MMP_PIXELFORMAT_RGB32;
+	renderprop.pic_format = MMP_FOURCC_IMAGE_I420;
 	
 	s_last_renderprop = renderprop;
 	

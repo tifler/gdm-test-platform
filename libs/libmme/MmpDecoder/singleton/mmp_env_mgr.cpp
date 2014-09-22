@@ -77,11 +77,25 @@ class mmp_env_mgr* mmp_env_mgr::get_instance() {
 env define
 **********************************************************/
 
+/* VPU */
+#if 0
+#define GDM_VPU_BASE                 (0xED310000)
+#define GDM_VPU_SIZE                 (SZ_64K)
+#define GDM_VPU_IRQ                  (IRQ_CODEC)
+#endif
 #define MMP_VPU_DEVICE_NAME "/dev/vpu"
+#define MMP_VPU_REG_BASE		0xED310000
+#define MMP_VPU_REG_SIZE		(1024*64)
 
+/* JPU */
+#if 0
+#define GDM_JPU_BASE                 (0xED300000)
+#define GDM_JPU_SIZE                 (SZ_64K)
+#define GDM_JPU_IRQ                  (IRQ_JPEG)
+#endif
 #define MMP_JPU_DEVICE_NAME "/dev/jpu"
-#define MMP_JPU_BIT_REG_SIZE		0x300
-#define MMP_JPU_BIT_REG_BASE		(0x10000000 + 0x3000)
+#define MMP_JPU_REG_BASE		0xED300000
+#define MMP_JPU_REG_SIZE		(1024*64)
 #define MMP_JDI_DRAM_PHYSICAL_BASE	0x00
 #define MMP_JDI_DRAM_PHYSICAL_SIZE	(128*1024*1024)
 
@@ -117,12 +131,14 @@ m_vpu_fd(-1)
     /* Init VPU Env Value */
     this->set_uint(ENV_UINT_VPU_SHM_KEY, 0xAAAA9829);  /* VPU Shared Memory Key */
     this->set_char(ENV_CHAR_VPU_DRV_NAME, MMP_VPU_DEVICE_NAME);
+    this->set_uint(ENV_UINT_VPU_REG_PHY_ADDR, MMP_VPU_REG_BASE); /* VPU Register Phy Addr */
+    this->set_uint(ENV_UINT_VPU_REG_SIZE, MMP_VPU_REG_SIZE); /* VPU Register Size */
     this->set_uint(ENV_UINT_VPU_EXTERNAL_MUTEX_KEY, MMP_EXTERNAL_MUTEX_MEM_VPU_KEY);
     
     /* Init JPU Env Value */
     this->set_uint(ENV_UINT_JPU_SHM_KEY, 0xCCCC9829);  /* JPU Shared Memory Key */
-    this->set_uint(ENV_UINT_JPU_REG_PHY_ADDR, MMP_JPU_BIT_REG_BASE); /* JPU Register Phy Addr */
-    this->set_uint(ENV_UINT_JPU_REG_SIZE, MMP_JPU_BIT_REG_SIZE); /* JPU Register Size */
+    this->set_uint(ENV_UINT_JPU_REG_PHY_ADDR, MMP_JPU_REG_BASE); /* JPU Register Phy Addr */
+    this->set_uint(ENV_UINT_JPU_REG_SIZE, MMP_JPU_REG_SIZE); /* JPU Register Size */
     this->set_char(ENV_CHAR_JPU_DRV_NAME, MMP_JPU_DEVICE_NAME);
     this->set_uint(ENV_UINT_JPU_EXTERNAL_MUTEX_KEY, MMP_EXTERNAL_MUTEX_MEM_JPU_KEY);
     

@@ -41,13 +41,18 @@ struct mme_command mme_cmds[] = {
         { (char*)"stat"    , mme_command_player_status,  (char*)"display play status infomation  "},
         { (char*)"play_loop"    , mme_command_player_loop,  (char*)"player loop "},
         { (char*)"disp"    , mme_command_player_set_first_renderer,  (char*)"set first renderer to display  "},
+        { (char*)"rotate"    , mme_command_player_set_rotate,  (char*)"set rotate degree for display "},
         { (char*)"meminfo"    , mme_command_player_meminfo,  (char*)"display player memory info"},
 
         /*encoder */
         { (char*)"play_enc"    , mme_command_player_enc_start,  (char*)"player enc start"},
         { (char*)"stop_enc"    , mme_command_player_enc_stop,  (char*)"player enc stop"},
 
-
+        /* jpeg */
+        { (char*)"jplay"    , mme_command_jpegviewer_start,  (char*)"player start"},
+        { (char*)"jstop"    , mme_command_jpegviewer_stop,  (char*)"player stop"},
+        { (char*)"jstop_all"    , mme_command_jpegviewer_stop_all,  (char*)"all player stop"},
+        
         /* ion */
         { (char*)"ion_t1"  , mme_command_ion_test1,  (char*)"ion test1"},
         { (char*)"ion_alloc_fd"  , mme_command_ion_alloc_fd,  (char*)"ion alloc fd"},
@@ -101,6 +106,8 @@ void mme_shell_deinit() {
 
     mme_command_player_stop_all(0, NULL);
     mme_command_player_enc_stop(0, NULL);
+
+    mme_command_jpegviewer_stop_all(0, NULL);
 
     mme_command_system_deinit(0, NULL);
 

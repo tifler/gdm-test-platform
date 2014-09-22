@@ -290,6 +290,14 @@ MMP_BOOL CMmpPlayerVideoEx1::IsFirstVideoRenderer() {
     return bFlag;
 }
 
+void CMmpPlayerVideoEx1::SetVideoRotate(enum MMP_ROTATE rotate) {
+
+    if(m_pRendererVideo != NULL) {
+        m_pRendererVideo->SetRotate(rotate);
+    }
+
+}
+
 void CMmpPlayerVideoEx1::Service()
 {
     MMP_U32 frame_count = 0;

@@ -209,8 +209,7 @@ MMP_RESULT mmp_jpu_dev_shm::open_jdi_memory() {
         this->m_vdb_register.size = mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_REG_SIZE);
 	    this->m_vdb_register.virt_addr = (unsigned long)MMP_DRIVER_MMAP(NULL, this->m_vdb_register.size, PROT_READ | PROT_WRITE, MAP_SHARED, this->m_jpu_fd, 0);
         this->m_vdb_register.phys_addr = mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_REG_PHY_ADDR);
-	    if ( (void*)this->m_vdb_register.virt_addr == MAP_FAILED)
-	    {
+	    if ( (void*)this->m_vdb_register.virt_addr == MAP_FAILED)  {
             MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_jpu_dev_ex1::open_jdi_memory] FAIL: map jpu registers")));
 		    mmpResult = MMP_FAILURE;
 	    }
@@ -219,7 +218,7 @@ MMP_RESULT mmp_jpu_dev_shm::open_jdi_memory() {
             m_jpu_reg_buf.m_vir_addr = this->m_vdb_register.virt_addr;
 
             this->export_jpu_reg_vir_addr(this->m_vdb_register.virt_addr);
-            MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_jpu_dev_shm::open_jdi_memory] VPU_REG_ADDR ( phy=0x%08x vir=0x%08x )"), m_jpu_reg_buf.m_phy_addr, m_jpu_reg_buf.m_vir_addr ));
+            MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_jpu_dev_shm::open_jdi_memory] JPU_REG_ADDR ( phy=0x%08x vir=0x%08x )"), m_jpu_reg_buf.m_phy_addr, m_jpu_reg_buf.m_vir_addr ));
         }
         
     }

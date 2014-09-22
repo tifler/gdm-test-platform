@@ -71,6 +71,9 @@ public:
 
     virtual void SetFirstRenderer() { CMmpRenderer::s_pFirstRenderer[m_MediaType] = this; }
     MMP_BOOL IsFirstRenderer() { return (CMmpRenderer::s_pFirstRenderer[m_MediaType] == this)?MMP_TRUE:MMP_FALSE; }
+    virtual void SetRotate(enum MMP_ROTATE rotate) {};
+    virtual enum MMP_ROTATE GetRotate() { return MMP_ROTATE_0; }
+
 
     int GetPicWidth() { return m_RendererProp.m_iPicWidth; }
     int GetPicHeight() { return m_RendererProp.m_iPicHeight; }

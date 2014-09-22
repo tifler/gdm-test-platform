@@ -102,8 +102,10 @@ JpgRet GetJpgInstance(JpgInst ** ppInst)
 	pJpgInst->inUse = 1;
 	*ppInst = pJpgInst;
 	
+#ifndef __JPU_PLATFORM_MME
 	if (jdi_open_instance(pJpgInst->instIndex) < 0)
 		return JPG_RET_FAILURE;
+#endif
 
 	return JPG_RET_SUCCESS;
 }
@@ -112,7 +114,9 @@ void FreeJpgInstance(JpgInst * pJpgInst)
 {
 	pJpgInst->inUse = 0;
 
+#ifndef __JPU_PLATFORM_MME
 	jdi_close_instance(pJpgInst->instIndex);
+#endif
 }
 
 JpgRet CheckJpgInstValidity(JpgInst * pci)

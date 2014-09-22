@@ -208,9 +208,8 @@ MMP_RESULT mmp_vpu_dev_shm::open_vdi_memory() {
         
         this->m_vdb_register.size = VPU_BIT_REG_SIZE;
 	    this->m_vdb_register.virt_addr = (unsigned long)MMP_DRIVER_MMAP(NULL, this->m_vdb_register.size, PROT_READ | PROT_WRITE, MAP_SHARED, this->m_vpu_fd, 0);
-        this->m_vdb_register.phys_addr = ANA_CODEC_SRAM_BASE;
-	    if ( (void*)this->m_vdb_register.virt_addr == MAP_FAILED)
-	    {
+        this->m_vdb_register.phys_addr = mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_VPU_REG_PHY_ADDR);
+	    if ( (void*)this->m_vdb_register.virt_addr == MAP_FAILED)  {
             MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[mmp_vpu_dev_ex1::open_vdi_memory] FAIL: map vpu registers")));
 		    mmpResult = MMP_FAILURE;
 	    }
@@ -293,14 +292,12 @@ MMP_RESULT mmp_vpu_dev_shm::close_vdi_memory() {
         mmp_buffer_mgr::get_instance()->free_buffer(m_p_vpu_common_buffer);
         m_p_vpu_common_buffer = NULL;
     }
-
-#if 0
+    
    /* close shm */
     if(m_p_shm_vdi != NULL) {
         mmp_oal_shm::destroy_object(m_p_shm_vdi, MMP_FALSE);
         m_p_shm_vdi = NULL;
     }
-#endif
 
     if(m_vpu_fd >= 0) {
        MMP_DRIVER_CLOSE(m_vpu_fd);

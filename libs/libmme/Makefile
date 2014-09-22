@@ -27,10 +27,11 @@ MME_VPULIB_TOP=$(MME_TOP)/MmpDecoder/cnm-coda960-ref_sw_pkg-v3.3.0
 MME_JPULIB_TOP=$(MME_TOP)/MmpDecoder/cnm-coda8550j-ref_sw_pkg-v1.6.5
 
 MME_SRC_UTILS = \
+   $(MME_TOP)/MmpGlobal/MmpMediaInfo.cpp \
    $(MME_TOP)/MmpComm/MmpUtil.cpp \
    $(MME_TOP)/MmpComm/MmpUtil_Jpeg.cpp \
-   $(MME_TOP)/MmpGlobal/MmpMediaInfo.cpp \
-  
+   $(MME_TOP)/MmpComm/MmpImageTool.cpp \
+     
 MME_SRC_OAL = \
     $(MME_TOP)/MmpComm/linux_tool/sysinfo.c \
     $(MME_TOP)/MmpComm/linux_tool/version.c \
@@ -80,6 +81,12 @@ MME_SRC_HW_VPU = \
     $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_dev.cpp \
     $(MME_TOP)/MmpDecoder/hw-vpu/mmp_vpu_dev_shm.cpp \
 
+MME_SRC_HW_JPU = \
+    $(MME_TOP)/MmpDecoder/hw-jpu/mmp_jpu_if.cpp \
+    $(MME_TOP)/MmpDecoder/hw-jpu/mmp_jpu_if_ana.cpp \
+    $(MME_TOP)/MmpDecoder/hw-jpu/mmp_jpu_dev.cpp \
+    $(MME_TOP)/MmpDecoder/hw-jpu/mmp_jpu_dev_shm.cpp \
+
 MME_SRC_SINGLETON = \
    $(MME_TOP)/MmpDecoder/singleton/mmp_singleton_mgr.cpp\
    $(MME_TOP)/MmpDecoder/singleton/mmp_env_mgr.cpp\
@@ -94,6 +101,9 @@ MME_SRC_DECODER = \
   $(MME_TOP)/MmpDecoder/MmpDecoderVpu.cpp \
   $(MME_TOP)/MmpDecoder/MmpDecoderVpuIF.cpp \
   $(MME_TOP)/MmpDecoder/MmpDecoderVideo_Vpu.cpp \
+  $(MME_TOP)/MmpDecoder/MmpDecoderImage.cpp \
+  $(MME_TOP)/MmpDecoder/MmpDecoderImage_JpegLib.cpp \
+  $(MME_TOP)/MmpDecoder/MmpDecoderImage_Jpu.cpp \
   
   
 MME_SRC_ENCODER = \
@@ -115,6 +125,12 @@ MME_SRC_VPULIB = \
   $(MME_VPULIB_TOP)/src/vpuhelper.c\
   $(MME_VPULIB_TOP)/src/vpuio.c\
 
+MME_SRC_JPULIB = \
+  $(MME_JPULIB_TOP)/jpuapi/jpuapi.c \
+  $(MME_JPULIB_TOP)/jpuapi/jpuapifunc.c\
+  $(MME_JPULIB_TOP)/jdi/linux/jdi.c\
+  $(MME_JPULIB_TOP)/src/jpuhelper.c\
+  
 MME_SRC_DEMUXER = \
   $(MME_TOP)/MmpDemuxer/MmpDemuxerBuffer.cpp \
   $(MME_TOP)/MmpDemuxer/MmpDemuxer.cpp \
@@ -144,14 +160,16 @@ MME_SRC_RENDERER = \
   $(MME_TOP)/MmpRenderer/MmpRenderer.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_YUVWriter.cpp \
   $(MME_TOP)/MmpRenderer/MmpRenderer_Dummy.cpp \
-  $(MME_TOP)/MmpRenderer/MmpRenderer_OdyClientEx1.cpp \
+  $(MME_TOP)/MmpRenderer/MmpRenderer_OdyClientEx2.cpp \
   
 MME_SRC_API = \
   $(MME_TOP)/api/mme_c_api_util.cpp \
   $(MME_TOP)/api/mme_c_api_video_encoder.cpp \
   $(MME_TOP)/api/mme_c_api_muxer.cpp \
 
-SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_VPULIB) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON) $(MME_SRC_HW_VPU) $(MME_SRC_API)
+SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) \
+       $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_API) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON)\
+       $(MME_SRC_VPULIB) $(MME_SRC_JPULIB) $(MME_SRC_HW_VPU) $(MME_SRC_HW_JPU)
 OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
 LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) -D$(MME_VPU_DEFINE) -D$(MME_JPU_DEFINE)\
@@ -175,14 +193,14 @@ LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) 
             -I$(MME_TOP)/MmpBuffer \
             
 LOCAL_CXXFLAGS := $(LOCAL_CFLAGS) -D__STDC_CONSTANT_MACROS
-LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp -lx264
+LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp -lx264 -ljpeg_ody
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libmsgio -lmsgio
 
-
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
 include $(BASEDIR)/Rules.mk
 #------------------------------------------------------------------------------
+

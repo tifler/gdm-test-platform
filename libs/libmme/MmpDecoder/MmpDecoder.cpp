@@ -93,9 +93,7 @@ CMmpDecoder* CMmpDecoder::CreateVideoObject(struct MmpDecoderCreateConfig *pCrea
     else { 
 
 #if (MMP_HWCODEC_VIDEO == MMP_HWCODEC_VIDEO_VPU)
-        //if(pCreateConfig->bThumbnailMode == MMP_TRUE) {
-        //
-        //}
+        
         if(CMmpDecoderVideo_Vpu::CheckSupportCodec(pCreateConfig->nFormat) == MMP_TRUE) {
             pObj=new CMmpDecoderVideo_Vpu(pCreateConfig);
         }
@@ -132,7 +130,6 @@ CMmpDecoder* CMmpDecoder::CreateImageObject(struct MmpDecoderCreateConfig *pCrea
 
 	CMmpDecoder* pObj=NULL;
 	
-#ifdef WIN32
     if(bForceSW == MMP_TRUE) {
         pObj=new CMmpDecoderImage_JpegLib(pCreateConfig);
     }
@@ -148,7 +145,7 @@ CMmpDecoder* CMmpDecoder::CreateImageObject(struct MmpDecoderCreateConfig *pCrea
 #endif
     
     }
-#endif
+
 
 	if(pObj==NULL) {
         return (CMmpDecoder*)NULL;

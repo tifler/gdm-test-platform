@@ -59,6 +59,7 @@ public:
     
     MMP_S32 GetPicWidth() { return m_bih_out.biWidth; }
     MMP_S32 GetPicHeight() { return m_bih_out.biHeight; }
+    MMP_U32 GetPicFormat() { return m_bih_out.biCompression; }
 };
 
 #endif

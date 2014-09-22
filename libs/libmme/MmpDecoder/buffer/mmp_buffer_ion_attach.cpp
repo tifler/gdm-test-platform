@@ -71,16 +71,7 @@ MMP_RESULT mmp_buffer_ion_attach::open() {
             this->m_buf_addr.m_phy_addr = this->get_phy_addr_from_shared_fd(this->m_buf_addr.m_shared_fd);
         }
         else if(this->m_buf_addr.m_phy_addr != 0) {
-
-#if (MMP_OS == MMP_OS_WIN32)
-            ret = ion_alloc_fd(ion_fd, this->m_buf_addr.m_size, 0, ION_HEAP_CARVEOUT_MASK,  0, (int*)&m_phyaddr_fd);
-            this->m_buf_addr.m_vir_addr = (unsigned int)MMP_DRIVER_MMAP(NULL, this->m_buf_addr.m_size, (PROT_READ | PROT_WRITE), MAP_SHARED, m_phyaddr_fd, 0);
-            this->m_buf_addr.m_phy_addr = this->m_buf_addr.m_vir_addr;
-
-#else
             this->m_buf_addr.m_vir_addr = this->get_vir_addr_from_phy_addr(this->m_buf_addr.m_phy_addr, this->m_buf_addr.m_size);
-#endif
-
             this->m_buf_addr.m_shared_fd = -1;
         }
         else {

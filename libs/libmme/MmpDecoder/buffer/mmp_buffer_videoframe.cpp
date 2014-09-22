@@ -31,7 +31,7 @@ mmp_buffer_videoframe::mmp_buffer_videoframe() : mmp_buffer_media(VIDEO_FRAME)
 ,m_pic_width(0)
 ,m_pic_height(0)
 ,m_plane_count(0)
-,m_format(0)
+,m_fourcc(0)
 {
     MMP_S32 i;
 

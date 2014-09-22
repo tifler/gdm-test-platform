@@ -27,6 +27,7 @@ SRCS_MAIN = \
 SRCS_SYSTEM = system/mme_cmd_system.cpp
 
 SRCS_PLAYER = multimedia/mme_cmd_player.cpp\
+              multimedia/mme_cmd_jpeg.cpp\
               multimedia/mme_cmd_vpu.cpp\
               multimedia/mme_cmd_encoder.cpp\
               

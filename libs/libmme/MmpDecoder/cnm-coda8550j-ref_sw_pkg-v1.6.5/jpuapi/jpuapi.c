@@ -225,9 +225,23 @@ JpgRet JPU_DecGetInitialInfo(JpgDecHandle handle, JpgDecInitialInfo * info)
     pDecInfo->nextRstIdx = -1;
 #endif
 
+#ifdef __JPU_PLATFORM_MME
+
+    switch(pDecInfo->format) {
+        case FORMAT_444:
+            pDecInfo->packedFormat = PACKED_FORMAT_444;
+            break;
+
+        default:
+            pDecInfo->packedFormat = PACKED_FORMAT_NONE;
+            break;
+    }
+
+#else
 	if ((pDecInfo->packedFormat == PACKED_FORMAT_444) && (pDecInfo->format != FORMAT_444)) {
 		return JPG_RET_INVALID_PARAM;
 	}
+#endif
 
 	if (pDecInfo->roiEnable) {
 

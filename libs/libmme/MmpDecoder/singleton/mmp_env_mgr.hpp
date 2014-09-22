@@ -37,6 +37,9 @@ friend class mmp_jpu_dev;
 public:
     enum {
         ENV_UINT_VPU_SHM_KEY=0,
+        ENV_UINT_VPU_REG_PHY_ADDR,
+        ENV_UINT_VPU_REG_VIR_ADDR,
+        ENV_UINT_VPU_REG_SIZE,
         ENV_UINT_VPU_EXTERNAL_MUTEX_KEY,
         
         ENV_UINT_JPU_SHM_KEY,

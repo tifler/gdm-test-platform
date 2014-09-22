@@ -84,9 +84,7 @@ typedef struct CMmpRenderCreateProp_st
     //Video Render
     void* m_hRenderWnd; //rendering window handle
     void* m_hRenderDC;  //rendering window DC
-
-    MMP_PIXELFORMAT m_renderPixelFormat;
-
+    
     int m_iBoardWidth;  //for example, lcd width or Monitor Width
     int m_iBoardHeight; //for example, lcd height or Monitor Height
 
@@ -97,6 +95,7 @@ typedef struct CMmpRenderCreateProp_st
 
     int m_iPicWidth;    // real picture width
     int m_iPicHeight;   // real picture height
+    MMP_U32 pic_format;
 
     //Video Encoder Option
     MMP_BOOL m_bVideoEncoder;

@@ -70,9 +70,9 @@ public:
 
     virtual class mmp_buffer_imagestream* alloc_media_imagestream(MMP_S32 stream_max_size, MMP_U32 buf_type=mmp_buffer::HEAP) = 0;
     virtual class mmp_buffer_imagestream* alloc_media_imagestream(MMP_CHAR* image_file_name, MMP_U32 buf_type=mmp_buffer::HEAP) = 0;
-    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420) = 0;
+    virtual class mmp_buffer_imageframe* alloc_media_imageframe(MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc=MMP_FOURCC_IMAGE_I420) = 0;
     virtual class mmp_buffer_imageframe* attach_media_imageframe(MMP_S32 *shared_ion_fd, MMP_S32 *ion_mem_offset,
-                                                                 MMP_S32 pic_width, MMP_S32 pic_height, MMP_U32 format=MMP_FOURCC_IMAGE_I420) = 0;
+                                                                 MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc=MMP_FOURCC_IMAGE_I420) = 0;
     
     virtual MMP_RESULT free_media_buffer(class mmp_buffer_media*) = 0;
 

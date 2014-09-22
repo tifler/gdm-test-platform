@@ -47,7 +47,7 @@
 
 #endif
 
-
+#define MME_VIDEO_ENCODER_TEST_DUMP_KEY 0x00AA
 struct mme_video_encoder_config {
     int width;
     int height;
@@ -56,6 +56,8 @@ struct mme_video_encoder_config {
     int fps;
     int idr_period; 
     int sw_codec_use; /* if 1, use FFMpeg Encoder */
+
+    unsigned int test_dump_key; /* to dump, set MME_VIDEO_ENCODER_TEST_DUMP_KEY */
 };
 
 struct mme_muxer_config {
