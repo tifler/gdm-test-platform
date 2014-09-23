@@ -35,6 +35,7 @@ friend class mmp_oal_mutex;
 private:
 	sem_t *m_p_sem;
     sem_t m_sem;
+    int m_sem_id;
 	
 protected:
     

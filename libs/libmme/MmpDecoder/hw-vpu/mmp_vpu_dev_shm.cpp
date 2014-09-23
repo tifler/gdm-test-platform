@@ -77,7 +77,7 @@ MMP_RESULT mmp_vpu_dev_shm::open() {
 
     /* create external mutex */
     if(mmpResult == MMP_SUCCESS) {
-        m_p_mutex_external_cs = mmp_oal_mutex::create_object(0x11);
+        m_p_mutex_external_cs = mmp_oal_mutex::create_object(mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_VPU_EXTERNAL_MUTEX_KEY));
         if(m_p_mutex_external_cs == NULL) {
             mmpResult = MMP_FAILURE;
         }
@@ -141,10 +141,16 @@ MMP_RESULT mmp_vpu_dev_shm::close() {
         m_p_mutex = NULL;
     }
 
+#if 0
+    if(m_p_mutex_external_cs != NULL) {
+        m_p_mutex_external_cs->lock();
+    }
+#else
     if(m_p_mutex_external_cs != NULL) {
         mmp_oal_mutex::destroy_object(m_p_mutex_external_cs);
         m_p_mutex_external_cs = NULL;
     }
+#endif
 
     MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_vpu_dev_shm::close] app_count=%d "), app_count));
 

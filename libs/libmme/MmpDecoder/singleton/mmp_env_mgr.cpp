@@ -129,14 +129,14 @@ m_vpu_fd(-1)
     }
 
     /* Init VPU Env Value */
-    this->set_uint(ENV_UINT_VPU_SHM_KEY, 0xAAAA9829);  /* VPU Shared Memory Key */
+    this->set_uint(ENV_UINT_VPU_SHM_KEY, MMP_SHARED_MEM_VPU_KEY);  /* VPU Shared Memory Key */
     this->set_char(ENV_CHAR_VPU_DRV_NAME, MMP_VPU_DEVICE_NAME);
     this->set_uint(ENV_UINT_VPU_REG_PHY_ADDR, MMP_VPU_REG_BASE); /* VPU Register Phy Addr */
     this->set_uint(ENV_UINT_VPU_REG_SIZE, MMP_VPU_REG_SIZE); /* VPU Register Size */
     this->set_uint(ENV_UINT_VPU_EXTERNAL_MUTEX_KEY, MMP_EXTERNAL_MUTEX_MEM_VPU_KEY);
     
     /* Init JPU Env Value */
-    this->set_uint(ENV_UINT_JPU_SHM_KEY, 0xCCCC9829);  /* JPU Shared Memory Key */
+    this->set_uint(ENV_UINT_JPU_SHM_KEY, MMP_SHARED_MEM_JPU_KEY);  /* JPU Shared Memory Key */
     this->set_uint(ENV_UINT_JPU_REG_PHY_ADDR, MMP_JPU_REG_BASE); /* JPU Register Phy Addr */
     this->set_uint(ENV_UINT_JPU_REG_SIZE, MMP_JPU_REG_SIZE); /* JPU Register Size */
     this->set_char(ENV_CHAR_JPU_DRV_NAME, MMP_JPU_DEVICE_NAME);
