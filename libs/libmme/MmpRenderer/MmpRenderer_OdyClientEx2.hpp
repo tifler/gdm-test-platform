@@ -44,10 +44,6 @@ struct ody_videoframe {
 	int shared_fd[3];
 	unsigned char *address[3];	/* virtual address */
 	int size[3];
-	#if ROTATOR_FEATURE_ENABLE
-	int rot_shared_fd;
-	unsigned char *rot_address;	
-	#endif
 };
 
 struct ody_framebuffer {
