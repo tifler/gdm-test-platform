@@ -66,6 +66,7 @@ struct ody_videofile {
 	int out_w, out_h;
 
 	int rotation;
+	int auto_rot;
 };
 
 struct ody_videoframe {
@@ -439,7 +440,7 @@ void *decoding_thread(void *arg)
 		}
 		frame_num ++;
 
-		if(frame_num%30 == 0) {
+		if(gplayer->video_info.auto_rot && frame_num%30 == 0) {
 			gplayer->video_info.rotation ++;
 			gplayer->video_info.rotation = (gplayer->video_info.rotation % GDM_DSS_ROTATOR_DIR_MAX);
 
@@ -473,14 +474,8 @@ void *decoding_thread(void *arg)
 			req_data.dst_data.memory_id = 0;
 		}
 
-		if(frame_num%30 == 0)
-			printf("dss_overlay_queue\n");
-
 		dss_overlay_queue(sockfd, &req_data);
 		ret = dss_get_fence_fd(sockfd, &gplayer->release_fd, NULL);
-
-		if(frame_num%30 == 0)
-			printf("dss_overlay_queue - end\n");
 
 		if(ret == -1) {
 			gplayer->stop = 1;
@@ -555,6 +550,7 @@ static void help(char *progname)
             		"\t\t 5: 90 degree \n" \
             		"\t\t 6: 270 degree \n" \
             		"\t\t 7: 90 + HFlip \n" \
+	    "  -ar rotation change per 30fps \n" \
             		, progname);
 
     fprintf(stderr, "-----------------------------------------------------------------------\n");
@@ -612,6 +608,7 @@ int main(int argc, char **argv)
 				{"dw", required_argument, 0, 0},	// output width
 				{"dh", required_argument, 0, 0},	// output height
 				{"dr", required_argument, 0, 0},	// output rotation
+				{"ar", required_argument, 0, 0},	// rotation change...
 				{0, 0, 0, 0}
 			};
 
@@ -686,6 +683,9 @@ int main(int argc, char **argv)
 		/* rotation */
 		case 15:
 			pvideo->rotation = atoi(optarg);
+			break;
+		case 16:
+			pvideo->auto_rot = atoi(optarg);
 			break;
 		default:
 			help(argv[0]);
