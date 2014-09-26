@@ -426,7 +426,8 @@ void *framebuffer_generator(void *arg)
 		load_image(fb_ctx, fb_ctx->render_ndx, frame_count);
 
 		pthread_mutex_lock(&ren_mutex);
-		fb_ctx->render_ndx ^= 1;
+		fb_ctx->render_ndx ++;
+		fb_ctx->render_ndx %= FRAMEBUFFER_NUM;
 		frame_count ++;
 		pthread_cond_signal(&fb_ren);
 		pthread_mutex_unlock(&ren_mutex);

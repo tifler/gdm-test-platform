@@ -435,6 +435,22 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 
 }
 
+static int dss_get_response(int sockfd)
+{
+	int ret = 0;
+	struct gdm_msghdr *msg = NULL;
+
+	msg = gdm_recvmsg(sockfd);
+
+	if(msg != NULL){
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+		gdm_free_msghdr(msg);
+	}
+
+	return ret;
+}
+
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
 	struct gdm_msghdr *msg = NULL;
@@ -584,6 +600,8 @@ void *gfx_renderer(void *arg)
 
 		dss_overlay_default_gfx_config(&req, gfx_ctx);
 		dss_overlay_set(sockfd, &req);
+		dss_get_response(sockfd);
+
 		dss_overlay_queue(sockfd, &req_data);
 		dss_get_fence_fd(sockfd, &gfx_ctx->release_fd, NULL);
 
@@ -656,6 +674,7 @@ int main(int argc, char **argv)
 	while(!gfx_context->bstop) {
 		sleep(1);
 	}
+	sleep(1);
 exit:
 	free(gfx_context);
 

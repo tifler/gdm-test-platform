@@ -89,7 +89,7 @@ struct ody_player {
 	struct fb_var_screeninfo vi;
 	struct ody_framebuffer fb_info;
 	struct ody_videofile video_info;
-	struct ody_videoframe frame[2];
+	struct ody_videoframe frame[FRAMEBUFFER_NUM];
 
 	int release_fd;
 	int buf_index;
@@ -272,6 +272,23 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,
 
 }
 
+static int dss_get_response(int sockfd)
+{
+	int ret = 0;
+	struct gdm_msghdr *msg = NULL;
+
+	msg = gdm_recvmsg(sockfd);
+
+	if(msg != NULL){
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+		gdm_free_msghdr(msg);
+	}
+
+	return ret;
+}
+
+
 static int dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
 	int ret = 0;
@@ -404,7 +421,7 @@ void *decoding_thread(void *arg)
 	// step-02: request overlay to display
 	dss_overlay_default_config(&req, gplayer);
 	dss_overlay_set(sockfd, &req);
-
+	ret = dss_get_response(sockfd);
 	// step-03: send framebuffer to display
 	buf_ndx = 0;
 	while(!gplayer->stop) {
@@ -421,6 +438,19 @@ void *decoding_thread(void *arg)
 			}
 		}
 		frame_num ++;
+
+		if(frame_num%30 == 0) {
+			gplayer->video_info.rotation ++;
+			gplayer->video_info.rotation = (gplayer->video_info.rotation % GDM_DSS_ROTATOR_DIR_MAX);
+
+	//		if(gplayer->video_info.rotation == 0)
+	//			gplayer->video_info.rotation = 1;
+			dss_overlay_default_config(&req, gplayer);
+			dss_overlay_set(sockfd, &req);
+			ret = dss_get_response(sockfd);
+			printf("Change Rotation: %d\n", gplayer->video_info.rotation);
+		}
+
 
 		memset(&req_data, 0x00, sizeof(struct gdm_dss_overlay_data));
 		req_data.id = 0;
@@ -442,8 +472,15 @@ void *decoding_thread(void *arg)
 		else {
 			req_data.dst_data.memory_id = 0;
 		}
+
+		if(frame_num%30 == 0)
+			printf("dss_overlay_queue\n");
+
 		dss_overlay_queue(sockfd, &req_data);
 		ret = dss_get_fence_fd(sockfd, &gplayer->release_fd, NULL);
+
+		if(frame_num%30 == 0)
+			printf("dss_overlay_queue - end\n");
 
 		if(ret == -1) {
 			gplayer->stop = 1;
@@ -457,7 +494,8 @@ void *decoding_thread(void *arg)
 			gplayer->release_fd = -1;
 		//	printf("sync_wait - out\n");
 		}
-		buf_ndx ^= 1;
+		buf_ndx ++;
+		buf_ndx %= FRAMEBUFFER_NUM;
 
 //		usleep(50*1000);
 	}
@@ -471,7 +509,7 @@ void *decoding_thread(void *arg)
 	sleep(1);
 
 
-	for(buf_ndx = 0; buf_ndx< 2; buf_ndx++) {
+	for(buf_ndx = 0; buf_ndx< FRAMEBUFFER_NUM; buf_ndx++) {
 		for(i=0;i<3;i++) {
 			if(gplayer->frame[buf_ndx].shared_fd[i] > 0) {
 				munmap(gplayer->frame[buf_ndx].address[i],
@@ -672,20 +710,12 @@ int main(int argc, char **argv)
 
 	//}
 
-	gplayer.frame[0].size[0] = pvideo->width * pvideo->height;
-	gplayer.frame[0].size[1] = gplayer.frame[0].size[2] = pvideo->width * pvideo->height / 4;
+	for(i = 0; i< FRAMEBUFFER_NUM ; i++) {
+		gplayer.frame[i].size[0] = pvideo->width * pvideo->height;
+		gplayer.frame[i].size[1] = gplayer.frame[i].size[2] = pvideo->width * pvideo->height / 4;
 
-	gplayer.frame[1].size[0] = gplayer.frame[0].size[0];
-	gplayer.frame[1].size[1] = gplayer.frame[0].size[1];
-	gplayer.frame[1].size[2] = gplayer.frame[0].size[2];
-
-	printf("frame size: %d %d\n", gplayer.frame[0].size[0], gplayer.frame[1].size[0]);
-
-	for(i=0; i< 2; i++) {
-		if(alloc_video_memory(&gplayer.frame[i]) != 0) {/* front buffer */
+		if(alloc_video_memory(&gplayer.frame[i]) != 0) /* front buffer */
 			goto exit;
-
-		}
 	}
 
 	if(pthread_create(&decoding_worker, NULL, decoding_thread, &gplayer) != 0)
@@ -701,7 +731,7 @@ int main(int argc, char **argv)
 	}
 
 exit:
-	for(i=0; i< 2; i++)
+	for(i=0; i< FRAMEBUFFER_NUM; i++)
 		dealloc_video_memory(&gplayer.frame[i]);
 
 	pthread_cancel(decoding_worker);

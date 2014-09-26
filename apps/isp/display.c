@@ -178,6 +178,22 @@ static struct GDispPixelFormat pixelFormats[] = {
 };
 
 /*****************************************************************************/
+static int dss_get_response(int sockfd)
+{
+	int ret = 0;
+	struct gdm_msghdr *msg = NULL;
+
+	msg = gdm_recvmsg(sockfd);
+
+	if(msg != NULL){
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+		gdm_free_msghdr(msg);
+	}
+
+	return ret;
+}
+
 
 static void dss_get_fence_fd(
         int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
@@ -335,7 +351,8 @@ int GDispSetFormat(struct GDMDisplay *d, const struct GDMDispFormat *fmt)
     overlay.flags = 0;//GDM_DSS_FLAG_SCALING;
     overlay.id = GDMFB_NEW_REQUEST;
 
-    return dss_overlay_set(d->sockfd, &overlay);
+    dss_overlay_set(d->sockfd, &overlay);
+    return dss_get_response(d->sockfd);
 }
 
 int GDispSetAttr(struct GDMDisplay *d, const struct GDMDispAttr *attr)

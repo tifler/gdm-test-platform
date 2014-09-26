@@ -81,7 +81,7 @@ struct sockaddr_un {
 #define BUFFER_SIZE            (4096)
 #define FD_COUNT               (16)
 
-
+static int dss_get_response(int sockfd);
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
 static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer);
 static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req);
@@ -182,6 +182,7 @@ MMP_RESULT CMmpRenderer_OdyClient::Open()
 
 	    dss_overlay_default_config(&m_req, gplayer);
 	    dss_overlay_set(m_sock_fd, &m_req);
+		dss_get_response(m_sock_fd);
     }
 
 	m_luma_size = m_pRendererProp->m_iPicWidth*m_pRendererProp->m_iPicHeight;
@@ -440,6 +441,24 @@ MMP_RESULT CMmpRenderer_OdyClient::RenderYUV420Planar_Memory(MMP_U8* Y, MMP_U8* 
 
 	return MMP_SUCCESS;
 }
+
+
+static int dss_get_response(int sockfd)
+{
+	int ret = 0;
+	struct gdm_msghdr *msg = NULL;
+
+	msg = gdm_recvmsg(sockfd);
+
+	if(msg != NULL){
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+		gdm_free_msghdr(msg);
+	}
+
+	return ret;
+}
+
 
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {

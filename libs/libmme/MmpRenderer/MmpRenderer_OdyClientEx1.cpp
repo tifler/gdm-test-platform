@@ -94,6 +94,7 @@ struct sockaddr_un {
 #include "../MmpComm/colorspace/colorspace.h"
 #endif
 
+static int dss_get_response(int sockfd);
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
 static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer);
 static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req);
@@ -139,8 +140,8 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 
         pfb = &gplayer->fb_info;
 		pvideo = &gplayer->video_info;
-        
-		
+
+
         switch(m_pRendererProp->pic_format) {
             case MMP_FOURCC_IMAGE_BGR888:
                 pvideo->format = GDMFB_BGR888;
@@ -208,6 +209,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Open()
 
 	    dss_overlay_default_config(&m_req, gplayer);
 	    dss_overlay_set(m_sock_fd, &m_req);
+		dss_get_response(m_sock_fd);
     }
 
 	m_luma_size = m_pRendererProp->m_iPicWidth*m_pRendererProp->m_iPicHeight;
@@ -253,6 +255,7 @@ void CMmpRenderer_OdyClientEx1::SetFirstRenderer() {
     if(m_sock_fd >= 0) {
         CMmpRenderer::SetFirstRenderer();
         dss_overlay_set(m_sock_fd, &m_req);
+		dss_get_response(m_sock_fd);
     }
 }
 
@@ -364,6 +367,24 @@ MMP_RESULT CMmpRenderer_OdyClientEx1::Render(class mmp_buffer_imageframe* p_buf_
 
 	return mmpResult;
 }
+
+static int dss_get_response(int sockfd)
+{
+	int ret = 0;
+	struct gdm_msghdr *msg = NULL;
+
+	msg = gdm_recvmsg(sockfd);
+
+	if(msg != NULL){
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+		gdm_free_msghdr(msg);
+	}
+
+	return ret;
+}
+
+
 
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {

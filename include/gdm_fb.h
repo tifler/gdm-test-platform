@@ -240,8 +240,553 @@ struct gdm_display_commit {
 
 
 
+struct gdm_overlay_list {
+	uint32_t num_overlays;
+	struct gdm_dss_overlay **overlay_list;
+	uint32_t flags;
+	uint32_t processed_overlays;
+};
+
+union nr_peaking_control {
+	struct {
+		int nrp_on 		: 1;
+		int nr_on		: 1;
+		int nrp_lti_limit_on	: 1;
+		int nrp_lti_on		: 1;
+		int nrp_peaking_on	: 1;
+		int nrp_lti_kernel_size	: 1;
+		int nrp_pk_kernel_size	: 1;
+		int resevered		: 25;
+	} af;
+	uint32_t a32;
+};
+
+union nr_peaking_config0 {
+	struct {
+		int nr_range_sel	: 4;
+		int nr_domain		: 4;
+		int nr_gain		: 8;
+		int pk_config_pre	: 8;
+		int reserved		: 8;
+	} af;
+	uint32_t a32;
+};
+
+union nr_peaking_config1 {
+	struct {
+		int pk_gain		: 8;
+		int pk_limit		: 8;
+		int pk_coring_post	: 8;
+		int reserved		: 8;
+	 } af;
+	uint32_t a32;
+};
+
+union nr_peaking_config2 {
+	struct {
+		int pk_ctrl_y1		: 8;
+		int pk_ctrl_tan		: 8;
+		int pk_ctrl_x1		: 8;
+		int reserved		: 8;
+	 } af;
+	uint32_t a32;
+};
+
+union nr_peaking_config3 {
+	struct {
+		int lti_ctrl_x1		: 8;
+		int lti_gain		: 8;
+		int pk_ctrl_y2		: 8;
+		int reserved		: 8;
+	 } af;
+	uint32_t a32;
+};
+
+union nr_peaking_config4 {
+	struct {
+		int lti_ctrl_y2		: 8;
+		int lti_ctrl_y1		: 8;
+		int lti_ctrl_tan	: 8;
+		int reserved		: 8;
+	 } af;
+	uint32_t a32;
+};
+
+struct gdm_dss_nr_peaking {
+	union nr_peaking_control	ctrl;
+	union nr_peaking_config0	config0;
+	union nr_peaking_config1	config1;
+	union nr_peaking_config2	config2;
+	union nr_peaking_config3	config3;
+	union nr_peaking_config4	config4;
+};
+
+struct gdmfb_nrp_data {
+	uint32_t op_mode;
+	struct gdm_dss_nr_peaking nrp_ctl;
+};
+
+enum gdm_dss_csc_type {
+	GDM_DSS_CSC_JPEG = 0,
+	GDM_DSS_CSC_SD_601,
+	GDM_DSS_CSC_HD_709,
+	GDM_DSS_CSC_MAX,
+};
+
+union pp1_control {
+	struct {
+		uint32_t reserved0	:	4;
+		uint32_t r1_csc_on	:	1;
+		uint32_t r1_range_mode :	1;
+		uint32_t reserved1	: 	2;
+		uint32_t cont_on	:	1;
+		uint32_t cont_bl_on	:	1;
+		uint32_t cont_ana_sel :	1;
+		uint32_t reserved2	:	1;
+		uint32_t color_process_on : 	3;
+		//uint32_t reserved3	:	2;
+		uint32_t con_bri_on	:	1;
+		uint32_t round_on	:	1;
+		uint32_t reserved4	:	7;
+		uint32_t tone1_on	:	1;
+		uint32_t tone2_on	:	1;
+		uint32_t tone3_on	:	1;
+		uint32_t rect_test	:	1;
+	} af;
+	uint32_t a32;
+};
+
+
+/* 0x0C24 */
+union pp1_con_cfg0 {
+	struct {
+		uint32_t signal_range_low :	8;
+		uint32_t reserved0	:	8;
+		uint32_t signal_range_gain : 16;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_con_cfg1 {
+	struct {
+		uint32_t sc_gain_limit_high : 8;
+		uint32_t sc_gain_limit_low : 8;
+		uint32_t sc_gain_high :	8;
+		uint32_t sc_gain_low :	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_con_cfg2 {
+	struct {
+		uint32_t mix_ratio :	8;
+		uint32_t sc_limit_ratio :	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_con_cfg3 {
+	struct {
+		uint32_t cgain_cth	:	8;
+		uint32_t cgain_ctan :	8;
+		uint32_t c2y_cgain	:	8;
+		uint32_t c2y_cth	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_con_cfg4 {
+	struct {
+		uint32_t m_bs_ref_level :	8;
+		uint32_t m_bs_tanf	:	9;
+		uint32_t reserved0	:	3;
+		uint32_t m_center	:	10;
+		uint32_t c2y_cth	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_black0 {
+	struct {
+		uint32_t black_sref_th :	8;
+		uint32_t black_sref_high :	8;
+		uint32_t black_sref_low :	8;
+		uint32_t black_sref_stan :	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_black1 {
+	struct {
+		uint32_t black_level_apl_tan : 8;
+		uint32_t black_level_apl_th	: 8;
+		uint32_t black_sref_tan	: 8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_sc_apl {
+	struct {
+		uint32_t sc_apl_max :	8;
+		uint32_t sc_apl_min	:	8;
+		uint32_t sc_apl_offset :	8;
+		uint32_t sc_apl_tan	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_iir0 {
+	struct {
+		uint32_t iitan_high :	8;
+		uint32_t iitan_low	:	8;
+		uint32_t iidth_high :	8;
+		uint32_t iidth_low	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_iir1 {
+	struct {
+		uint32_t iigain_min_high :	8;
+		uint32_t iigain_min_low :	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cos_sin_val {
+	struct {
+		uint32_t sin_val	:	14;
+		uint32_t reserved0	:	2;
+		uint32_t cos_val	:	14;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_gain_cfg0 {
+	struct {
+		uint32_t color_gain	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_pg_mg {
+	struct {
+		uint32_t cr_mg	:	8;
+		uint32_t cr_pg	:	8;
+		uint32_t cb_mg	:	8;
+		uint32_t cb_pg	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_rect_cfg0 {
+	struct {
+		uint32_t rect_bottom :	8;
+		uint32_t rect_right	:	8;
+		uint32_t rect_top	:	8;
+		uint32_t rect_left	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_rect_cfg1 {
+	struct {
+		uint32_t rect_tcr	:	8;
+		uint32_t rect_tcb	:	8;
+		uint32_t rect_scr	:	8;
+		uint32_t rect_scb	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_rect_cfg2 {
+	struct {
+		uint32_t rect_btan	:	8;
+		uint32_t rect_ttan	:	8;
+		uint32_t rect_rtan	:	8;
+		uint32_t rect_ltan	:	8;
+	} af;
+	uint32_t a32;
+};
+
+struct pp1_rect_cfg {
+	union pp1_rect_cfg0 pp1_rect_cfg0;
+	union pp1_rect_cfg1 pp1_rect_cfg1;
+	union pp1_rect_cfg2 pp1_rect_cfg2;
+};
+
+union pp1_cs1_offset {
+	struct {
+		uint32_t cs1_offset3 :	9;
+		uint32_t cs1_offset2 :	9;
+		uint32_t cs1_offset1 : 	9;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cs1_coe_1_2 {
+	struct {
+		uint32_t cs1_coe2	:	13;
+		uint32_t cs1_coe1	:	13;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cs1_coe_3_4 {
+	struct {
+		uint32_t cs1_coe4	:	13;
+		uint32_t cs1_coe3	:	13;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cs1_coe_5_6 {
+	struct {
+		uint32_t cs1_coe6	:	13;
+		uint32_t cs1_coe5	:	13;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cs1_coe_7_8 {
+	struct {
+		uint32_t cs1_coe8	:	13;
+		uint32_t cs1_coe7	:	13;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cs1_coe_9 {
+	struct {
+		uint32_t cs1_coe9	:	13;
+	} af;
+	uint32_t a32;
+};
+
+
+union pp1_con_bri_gain {
+	struct {
+		uint32_t con_bri_gain3 :	9;
+		uint32_t con_bri_gain2 :	9;
+		uint32_t con_bri_gain1 :	9;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_con_bri_offset {
+	struct {
+		uint32_t con_bri_offset3 :	9;
+		uint32_t con_bri_offset2 :	9;
+		uint32_t con_bri_offset1 :	9;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cont_anal_apl {
+	struct {
+		uint32_t r_apcl 	:	8;
+		uint32_t r_aplf	:	8;
+		uint32_t r_aplfa	:	12;
+	} af;
+	uint32_t a32;
+};
+
+union pp1_cont_anal_center {
+	struct {
+		uint32_t r_bsreflevel :	8;
+		uint32_t r_bstanf	:	9;
+		uint32_t reserved0	:	3;
+		uint32_t r_center	:	10;
+	} af;
+	uint32_t a32;
+};
+
+
+struct gdm_dss_pp1 {
+	uint8_t	csc_type;
+	union 	pp1_control 	pp1_control;
+	union	pp1_con_cfg0	con_cfg0;
+	union	pp1_con_cfg1	con_cfg1;
+	union	pp1_con_cfg2	con_cfg2;
+	union	pp1_con_cfg3	con_cfg3;
+	union	pp1_con_cfg4	con_cfg4;
+	union 	pp1_black0	black0;
+	union 	pp1_black1	black1;
+	union 	pp1_sc_apl	sc_apl;
+	union 	pp1_iir0	iir0;
+	union 	pp1_iir1	iir1;
+	union 	pp1_cos_sin_val	cos_sin_val;
+	union 	pp1_gain_cfg0	gain_cfg0;
+	union 	pp1_pg_mg	pg_mg;
+	struct 	pp1_rect_cfg 	rect_cfg[3];
+	union 	pp1_cs1_offset	cs1_pre_offset;
+	union 	pp1_cs1_offset	cs1_post_offset;
+	union 	pp1_cs1_coe_1_2	cs1_coe_1_2;
+	union 	pp1_cs1_coe_3_4	cs1_coe_3_4;
+	union 	pp1_cs1_coe_5_6	cs1_coe_5_6;
+	union 	pp1_cs1_coe_7_8	cs1_coe_7_8;
+	union 	pp1_cs1_coe_9	cs1_coe_9;
+	union 	pp1_con_bri_gain  con_bri_gain;
+	union 	pp1_con_bri_offset	con_bri_offset;
+	uint32_t			reserved1[15];
+	union 	pp1_cont_anal_apl	cont_anal_apl;
+	union 	pp1_cont_anal_center	cont_anal_center;
+};
+
+struct gdmfb_pp1_data {
+	uint32_t op_mode;
+	struct gdm_dss_pp1 pp1_ctl;
+};
+
+union pp2_control {
+	struct {
+		uint32_t reserved0	:	16;
+		uint32_t gamma_lut_on :	1;
+		uint32_t lut3d_on	:	1;
+		uint32_t gamma_on	:	1;
+		uint32_t degamma_on	:	1;
+		uint32_t wb_conbri_on :	1;
+		uint32_t dither_on	:	1;
+		uint32_t pattern_on	:	1;
+		uint32_t reserved1	:	4;
+		uint32_t pattern_mode :	4;
+	} af;
+	volatile uint32_t a32;
+};
+
+union pp2_size {
+	struct {
+		uint32_t width	:	12;
+		uint32_t reserved0	:	4;
+		uint32_t height	:	12;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_lut3d_color {
+	struct {
+		uint32_t seed_b	:	8;
+		uint32_t seed_g 	:	8;
+		uint32_t seed_r 	:	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_wb_limit {
+	struct {
+		uint32_t wb_limit_hmax	:	2;
+		uint32_t reserved0		:	2;
+		uint32_t wb_limit_lmax	:	2;
+		uint32_t reserved1		:	2;
+		uint32_t wb_limit_lmin	:	2;
+	} af;
+	uint32_t a32;
+};
+
+
+union pp2_wb_gain {
+	struct {
+		uint32_t pp2_gain3	:	9;
+		uint32_t pp2_gain2	:	9;
+		uint32_t pp2_gain1	:	9;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_wb_offset {
+	struct {
+		uint32_t wb_offset3	: 	9;
+		uint32_t wb_offset2	: 	9;
+		uint32_t wb_offset1	: 	9;
+	} af;
+	uint32_t a32;
+};
+
+
+struct dss_pp2_wb {
+	union pp2_wb_limit	wb_limit;
+	union pp2_wb_gain	wb_gain;
+	union pp2_wb_offset	wb_offset;
+};
+
+union pp2_dither_bit {
+	struct {
+		uint32_t pp2_dith_bit3 :	2;
+		uint32_t reserved0	:	2;
+		uint32_t pp2_dith_bit2 :	2;
+		uint32_t reserved1	:	2;
+		uint32_t pp2_dith_bit1 : 	2;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_gamma_lut_ce {
+	struct {
+		uint32_t pp2_dith_bit3 :	2;
+		uint32_t reserved0	:	2;
+		uint32_t pp2_dith_bit2 :	2;
+		uint32_t reserved1	:	2;
+		uint32_t pp2_dith_bit1 :	2;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_gamma_lut_addr {
+	struct {
+		uint32_t gamma_lut_addr0 :	8;
+		uint32_t gamma_lut_addr1 :	8;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_gamma_wdata {
+	struct {
+		uint32_t gamma_lut_wdata0 :	16;
+		uint32_t gamma_lut_wdata1 :	16;
+	} af;
+	uint32_t a32;
+};
+
+union pp2_gamma_rdata {
+	struct {
+		uint32_t gamma_lut_rdata0 :	16;
+		uint32_t gamma_lut_rdata1 :	16;
+	} af;
+	uint32_t a32;
+};
+
+
+
+struct gdm_dss_pp2 {
+	union 	pp2_control 	pp2_ctl;
+	union	pp2_size  	pp2_size;
+	uint32_t			reserved0[34];
+	union 	pp2_lut3d_color	lut3d_black;
+	union	pp2_lut3d_color	lut3d_blue;
+	union	pp2_lut3d_color	lut3d_green;
+	union	pp2_lut3d_color	lut3d_cyan;
+	union	pp2_lut3d_color	lut3d_red;
+	union	pp2_lut3d_color	lut3d_magenta;
+	union	pp2_lut3d_color	lut3d_yellow;
+	union	pp2_lut3d_color	lut3d_white;
+	uint32_t			reserved1[2];
+	union 	pp2_wb_limit	wb_limit;
+	union 	pp2_wb_gain	wb_gain;
+	union 	pp2_wb_offset	wb_offset;
+	union	pp2_dither_bit	 dither_bit;
+	union	pp2_gamma_lut_ce gamma_lut_ce;
+};
+
+struct gdmfb_pp2_data {
+	uint32_t	op_mode;
+	struct gdm_dss_pp2 pp2_ctl;
+};
+
+//
+/* IOCTL commands */
 #define GDMFB_IOCTL_MAGIC	'A'
 #define GDMFB_SET_LUT			_IOW(GDMFB_IOCTL_MAGIC, 101, struct fb_cmap)
+///#define GDMFB_NOTIFY_UPDATE		_IOW(GDMFB_IOCTL_MAGIC, 215, unsigned int)
 #define GDMFB_OVERLAY_VSYNC_CTRL 	_IOW(GDMFB_IOCTL_MAGIC, 102, unsigned int)
 #define GDMFB_VSYNC_CTRL  		_IOW(GDMFB_IOCTL_MAGIC, 103, unsigned int)
 #define GDMFB_BUFFER_SYNC		_IOW(GDMFB_IOCTL_MAGIC, 104, \
@@ -264,7 +809,7 @@ struct gdm_display_commit {
 #define GDMFB_OVERLAY_PREPARE		_IOWR(GDMFB_IOCTL_MAGIC, 209, \
 						struct gdm_overlay_list)
 
-#define GDMFB_WRITEBACK_INIT		_IOW(GDMFB_IOCTL_MAGIC, 300, __u32)
+#define GDMFB_WRITEBACK_INIT		_IOW(GDMFB_IOCTL_MAGIC, 300, unsigned int)
 #define GDMFB_WRITEBACK_START		_IO(GDMFB_IOCTL_MAGIC, 301)
 #define GDMFB_WRITEBACK_STOP		_IO(GDMFB_IOCTL_MAGIC, 302)
 #define GDMFB_WRITEBACK_QUEUE_BUFFER	_IOWR(GDMFB_IOCTL_MAGIC, 303, \
@@ -272,6 +817,12 @@ struct gdm_display_commit {
 #define GDMFB_WRITEBACK_DEQUEUE_BUFFER	_IOWR(GDMFB_IOCTL_MAGIC, 304, \
 						struct gdmfb_data)
 #define GDMFB_WRITEBACK_TERMINATE	_IO(GDMFB_IOCTL_MAGIC, 305)
+
+#define GDMFB_NR_PEAKING		_IOWR(GDMFB_IOCTL_MAGIC, 400, struct gdmfb_nrp_data)
+#define GDMFB_PP1			_IOWR(GDMFB_IOCTL_MAGIC, 401, struct gdmfb_pp1_data)
+#define	GDMFB_PP2			_IOWR(GDMFB_IOCTL_MAGIC, 400, struct gdmfb_pp2_data)
+
+#define GDMFB_MIXER_ROTATE		_IOWR(GDMFB_IOCTL_MAGIC, 500, struct gdm_dss_overlay)
 
 #endif // __LINUX_GDM_FB_H__
 

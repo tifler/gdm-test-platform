@@ -18,6 +18,7 @@
 #define UNIX_SOCKET_PATH                "/tmp/sock_msgio"
 #define BACKLOG                         (10)
 
+#define FRAMEBUFFER_NUM			2
 
 #define APP_ID_MULTI_SAMPLE_PLAYER	0x00001000
 #define APP_ID_GRAP_PNG_DECODER		0x00002000
@@ -25,6 +26,7 @@
 #define APP_ID_GPU_RENDERER		0x00008000
 #define APP_ID_ROT_SAMPLE_PLAYER	0x00010000
 #define APP_ID_MULTI_SAMPLE_PLAYER2	0x00020000
+#define APP_ID_PP_CONTROL		0x00040000
 
 /*****************************************************************************/
 

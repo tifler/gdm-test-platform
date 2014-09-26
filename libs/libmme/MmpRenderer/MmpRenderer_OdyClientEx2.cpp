@@ -95,6 +95,7 @@ struct sockaddr_un {
 #include "../MmpComm/colorspace/colorspace.h"
 #endif
 
+static int dss_get_response(int sockfd);
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
 static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer, enum MMP_ROTATE rotate);
 static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req);
@@ -161,8 +162,8 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Open()
 
         pfb = &gplayer->fb_info;
 		pvideo = &gplayer->video_info;
-        
-		
+
+
         switch(m_pRendererProp->pic_format) {
             case MMP_FOURCC_IMAGE_BGR888:
                 pvideo->format = GDMFB_BGR888;
@@ -197,12 +198,12 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Open()
         for(i = 0; i < ROTATE_BUF_COUNT; i++) {
             m_p_buf_rotate[i] = mmp_buffer_mgr::get_instance()->alloc_dma_buffer(j);
             if(m_p_buf_rotate[i] == NULL) {
-                MMPDEBUGMSG(1, (TEXT("[%s::%s] FAIL: alloc rotate buffer (idx=%d w=%d, h=%d, sz=%d )"), MMP_CLASS_NAME, MMP_CLASS_FUNC, 
+                MMPDEBUGMSG(1, (TEXT("[%s::%s] FAIL: alloc rotate buffer (idx=%d w=%d, h=%d, sz=%d )"), MMP_CLASS_NAME, MMP_CLASS_FUNC,
                                        i, pvideo->width, pvideo->height, j));
                 mmpResult = MMP_FAILURE;
              }
         }
-        
+
     }
 
     /* STEP1. connect to server */
@@ -244,6 +245,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Open()
 
 	    dss_overlay_default_config(&m_req, gplayer, m_rotate);
 	    dss_overlay_set(m_sock_fd, &m_req);
+		dss_get_response(m_sock_fd);
     }
 
 	m_luma_size = m_pRendererProp->m_iPicWidth*m_pRendererProp->m_iPicHeight;
@@ -307,6 +309,7 @@ void CMmpRenderer_OdyClientEx2::SetFirstRenderer() {
         CMmpRenderer::SetFirstRenderer();
         dss_overlay_default_config(&m_req, &this->m_gplayer, m_rotate);
         dss_overlay_set(m_sock_fd, &m_req);
+		dss_get_response(m_sock_fd);
     }
 }
 
@@ -339,7 +342,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_videoframe* p_buf_
     	m_req_data.dst_data.offset = 0;
         m_rend_rot_buf_idx = (m_rend_rot_buf_idx+1)%ROTATE_BUF_COUNT;
     }
-    
+
 
 #if (MMP_OS == MMP_OS_WIN32)
     this->dss_overlay_queue_win32(m_sock_fd, &m_req_data);
@@ -431,6 +434,24 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_imageframe* p_buf_
 	return mmpResult;
 }
 
+static int dss_get_response(int sockfd)
+{
+	int ret = 0;
+	struct gdm_msghdr *msg = NULL;
+
+	msg = gdm_recvmsg(sockfd);
+
+	if(msg != NULL){
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+		gdm_free_msghdr(msg);
+	}
+
+	return ret;
+}
+
+
+
 static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
 	struct gdm_msghdr *msg = NULL;
@@ -493,21 +514,21 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_p
       case MMP_ROTATE_270:
 	    req->dst_rect.w = gplayer->vi.yres;
 	    req->dst_rect.h = gplayer->vi.yres;
-	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_270);		
+	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_270);
         break;
-		
+
       case MMP_ROTATE_HFLIP:
 	    req->dst_rect.w = gplayer->vi.yres;
 	    req->dst_rect.h = gplayer->vi.yres;
-	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_HFLIP);		
+	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_HFLIP);
         break;
-		
+
       case MMP_ROTATE_VFLIP:
 	    req->dst_rect.w = gplayer->vi.yres;
 	    req->dst_rect.h = gplayer->vi.yres;
-	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_VFLIP);		
-        break;		
-		
+	    req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION | GDM_DSS_FLAG_ROTATION_VFLIP);
+        break;
+
 
     }
 
@@ -549,13 +570,13 @@ static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 	struct gdm_msghdr *msg = NULL;
 	int i = 0;
 	int fd_cnt = 0;
-			
+
 	fd_cnt = req_data->num_plane;
 	if(req_data->dst_data.memory_id)
 		fd_cnt++;
 
 	memset(&msg_data, 0x00, sizeof(struct gdm_hwc_msg));
-	
+
 	msg = gdm_alloc_msghdr(sizeof(struct gdm_hwc_msg), fd_cnt);
     if(msg != NULL) {
 	    msg_data.app_id = APP_ID_MULTI_SAMPLE_PLAYER;
@@ -565,10 +586,10 @@ static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data)
 
 	    for(i = 0 ; i < (MMP_S32)req_data->num_plane ; i++)
 		    msg->fds[i] = req_data->data[i].memory_id;
-		
+
     	if(req_data->dst_data.memory_id)
-    		msg->fds[req_data->num_plane] = req_data->dst_data.memory_id;		
-		
+    		msg->fds[req_data->num_plane] = req_data->dst_data.memory_id;
+
 	    gdm_sendmsg(sockfd, msg);
     }
 

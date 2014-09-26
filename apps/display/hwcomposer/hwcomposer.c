@@ -319,6 +319,7 @@ void *commit_thread(void *argp)
 			continue;
 		}
 
+
 		for(i = 0; i < MAX_VID_OVERLAY; i++) {
 			if(hwc_ctx->vid_cfg[i].application_id != 0) {
 				if(hwc_ctx->vid_cfg[i].is_update) {
@@ -402,10 +403,22 @@ void *commit_thread(void *argp)
 		}
 
 		vi->activate = FB_ACTIVATE_VBL;
-		if(vi->yoffset == 0)
-			vi->yoffset = vi->yres;
-		else
-			vi->yoffset = 0;
+
+		// TODO:
+		if(FRAMEBUFFER_NUM == 3) {
+			if(vi->yoffset == 0)
+				vi->yoffset = vi->yres;
+			else if(vi->yoffset == vi->yres)
+				vi->yoffset = vi->yres * 2;
+			else
+				vi->yoffset = 0;
+		}
+		else {
+			if(vi->yoffset == 0)
+				vi->yoffset = vi->yres;
+			else
+				vi->yoffset = 0;
+		}
 
 		ret = ioctl(fb_fd, FBIOPUT_VSCREENINFO, vi);
 		if(ret) {
@@ -446,6 +459,10 @@ static void *client_thread(void *arg)
 	struct gdm_hwc_msg *disp_message;
 	struct pollfd pollfd;
 
+	struct gdmfb_nrp_data *nrp_data;
+	struct gdmfb_pp1_data *pp1_data;
+	struct gdmfb_pp2_data *pp2_data;
+
 	printf("Client %d launched.\n", getpid());
 
 	resp_msg = gdm_alloc_msghdr(sizeof(struct fb_var_screeninfo), 1);
@@ -477,11 +494,29 @@ static void *client_thread(void *arg)
 
 		pthread_mutex_lock(&hwc_ctx->ov_lock);
 		switch(disp_message->hwc_cmd) {
+			case GDMFB_NR_PEAKING:
+				nrp_data = (struct gdmfb_nrp_data *)disp_message->data;
+				ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_NR_PEAKING, nrp_data);
+				break;
+			case GDMFB_PP1:
+				pp1_data = (struct gdmfb_pp1_data *)disp_message->data;
+				ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_PP1, pp1_data);
+				break;
+			case GDMFB_PP2:
+				pp2_data = (struct gdmfb_pp2_data *)disp_message->data;
+				ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_PP2, pp2_data);
+				break;
 			case GDMFB_OVERLAY_GET:
 				break;
 			case GDMFB_OVERLAY_SET:
-				register_overlay_cfg(hwc_ctx, disp_message->app_id,
+				printf("HWCOMPOSER: GDMFB_OVERLAY_SET\n");
+				ret = register_overlay_cfg(hwc_ctx, disp_message->app_id,
 						(struct gdm_dss_overlay*)disp_message->data);
+				
+				resp_msg = gdm_alloc_msghdr(10, 0);
+				*(int *)resp_msg->buf = ret;
+				gdm_sendmsg(client->sockfd, resp_msg);
+				
 				break;
 			case GDMFB_OVERLAY_UNSET:
 				unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
@@ -666,7 +701,7 @@ int main(int argc, char **argv)
 
 
 	while(!hwc_ctx->bstop){
-		usleep(10*1000);
+		usleep(20*1000);
 		timer_handler(hwc_ctx);
 	}
 
