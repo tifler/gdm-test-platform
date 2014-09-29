@@ -47,6 +47,7 @@ public:
     inline MMP_U32 get_buf_vir_addr() { return m_p_mmp_buffer->get_buf_addr().m_vir_addr; }
     inline MMP_U32 get_buf_phy_addr() { return m_p_mmp_buffer->get_buf_addr().m_phy_addr; }
     inline MMP_S32 get_buf_size() { return m_p_mmp_buffer->get_buf_addr().m_size; }
+    inline MMP_S32 get_buf_shared_fd() { return m_p_mmp_buffer->get_buf_addr().m_shared_fd; }
     
     inline void set_stream_offset(MMP_S32 offset) { m_stream_offset = offset; }
     inline MMP_S32 get_stream_offset() { return m_stream_offset; }

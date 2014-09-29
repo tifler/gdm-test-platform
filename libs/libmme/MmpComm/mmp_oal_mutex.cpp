@@ -35,8 +35,8 @@ class mmp_oal_mutex* mmp_oal_mutex::create_object(MMP_U32 key) {
 #if (MMP_OS == MMP_OS_WIN32)
 	p_obj = new class mmp_oal_mutex_win32(key);
 #elif (MMP_OS == MMP_OS_LINUX)
-	//p_obj = new class mmp_oal_mutex_linux(key);
-    p_obj = new class mmp_oal_mutex_linux_sema(key);
+	p_obj = new class mmp_oal_mutex_linux(key);
+    //p_obj = new class mmp_oal_mutex_linux_sema(key);
 #else
 #error "ERROR : Select OS "
 #endif

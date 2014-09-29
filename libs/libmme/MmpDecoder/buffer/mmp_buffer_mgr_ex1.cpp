@@ -211,9 +211,9 @@ class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 
 
     class mmp_buffer_videoframe* p_mmp_videoframe = NULL;
     MMP_RESULT mmpResult = MMP_SUCCESS;
-    MMP_S32 plane_size[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_S32 stride[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_S32 buffer_height_arr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 plane_size[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_S32 stride[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_S32 buffer_height_arr[MMP_IMAGE_MAX_PLANE_COUNT];
     MMP_S32 buffer_width, buffer_height, luma_size, chroma_size;
     MMP_S32 i;
 
@@ -236,7 +236,7 @@ class mmp_buffer_videoframe* mmp_buffer_mgr_ex1::alloc_media_videoframe(MMP_S32 
             
             switch(p_mmp_videoframe->m_fourcc) {
 
-                case MMP_FOURCC_IMAGE_I420: 
+                case MMP_FOURCC_IMAGE_YUV420_P3: 
                     p_mmp_videoframe->m_plane_count = 3;        
 
                     buffer_width = MMP_BYTE_ALIGN(p_mmp_videoframe->m_pic_width, 16);
@@ -479,10 +479,8 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
 
     class mmp_buffer_imageframe* p_mmp_imageframe = NULL;
     MMP_RESULT mmpResult = MMP_SUCCESS;
-    MMP_S32 plane_size[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_S32 stride[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_S32 buffer_height_arr[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_S32 buffer_width, buffer_height, luma_size, chroma_size;
+    MMP_S32 buffer_stride[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_S32 buffer_height_arr[MMP_IMAGE_MAX_PLANE_COUNT];
     MMP_S32 i;
 
     if(type == mmp_buffer::ION_ATTACH) {
@@ -504,69 +502,54 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
             
             switch(p_mmp_imageframe->m_fourcc) {
 
-                case MMP_FOURCC_IMAGE_I420: 
+                case MMP_FOURCC_IMAGE_YVU420_P3: 
+                case MMP_FOURCC_IMAGE_YUV420_P3: 
                     p_mmp_imageframe->m_plane_count = 3;        
 
-                    buffer_width = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width, 16);
-                    buffer_height = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_height, 16);
-                    
-                    stride[0] = buffer_width;
-                    stride[1] = buffer_width>>1;
-                    stride[2] = buffer_width>>1;
+                    buffer_stride[0] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width);
+                    buffer_stride[1] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width/2);
+                    buffer_stride[2] = buffer_stride[1];
                 
-                    buffer_height_arr[0] = buffer_height;
-                    buffer_height_arr[1] = buffer_height>>1;
-                    buffer_height_arr[2] = buffer_height>>1;
+                    buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);
+                    buffer_height_arr[1] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height/2);
+                    buffer_height_arr[2] = buffer_height_arr[1];
                     
-                    luma_size = buffer_width*buffer_height;
-                    chroma_size = luma_size>>2;
-
-                    plane_size[0] = luma_size;
-                    plane_size[1] = chroma_size;
-                    plane_size[2] = chroma_size;
-
                     break;
 
-               case MMP_FOURCC_IMAGE_YUV444P3: 
-                    p_mmp_imageframe->m_plane_count = 3;        
+                case MMP_FOURCC_IMAGE_YCbCr422_P2:  /* 16 bit Y/CbCr 4:2:2 Plane 2, V4L2_PIX_FMT_NV16 */
+                case MMP_FOURCC_IMAGE_YCrCb422_P2:  /* 16 bit Y/CrCb 4:2:2 Plane 2, V4L2_PIX_FMT_NV61 */ 
+    
+                    p_mmp_imageframe->m_plane_count = 2;        
 
-                    buffer_width = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width, 16);
-                    buffer_height = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_height, 16);
+                    buffer_stride[0] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width);
+                    buffer_stride[1] = buffer_stride[0];
+                                    
+                    buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);
+                    buffer_height_arr[1] = buffer_height_arr[0];
                     
-                    stride[0] = buffer_width;
-                    stride[1] = buffer_width;
-                    stride[2] = buffer_width;
-                
-                    buffer_height_arr[0] = buffer_height;
-                    buffer_height_arr[1] = buffer_height;
-                    buffer_height_arr[2] = buffer_height;
-                    
-                    luma_size = buffer_width*buffer_height;
-                    chroma_size = luma_size;
-
-                    plane_size[0] = luma_size;
-                    plane_size[1] = chroma_size;
-                    plane_size[2] = chroma_size;
-
                     break;
-
-               case MMP_FOURCC_IMAGE_YUV444Packed:
+               
+               case MMP_FOURCC_IMAGE_YUV444_P1:
                     p_mmp_imageframe->m_plane_count = 1;
 
-                    buffer_width = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*3, 16);
-                    buffer_height = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_height, 16);
+                    buffer_stride[0] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width*3);
+                    buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);
                     
-                    stride[0] = buffer_width;
-                    buffer_height_arr[0] = buffer_height;
-                    plane_size[0] = buffer_width*buffer_height;
                     break;
 
-                case MMP_FOURCC_IMAGE_ARGB8888:  /* RGB 32 Bit*/
+               case MMP_FOURCC_IMAGE_GREY:  /*  8  Greyscale     */
+                    p_mmp_imageframe->m_plane_count = 1;
+
+                    buffer_stride[0] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width);
+                    buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);
+                    
+                    break;
+
+               case MMP_FOURCC_IMAGE_RGBA8888:  /* RGB 32 Bit*/
                     p_mmp_imageframe->m_plane_count = 1;
                     
-                    stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*4, 4);
-                    buffer_height_arr[0] = p_mmp_imageframe->m_pic_height;
-                    plane_size[0] = stride[0] * buffer_height_arr[0];
+                    buffer_stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*4, 4);
+                    buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);
                     
                     break;
 
@@ -574,9 +557,8 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
                 case MMP_FOURCC_IMAGE_RGB888:  /* RGB 24 Bit*/
                     p_mmp_imageframe->m_plane_count = 1;
                     
-                    stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*3, 4);
-                    buffer_height_arr[0] = p_mmp_imageframe->m_pic_height;
-                    plane_size[0] = stride[0] * buffer_height_arr[0];
+                    buffer_stride[0] = MMP_BYTE_ALIGN(p_mmp_imageframe->m_pic_width*3, 4);
+                    buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);
                     
                     break;
 
@@ -593,7 +575,7 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
                 for(i = 0; i < p_mmp_imageframe->m_plane_count; i++) {
                     
                     buffer_create_config.type = type;
-                    buffer_create_config.size = plane_size[i];
+                    buffer_create_config.size = buffer_stride[i] * buffer_height_arr[i];
 
                     if(type == mmp_buffer::ION_ATTACH) {
                         buffer_create_config.attach_shared_fd = shared_ion_fd[i];
@@ -608,7 +590,7 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
                     }
                     else {
                         p_mmp_imageframe->m_p_mmp_buffer[i] = p_mmp_buf;
-                        p_mmp_imageframe->m_buf_stride[i] = stride[i];
+                        p_mmp_imageframe->m_buf_stride[i] = buffer_stride[i];
                         p_mmp_imageframe->m_buf_height[i] = buffer_height_arr[i];
                     }
                 }

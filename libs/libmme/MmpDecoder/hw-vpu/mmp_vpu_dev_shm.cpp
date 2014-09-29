@@ -141,16 +141,10 @@ MMP_RESULT mmp_vpu_dev_shm::close() {
         m_p_mutex = NULL;
     }
 
-#if 0
-    if(m_p_mutex_external_cs != NULL) {
-        m_p_mutex_external_cs->lock();
-    }
-#else
     if(m_p_mutex_external_cs != NULL) {
         mmp_oal_mutex::destroy_object(m_p_mutex_external_cs);
         m_p_mutex_external_cs = NULL;
     }
-#endif
 
     MMPDEBUGMSG(MMPZONE_MONITOR, (TEXT("[mmp_vpu_dev_shm::close] app_count=%d "), app_count));
 

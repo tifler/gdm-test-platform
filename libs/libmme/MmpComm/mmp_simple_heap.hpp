@@ -37,7 +37,7 @@ private:
 
     MMP_U32 m_alloc_frame_count;
     MMP_U32 m_alloc_frame_bytesize;
-    MMP_U32 m_frame_count;
+    MMP_S32 m_frame_count;
     struct alloc_frame *m_frame;
     class mmp_oal_mutex* m_p_mutex;
 

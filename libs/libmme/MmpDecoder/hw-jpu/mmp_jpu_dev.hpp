@@ -25,6 +25,8 @@
 #include "mmp_jpu_def.h"
 #include "mmp_env_mgr.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 class mmp_singleton_mgr;
 
 struct mmp_jpu_dev_create_config {
@@ -111,4 +113,5 @@ public:
 
 };
 
+#endif
 #endif

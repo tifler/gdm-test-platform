@@ -10,6 +10,7 @@
 #define __JPU_CONFIG_H__
 
 #ifdef __JPU_PLATFORM_MME
+
 #include "MmpDefine.h"
 
 #ifdef __cplusplus

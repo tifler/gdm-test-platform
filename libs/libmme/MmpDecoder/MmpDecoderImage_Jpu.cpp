@@ -23,6 +23,8 @@
 #include "MmpUtil.hpp"
 #include "mmp_buffer_mgr.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
+
 /////////////////////////////////////////////////////////////
 //CMmpDecoderImage_Jpu Member Functions
 
@@ -105,7 +107,7 @@ MMP_RESULT CMmpDecoderImage_Jpu::DecodeAu(class mmp_buffer_imagestream* p_buf_im
 	JpgDecOutputInfo outputInfo	= {0};
 	JpgDecParam decParam	= {0};
 	JpgRet ret = JPG_RET_SUCCESS;	
-	JPU_FrameBuffer frameBuf[NUM_FRAME_BUF];
+	//JPU_FrameBuffer frameBuf[NUM_FRAME_BUF];
 	jpu_buffer_t vbStream    = {0};
 	JPU_BufInfo bufInfo     = {0};
 	//FRAME_BUF *pFrame[NUM_FRAME_BUF];
@@ -122,13 +124,13 @@ MMP_RESULT CMmpDecoderImage_Jpu::DecodeAu(class mmp_buffer_imagestream* p_buf_im
 	int needFrameBufCount = 0, regFrameBufCount = 0;
 	int rotEnable = 0;
 	int int_reason = 0;
-	int instIdx;
+	//int instIdx;
 	int partPosIdx = 0;
     int partBufIdx = 0;
 	int partMaxIdx = 0;
 	int partialHeight = 0;
 
-	JPU_DecConfigParam decConfig;
+	//JPU_DecConfigParam decConfig;
 
     if(pp_buf_imageframe != NULL) {
         *pp_buf_imageframe = NULL;
@@ -216,8 +218,8 @@ MMP_RESULT CMmpDecoderImage_Jpu::DecodeAu(class mmp_buffer_imagestream* p_buf_im
 		framebufWidth = framebufWidth*2;
 		//framebufStride = framebufStride*2;	
 		framebufFormat = JPU_FORMAT_422;
-		if (decConfig.rotAngle == 90 || decConfig.rotAngle == 270) 
-			framebufFormat = JPU_FORMAT_224;
+		//if (decConfig.rotAngle == 90 || decConfig.rotAngle == 270) 
+		//	framebufFormat = JPU_FORMAT_224;
 		
 	}
 	else if (decOP.packedFormat == PACKED_FORMAT_444)
@@ -242,15 +244,15 @@ MMP_RESULT CMmpDecoderImage_Jpu::DecodeAu(class mmp_buffer_imagestream* p_buf_im
     switch(initialInfo.sourceFormat) {
     
         case JPU_FORMAT_420:  
-            m_bih_out.biCompression = MMP_FOURCC_IMAGE_I420; 
+            m_bih_out.biCompression = MMP_FOURCC_IMAGE_YUV420_P3; 
             break;
 
         case JPU_FORMAT_444:  
             if(decOP.packedFormat == PACKED_FORMAT_444) {
-                m_bih_out.biCompression = MMP_FOURCC_IMAGE_YUV444Packed; 
+                m_bih_out.biCompression = MMP_FOURCC_IMAGE_YUV444_P1; 
             }
             else {
-                m_bih_out.biCompression = MMP_FOURCC_IMAGE_YUV444P3; 
+                m_bih_out.biCompression = MMP_FOURCC_IMAGE_YUV444_P3; 
             }
             break;
 
@@ -270,9 +272,9 @@ MMP_RESULT CMmpDecoderImage_Jpu::DecodeAu(class mmp_buffer_imagestream* p_buf_im
     for(i = 0; i < 1; i++) {
 
         memset(&user_frame[i], 0x00, sizeof(JPU_FrameBuffer));
-        user_frame[i].bufY = m_p_buf_imageframe_yuv->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_Y);
-        user_frame[i].bufCb = m_p_buf_imageframe_yuv->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CB);
-        user_frame[i].bufCr = m_p_buf_imageframe_yuv->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CR);
+        user_frame[i].bufY = m_p_buf_imageframe_yuv->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_Y);
+        user_frame[i].bufCb = m_p_buf_imageframe_yuv->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_U);
+        user_frame[i].bufCr = m_p_buf_imageframe_yuv->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_V);
         user_frame[i].stride = m_p_buf_imageframe_yuv->get_stride();
         //user_frame[i].height = framebufHeight;
         //user_frame[i].ion_shared_fd = buf_addr.m_shared_fd;
@@ -333,6 +335,158 @@ MMPDEBUGTRACE;
     return MMP_SUCCESS;
 }
 
+MMP_RESULT CMmpEncodeImage_Jpu_EncodeAu(class mmp_buffer_imageframe* p_buf_imageframe, class mmp_buffer_imagestream* p_buf_imagestream) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    class mmp_jpu_if* p_jpu_if = NULL;
+
+    JpgEncHandle		handle		= { 0 };
+    JpgEncOpenParam	encOP		= { 0 };
+    JpgEncInitialInfo	initialInfo	= { 0 };
+    JpgEncParam		encParam	= { 0 };
+    JPU_FrameBuffer		frameBuf;
+    JpgEncOutputInfo	outputInfo	= { 0 };
+    JpgEncParamSet encHeaderParam = {0};
+    JpgRet jpuret;
+    MMP_S32 thumbEn;
+    MMP_U32 int_reason;
+    MMP_BOOL is_enc_open = MMP_FALSE;
+
+    p_buf_imagestream->set_stream_offset(0);
+    p_buf_imagestream->set_stream_size(0);
+
+    /* alloc jpu if */
+    if(mmpResult == MMP_SUCCESS) {
+        p_jpu_if = mmp_jpu_if::create_object();
+        if(p_jpu_if == NULL) {
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s] FAIL: mmp_jpu_if::create_object \n\r"), MMP_CLASS_FUNC));
+            mmpResult = MMP_FAILURE;
+        }
+    }
+
+    /* Enc Open */
+    if(mmpResult == MMP_SUCCESS) {
+
+        encOP.streamEndian = JPU_STREAM_ENDIAN;
+	    encOP.frameEndian = JPU_FRAME_ENDIAN;
+	    encOP.chromaInterleave = JPU_CBCR_INTERLEAVE;
+        encOP.bitstreamBuffer = p_buf_imagestream->get_buf_phy_addr();
+        encOP.bitstreamBufferSize = p_buf_imagestream->get_buf_size();
+	    encOP.packedFormat = PACKED_FORMAT_444;
+        encOP.sourceFormat = JPU_FORMAT_444;
+
+        encOP.picWidth = p_buf_imageframe->get_pic_width();
+        encOP.picHeight = p_buf_imageframe->get_pic_height();
+        encOP.restartInterval = 0;
+        
+        JPU_getJpgEncOpenParam_HuffTable_QMatrix(&encOP);
+	
+        jpuret = p_jpu_if->JPU_EncOpen(&handle, &encOP);
+        if(jpuret != JPG_RET_SUCCESS ) {
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s] FAIL: JPU_EncOpen \n\r"), MMP_CLASS_FUNC));
+            mmpResult = MMP_FAILURE;
+        }
+        else {
+            is_enc_open = MMP_TRUE;
+        }
+
+    }
+
+    /* Enc Get Initial Info */
+    if(mmpResult == MMP_SUCCESS) {
+        jpuret = p_jpu_if->JPU_EncGetInitialInfo(handle, &initialInfo);
+	    if(jpuret != JPG_RET_SUCCESS )    {
+		    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s] FAIL: JJPU_EncGetInitialInfo \n\r"), MMP_CLASS_FUNC));
+            mmpResult = MMP_FAILURE;
+	    }
+        else {
+        
+            frameBuf.stride = p_buf_imageframe->get_stride();
+		    frameBuf.bufY  = p_buf_imageframe->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_Y);
+		    frameBuf.bufCb = p_buf_imageframe->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_U);
+		    frameBuf.bufCr = p_buf_imageframe->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_V);
+
+            encParam.sourceFrame = &frameBuf;
+        }
+    }
+
+    /* Enc Strat */
+    if(mmpResult == MMP_SUCCESS) {
+        thumbEn = 0;
+
+        // Write picture header
+	    //if (encConfig.encHeaderMode == ENC_HEADER_MODE_NORMAL)
+	    //{
+		    encHeaderParam.size = STREAM_BUF_SIZE;
+		    encHeaderParam.headerMode = ENC_HEADER_MODE_NORMAL;			//Encoder header disable/enable control. Annex:A 1.2.3 item 13
+		    encHeaderParam.quantMode = JPG_TBL_NORMAL; //JPG_TBL_MERGE	// Merge quantization table. Annex:A 1.2.3 item 7
+		    encHeaderParam.huffMode  = JPG_TBL_NORMAL; // JPG_TBL_MERGE	//Merge huffman table. Annex:A 1.2.3 item 6
+		    encHeaderParam.disableAPPMarker = 0;						//Remove APPn. Annex:A item 11
+
+		    //if (encHeaderParam.headerMode == ENC_HEADER_MODE_NORMAL) 
+            //{
+                //make picture header
+			    p_jpu_if->JPU_EncGiveCommand(handle, ENC_JPG_GET_HEADER, &encHeaderParam); // return exact header size int endHeaderparam.siz;
+
+		    //}
+	    //}
+
+
+        jpuret = p_jpu_if->JPU_EncStartOneFrame(handle, &encParam, thumbEn);
+        if(jpuret != JPG_RET_SUCCESS )    {
+		    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s] FAIL: JPU_EncStartOneFrame \n\r"), MMP_CLASS_FUNC));
+            mmpResult = MMP_FAILURE;
+	    }
+    }
+
+    /* Wait Intr */
+    while(mmpResult == MMP_SUCCESS) {
+
+        int_reason = p_jpu_if->JPU_WaitInterrupt(JPU_INTERRUPT_TIMEOUT_MS);
+
+        if(int_reason & (1<<INT_JPU_ERROR))	// Must catch PIC_DONE interrupt before catching EMPTY interrupt
+		{
+			// Do no clear INT_JPU_DONE and INT_JPU_ERROR interrupt. these will be cleared in JPU_DecGetOutputInfo.
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s] FAIL: jpu run err_int 0x%08x"), MMP_CLASS_FUNC, int_reason));
+            mmpResult = MMP_FAILURE;
+        	break;			
+		}
+
+        if(int_reason & (1<<INT_JPU_DONE))	// Must catch PIC_DONE interrupt before catching EMPTY interrupt
+		{
+			// Do no clear INT_JPU_DONE and INT_JPU_ERROR interrupt. these will be cleared in JPU_DecGetOutputInfo.
+        	break;			
+		}
+    }
+    
+    /* Proccsing Result */
+    if(mmpResult == MMP_SUCCESS) {
+        jpuret = p_jpu_if->JPU_EncGetOutputInfo(handle, &outputInfo);
+		if(jpuret != JPG_RET_SUCCESS) {
+			MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[%s] FAIL: JPU_EncGetOutputInfo"), MMP_CLASS_FUNC ));
+            mmpResult = MMP_FAILURE;
+		}
+        else {
+#if (MMP_OS == MMP_OS_WIN32)
+            outputInfo.bitstreamSize = p_buf_imageframe->get_pic_width() * p_buf_imageframe->get_pic_height();
+#endif
+            p_buf_imagestream->set_stream_size(outputInfo.bitstreamSize);
+        }
+    }
+
+    if(is_enc_open == MMP_TRUE) {
+        p_jpu_if->JPU_EncClose(handle);
+    }
+
+    /* free jpu if */
+    if(p_jpu_if != NULL) {
+        mmp_jpu_if::destroy_object(p_jpu_if);
+        p_jpu_if = NULL;
+    }
+
+    return mmpResult;
+}
 
 
 
+#endif

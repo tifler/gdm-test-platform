@@ -80,7 +80,7 @@ MMP_RESULT CMmpPlayerJPEG::Open()
     if(mmpResult == MMP_SUCCESS ) {
         
         memset(&DecoderCreateConfig, 0x00, sizeof(DecoderCreateConfig));
-        m_pDecoderImage = (CMmpDecoderImage*)CMmpDecoder::CreateImageObject(&DecoderCreateConfig);
+        m_pDecoderImage = (CMmpDecoderImage*)CMmpDecoder::CreateImageObject(&DecoderCreateConfig, this->m_create_config.bForceSWCodec);
         if(m_pDecoderImage != NULL) {
             m_pDecoderImage->DecodeAu(m_p_buf_imagestream, &m_p_buf_imageframe);
             if(m_p_buf_imageframe == NULL) {
@@ -96,7 +96,7 @@ MMP_RESULT CMmpPlayerJPEG::Open()
 
                     CMmpImageTool::Bmp_SaveFile(bmp_filename, 
                                                 m_p_buf_imageframe->get_pic_width(), m_p_buf_imageframe->get_pic_height(), 
-                                                m_p_buf_imageframe->get_buf_vir_addr(), 
+                                                (MMP_U8*)m_p_buf_imageframe->get_buf_vir_addr(), 
                                                 fourcc);
                 }
 
@@ -131,9 +131,9 @@ MMP_RESULT CMmpPlayerJPEG::Open()
 #endif
 
 
-        pRendererProp->m_iPicWidth = m_pDecoderImage->GetPicWidth();
-        pRendererProp->m_iPicHeight = m_pDecoderImage->GetPicHeight();
-        pRendererProp->pic_format = m_pDecoderImage->GetPicFormat();
+        pRendererProp->m_iPicWidth = m_p_buf_imageframe->get_pic_width();
+        pRendererProp->m_iPicHeight = m_p_buf_imageframe->get_pic_height();
+        pRendererProp->pic_format = m_p_buf_imageframe->get_fourcc();
 
         m_pRendererVideo = CMmpRenderer::CreateVideoObject(pRendererProp);
         if(m_pRendererVideo == NULL) {

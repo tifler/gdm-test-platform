@@ -34,16 +34,16 @@ MMP_BOOL CMmpImageTool::IsRGB(enum MMP_FOURCC fourcc) {
     
         case MMP_FOURCC_IMAGE_RGB888  : 
 	    case MMP_FOURCC_IMAGE_BGR888  : 
-	    case MMP_FOURCC_IMAGE_RGB565  : 
-	    case MMP_FOURCC_IMAGE_BGR565  : 
-	    case MMP_FOURCC_IMAGE_ARGB1555: 
-	    case MMP_FOURCC_IMAGE_BGRA1555: 
-	    case MMP_FOURCC_IMAGE_RGBA1555: 
-	    case MMP_FOURCC_IMAGE_ABGR1555: 
-	    case MMP_FOURCC_IMAGE_ARGB8888: 
-	    case MMP_FOURCC_IMAGE_BGRA8888: 
+	    //case MMP_FOURCC_IMAGE_RGB565  : 
+	    //case MMP_FOURCC_IMAGE_BGR565  : 
+	    //case MMP_FOURCC_IMAGE_ARGB1555: 
+	    //case MMP_FOURCC_IMAGE_BGRA1555: 
+	    //case MMP_FOURCC_IMAGE_RGBA1555: 
+	    //case MMP_FOURCC_IMAGE_ABGR1555: 
+	    //case MMP_FOURCC_IMAGE_RGBA8888: 
+	    //case MMP_FOURCC_IMAGE_BGRA8888: 
 	    case MMP_FOURCC_IMAGE_RGBA8888: 
-	    case MMP_FOURCC_IMAGE_ABGR8888:
+	    //case MMP_FOURCC_IMAGE_ABGR8888:
             bflag = MMP_TRUE;
             break;
 
@@ -60,8 +60,8 @@ MMP_BOOL CMmpImageTool::IsYUV(enum MMP_FOURCC fourcc) {
 
     switch(fourcc) {
     
-        case MMP_FOURCC_IMAGE_YV12  : 
-	    case MMP_FOURCC_IMAGE_I420  : 
+        case MMP_FOURCC_IMAGE_YVU420_P3  : 
+	    case MMP_FOURCC_IMAGE_YUV420_P3  : 
 	        bflag = MMP_TRUE;
             break;
 
@@ -80,26 +80,25 @@ MMP_S32 CMmpImageTool::GetPlaneCount(enum MMP_FOURCC fourcc) {
     
         case MMP_FOURCC_IMAGE_RGB888  : 
 	    case MMP_FOURCC_IMAGE_BGR888  : 
-	    case MMP_FOURCC_IMAGE_RGB565  : 
-	    case MMP_FOURCC_IMAGE_BGR565  : 
-	    case MMP_FOURCC_IMAGE_ARGB1555: 
-	    case MMP_FOURCC_IMAGE_BGRA1555: 
-	    case MMP_FOURCC_IMAGE_RGBA1555: 
-	    case MMP_FOURCC_IMAGE_ABGR1555: 
-	    case MMP_FOURCC_IMAGE_ARGB8888: 
-	    case MMP_FOURCC_IMAGE_BGRA8888: 
+	    //case MMP_FOURCC_IMAGE_RGB565  : 
+	    //case MMP_FOURCC_IMAGE_BGR565  : 
+	    //case MMP_FOURCC_IMAGE_ARGB1555: 
+	    //case MMP_FOURCC_IMAGE_BGRA1555: 
+	    //case MMP_FOURCC_IMAGE_RGBA1555: 
+	    //case MMP_FOURCC_IMAGE_ABGR1555: 
+	    //case MMP_FOURCC_IMAGE_RGBA8888: 
+//	    case MMP_FOURCC_IMAGE_BGRA8888: 
 	    case MMP_FOURCC_IMAGE_RGBA8888: 
-	    case MMP_FOURCC_IMAGE_ABGR8888:
+//	    case MMP_FOURCC_IMAGE_ABGR8888:
             plane_count = 1;
             break;
 
-        case MMP_FOURCC_IMAGE_YV12:
-        case MMP_FOURCC_IMAGE_I420:
-        case MMP_FOURCC_IMAGE_YUV444P3:
+        case MMP_FOURCC_IMAGE_YVU420_P3:
+        case MMP_FOURCC_IMAGE_YUV420_P3:
             plane_count = 3;
             break;
 
-        case MMP_FOURCC_IMAGE_YUV444Packed:
+        case MMP_FOURCC_IMAGE_YUV444_P1:
             plane_count = 1;
             break;
 
@@ -121,24 +120,24 @@ MMP_S32 CMmpImageTool::GetPixelByte(enum MMP_FOURCC fourcc) {
             pixel_byte = 3;
             break;
 
-	    case MMP_FOURCC_IMAGE_RGB565  : 
-	    case MMP_FOURCC_IMAGE_BGR565  : 
-	    case MMP_FOURCC_IMAGE_ARGB1555: 
-	    case MMP_FOURCC_IMAGE_BGRA1555: 
-	    case MMP_FOURCC_IMAGE_RGBA1555: 
-	    case MMP_FOURCC_IMAGE_ABGR1555: 
-            pixel_byte = 2;
-            break;
+	    //case MMP_FOURCC_IMAGE_RGB565  : 
+	    //case MMP_FOURCC_IMAGE_BGR565  : 
+	    //case MMP_FOURCC_IMAGE_ARGB1555: 
+	    //case MMP_FOURCC_IMAGE_BGRA1555: 
+	    //case MMP_FOURCC_IMAGE_RGBA1555: 
+	    //case MMP_FOURCC_IMAGE_ABGR1555: 
+          //  pixel_byte = 2;
+            //break;
 
-	    case MMP_FOURCC_IMAGE_ARGB8888: 
-	    case MMP_FOURCC_IMAGE_BGRA8888: 
+	    ///case MMP_FOURCC_IMAGE_RGBA8888: 
+	    //case MMP_FOURCC_IMAGE_BGRA8888: 
 	    case MMP_FOURCC_IMAGE_RGBA8888: 
-	    case MMP_FOURCC_IMAGE_ABGR8888:
+	    //case MMP_FOURCC_IMAGE_ABGR8888:
             pixel_byte = 4;
             break;
 
-        case MMP_FOURCC_IMAGE_YV12:
-        case MMP_FOURCC_IMAGE_I420:
+        case MMP_FOURCC_IMAGE_YVU420_P3:
+        case MMP_FOURCC_IMAGE_YUV420_P3:
         default:
             pixel_byte = 1;
     }
@@ -157,27 +156,27 @@ MMP_S32 CMmpImageTool::GetPicStride(enum MMP_FOURCC fourcc, MMP_S32 pic_width) {
             stride = MMP_BYTE_ALIGN(pic_width*3, 4); 
             break;
 
-	    case MMP_FOURCC_IMAGE_RGB565  : 
-	    case MMP_FOURCC_IMAGE_BGR565  : 
-            stride = pic_width*2; 
-            break;
+	    //case MMP_FOURCC_IMAGE_RGB565  : 
+	    //case MMP_FOURCC_IMAGE_BGR565  : 
+          //  stride = pic_width*2; 
+            //break;
 
-	    case MMP_FOURCC_IMAGE_ARGB1555: 
-	    case MMP_FOURCC_IMAGE_BGRA1555: 
-	    case MMP_FOURCC_IMAGE_RGBA1555: 
-	    case MMP_FOURCC_IMAGE_ABGR1555: 
-            stride = pic_width*2; 
-            break;
+//	    case MMP_FOURCC_IMAGE_ARGB1555: 
+//	    case MMP_FOURCC_IMAGE_BGRA1555: 
+//	    case MMP_FOURCC_IMAGE_RGBA1555: 
+//	    case MMP_FOURCC_IMAGE_ABGR1555: 
+  //          stride = pic_width*2; 
+    //        break;
 
-	    case MMP_FOURCC_IMAGE_ARGB8888: 
-	    case MMP_FOURCC_IMAGE_BGRA8888: 
+	  //  case MMP_FOURCC_IMAGE_RGBA8888: 
+	  //  case MMP_FOURCC_IMAGE_BGRA8888: 
 	    case MMP_FOURCC_IMAGE_RGBA8888: 
-	    case MMP_FOURCC_IMAGE_ABGR8888:
+	  //  case MMP_FOURCC_IMAGE_ABGR8888:
             stride = pic_width*4; 
             break;
             
-        case MMP_FOURCC_IMAGE_YV12:
-        case MMP_FOURCC_IMAGE_I420:
+        case MMP_FOURCC_IMAGE_YVU420_P3:
+        case MMP_FOURCC_IMAGE_YUV420_P3:
         default:
             stride = pic_width;
     }
@@ -196,27 +195,27 @@ MMP_S32 CMmpImageTool::GetBufferStride(enum MMP_FOURCC fourcc, MMP_S32 pic_width
             stride = MMP_BYTE_ALIGN(pic_width*3, 4); 
             break;
 
-	    case MMP_FOURCC_IMAGE_RGB565  : 
-	    case MMP_FOURCC_IMAGE_BGR565  : 
-            stride = pic_width*2; 
-            break;
+	    //case MMP_FOURCC_IMAGE_RGB565  : 
+	    //case MMP_FOURCC_IMAGE_BGR565  : 
+          //  stride = pic_width*2; 
+          //  break;
 
-	    case MMP_FOURCC_IMAGE_ARGB1555: 
-	    case MMP_FOURCC_IMAGE_BGRA1555: 
-	    case MMP_FOURCC_IMAGE_RGBA1555: 
-	    case MMP_FOURCC_IMAGE_ABGR1555: 
-            stride = pic_width*2; 
-            break;
+	    //case MMP_FOURCC_IMAGE_ARGB1555: 
+	    //case MMP_FOURCC_IMAGE_BGRA1555: 
+	    //case MMP_FOURCC_IMAGE_RGBA1555: 
+	    //case MMP_FOURCC_IMAGE_ABGR1555: 
+          //  stride = pic_width*2; 
+          //  break;
 
-	    case MMP_FOURCC_IMAGE_ARGB8888: 
-	    case MMP_FOURCC_IMAGE_BGRA8888: 
+	    //case MMP_FOURCC_IMAGE_RGBA8888: 
+	    //case MMP_FOURCC_IMAGE_BGRA8888: 
 	    case MMP_FOURCC_IMAGE_RGBA8888: 
-	    case MMP_FOURCC_IMAGE_ABGR8888:
+	    //case MMP_FOURCC_IMAGE_ABGR8888:
             stride = pic_width*4; 
             break;
             
-        case MMP_FOURCC_IMAGE_YV12:
-        case MMP_FOURCC_IMAGE_I420:
+        case MMP_FOURCC_IMAGE_YVU420_P3:
+        case MMP_FOURCC_IMAGE_YUV420_P3:
             stride = MMP_BYTE_ALIGN(pic_width, 16); 
             break;
 
@@ -244,7 +243,7 @@ MMP_RESULT CMmpImageTool::Flip_V(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* 
         case MMP_FOURCC_IMAGE_BGR888:
         case MMP_FOURCC_IMAGE_RGB888: stride = MMP_BYTE_ALIGN(pic_width*3,4); break;
 
-        case MMP_FOURCC_IMAGE_ARGB8888: stride = pic_width*4; break;
+        case MMP_FOURCC_IMAGE_RGBA8888: stride = pic_width*4; break;
         default:
             mmpResult = MMP_FAILURE;
             MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("CMmpImageTool::%s] FAIL: not support format (%c%c%c%c) "), MMP_CLASS_FUNC, 
@@ -278,9 +277,9 @@ MMP_RESULT CMmpImageTool::Flip_V(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* 
     return mmpResult;
 }
 
-MMP_RESULT CMmpImageTool::ConvertRGBtoYUV(MMP_S32 pic_width, MMP_S32 pic_height, 
-                                      MMP_U8* p_image_rgb, enum MMP_FOURCC fourcc_rgb,
-                                      MMP_U8* p_image_y, MMP_U8* p_image_u, MMP_U8* p_image_v,enum MMP_FOURCC fourcc_yuv, MMP_S32 y_stride) {
+MMP_RESULT CMmpImageTool::ConvertRGBtoYUV420_P3(MMP_U8* p_image_rgb, MMP_S32 pic_width, MMP_S32 pic_height,enum MMP_FOURCC fourcc_rgb,
+                                                MMP_U8* p_image_y, MMP_U8* p_image_u, MMP_U8* p_image_v, 
+                                                MMP_S32 y_stride, MMP_S32 u_stride, MMP_S32 v_stride) {
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
     MMP_S32 w, h;
@@ -302,10 +301,7 @@ MMP_RESULT CMmpImageTool::ConvertRGBtoYUV(MMP_S32 pic_width, MMP_S32 pic_height,
     if(CMmpImageTool::IsRGB(fourcc_rgb) != MMP_TRUE) {
         mmpResult = MMP_FAILURE;
     }
-    if(CMmpImageTool::IsYUV(fourcc_yuv) != MMP_TRUE) {
-        mmpResult = MMP_FAILURE;
-    }
-
+    
     rgb_stride = CMmpImageTool::GetPicStride(fourcc_rgb, pic_width);
     rgb_pixel_byte = CMmpImageTool::GetPixelByte(fourcc_rgb);
 
@@ -321,6 +317,7 @@ MMP_RESULT CMmpImageTool::ConvertRGBtoYUV(MMP_S32 pic_width, MMP_S32 pic_height,
             for(w = 0; w < pic_width; w++) {
                 
                 switch(fourcc_rgb) {
+
                     case MMP_FOURCC_IMAGE_BGR888:
                         b[0] = p_line_src1[0];
                         g[0] = p_line_src1[1];
@@ -440,24 +437,812 @@ MMP_RESULT CMmpImageTool::ConvertRGBtoYUV(MMP_S32 pic_width, MMP_S32 pic_height,
             p_image_src1 += rgb_stride*2;
             p_image_src2 += rgb_stride*2;
 
-            p_image_dest_u += y_stride/2;
-            p_image_dest_v += y_stride/2;
+            p_image_dest_u += u_stride;
+            p_image_dest_v += v_stride;
         }
     }
 
     return mmpResult;
 }
 
+MMP_RESULT CMmpImageTool::ConvertRGBtoYCbCr422_P2(MMP_U8* p_image_rgb, MMP_S32 pic_width, MMP_S32 pic_height,enum MMP_FOURCC fourcc_rgb,
+                                                  MMP_U8* p_image_y, MMP_U8* p_image_uv,
+                                                  MMP_S32 y_stride, MMP_S32 uv_stride) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 w, h;
+    MMP_S32 rgb_stride, rgb_pixel_byte;
+    
+    MMP_U8 *p_image_src1;
+    MMP_U8 *p_line_src1;
+    
+    MMP_U8 *p_image_dest_y;
+    MMP_U8 *p_line_dest_y;
+
+    MMP_S32 y;
+    MMP_S32 r[2], g[2], b[2];
+    MMP_S32 u[2], v[2];
+
+    MMP_S32 i;
+    MMP_BOOL is_end_col;
+
+    if(CMmpImageTool::IsRGB(fourcc_rgb) != MMP_TRUE) {
+        mmpResult = MMP_FAILURE;
+    }
+
+    rgb_stride = CMmpImageTool::GetPicStride(fourcc_rgb, pic_width);
+    rgb_pixel_byte = CMmpImageTool::GetPixelByte(fourcc_rgb);
+
+    /* convert Y */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_image_src1 = p_image_rgb;
+        p_image_dest_y = p_image_y;
+        for(h = 0; h < pic_height; h++) {
+        
+            p_line_src1 = p_image_src1;
+            p_line_dest_y = p_image_dest_y;
+            for(w = 0; w < pic_width; w++) {
+                
+                switch(fourcc_rgb) {
+                    case MMP_FOURCC_IMAGE_BGR888:
+                        b[0] = p_line_src1[0];
+                        g[0] = p_line_src1[1];
+                        r[0] = p_line_src1[2];
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGB888:
+                        r[0] = p_line_src1[0];
+                        g[0] = p_line_src1[1];
+                        b[0] = p_line_src1[2];
+                        break;
+
+                    default: 
+                        r[0] = g[0] = b[0] = 0;
+                }
+
+                r[0]&=0xff, g[0]&=0xff, b[0]&=0xff;
+                y= ((66*r[0]+129*g[0]+25*b[0]+128)>>8)+16;
+
+                (*p_line_dest_y) = (MMP_U8)y;
+            
+                p_line_src1 += rgb_pixel_byte;
+                p_line_dest_y++;
+            }
+
+            p_image_src1 += rgb_stride;
+            p_image_dest_y += y_stride;
+        }
+    }
+
+    /* convert U, V */
+    /*
+         [u0,v0] [u1,v1] ..
+    */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        MMP_U8* src_line, *src_pix;
+        MMP_U8* dst_line, *dst_pix;
+
+        src_line = p_image_rgb;
+        dst_line = p_image_uv;
+        for(h = 0; h < pic_height; h++) {
+        
+            src_pix = src_line;
+            dst_pix = dst_line;
+                        
+            for(w = 0; w < pic_width; w+=2 ) {
+             
+                /* if odd height, h is last line */
+                if( ((pic_width%2)==1) && (w==(pic_width-1)) ){
+                    is_end_col = MMP_TRUE;
+                }
+                else {
+                    is_end_col = MMP_FALSE;
+                }
+
+                /*
+                       u0, u1 
+                       u2  u3   ==> U
+                 */
+                switch(fourcc_rgb) {
+                    case MMP_FOURCC_IMAGE_BGR888:
+                    case MMP_FOURCC_IMAGE_RGB888:
+                    case MMP_FOURCC_IMAGE_RGBA8888:
+                    default:
+                        r[0] = src_pix[0], g[0] = src_pix[1], b[0] = src_pix[2];
+                        if(is_end_col == MMP_FALSE) {
+                            r[1] = src_pix[3], g[1] = src_pix[4], b[1] = src_pix[5];
+                        }
+                        else {
+                            r[1] = r[0], g[1] = g[0], b[1] = b[0];
+                        }
+                        break;
+                }
+
+                for(i = 0; i < 2; i++) {
+                    r[i]&=0xff, g[i]&=0xff, b[i]&=0xff;
+                    u[i]= ((-38*r[i]-74*g[i]+112*b[i]+128)>>8)+128;
+                    v[i]= ((112*r[i]-94*g[i]-18*b[i]+128)>>8)+128;
+                }
+         
+                dst_pix[0] = (MMP_U8)((u[0] + u[1])/2);
+                dst_pix[1] = (MMP_U8)((v[0] + v[1])/2);
+            
+                src_pix += rgb_pixel_byte;
+                dst_pix += 2;
+            }
+
+            src_line += rgb_stride;
+            dst_line += uv_stride;
+        }
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpImageTool::ConvertRGBtoYCbCr420_P2(MMP_U8* p_image_rgb, MMP_S32 pic_width, MMP_S32 pic_height,enum MMP_FOURCC fourcc_rgb,
+                                                  MMP_U8* p_image_y, MMP_U8* p_image_uv,
+                                                  MMP_S32 y_stride, MMP_S32 uv_stride) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 w, h;
+    MMP_S32 rgb_stride, rgb_pixel_byte;
+    
+    MMP_U8 *p_image_src1;
+    MMP_U8 *p_line_src1;
+    
+    MMP_U8 *p_image_dest_y;
+    MMP_U8 *p_line_dest_y;
+
+    MMP_S32 y;
+    MMP_S32 r[4], g[4], b[4];
+    MMP_S32 u[4], v[4];
+
+    MMP_S32 i;
+    MMP_BOOL is_end_col;
+
+    if(CMmpImageTool::IsRGB(fourcc_rgb) != MMP_TRUE) {
+        mmpResult = MMP_FAILURE;
+    }
+
+    rgb_stride = CMmpImageTool::GetPicStride(fourcc_rgb, pic_width);
+    rgb_pixel_byte = CMmpImageTool::GetPixelByte(fourcc_rgb);
+
+    /* convert Y */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        p_image_src1 = p_image_rgb;
+        p_image_dest_y = p_image_y;
+        for(h = 0; h < pic_height; h++) {
+        
+            p_line_src1 = p_image_src1;
+            p_line_dest_y = p_image_dest_y;
+            for(w = 0; w < pic_width; w++) {
+                
+                switch(fourcc_rgb) {
+                    case MMP_FOURCC_IMAGE_BGR888:
+                        b[0] = p_line_src1[0];
+                        g[0] = p_line_src1[1];
+                        r[0] = p_line_src1[2];
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGB888:
+                        r[0] = p_line_src1[0];
+                        g[0] = p_line_src1[1];
+                        b[0] = p_line_src1[2];
+                        break;
+
+                    default: 
+                        r[0] = g[0] = b[0] = 0;
+                }
+
+                r[0]&=0xff, g[0]&=0xff, b[0]&=0xff;
+                y= ((66*r[0]+129*g[0]+25*b[0]+128)>>8)+16;
+
+                (*p_line_dest_y) = (MMP_U8)y;
+            
+                p_line_src1 += rgb_pixel_byte;
+                p_line_dest_y++;
+            }
+
+            p_image_src1 += rgb_stride;
+            p_image_dest_y += y_stride;
+        }
+    }
+
+    /* convert U, V */
+    /*
+         u0, u1 
+         u2  u3   ==> U
+    */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        MMP_U8 *src_line0, *src_line1;
+        MMP_U8 *src_pix0, *src_pix1;
+        MMP_U8 *dst_line, *dst_pix;
+
+        src_line0 = p_image_rgb;
+        src_line1 = p_image_rgb + rgb_stride;
+        dst_line = p_image_uv;
+        for(h = 0; h < pic_height; h+=2) {
+        
+            src_pix0 = src_line0;
+            src_pix1 = src_line1;
+            
+            /* if odd height, h is last line */
+            if( ((pic_height%2)==1) && (h==(pic_height-1)) ){
+                src_pix1 = src_pix0;
+            }
+            dst_pix = dst_line;
+
+            for(w = 0; w < pic_width; w+=2 ) {
+             
+                /* if odd height, h is last line */
+                if( ((pic_width%2)==1) && (w==(pic_width-1)) ){
+                    is_end_col = MMP_TRUE;
+                }
+                else {
+                    is_end_col = MMP_FALSE;
+                }
+
+                /*
+                       u0, u1 
+                       u2  u3   ==> U
+                 */
+                switch(fourcc_rgb) {
+                    case MMP_FOURCC_IMAGE_BGR888:
+                        b[0] = src_pix0[0], g[0] = src_pix0[1], r[0] = src_pix0[2];
+                        b[2] = src_pix1[0], g[2] = src_pix1[1], r[2] = src_pix1[2];
+                        if(is_end_col == MMP_FALSE) {
+                            b[1] = src_pix0[3], g[1] = src_pix0[4], r[1] = src_pix0[5];
+                            b[3] = src_pix1[3], g[3] = src_pix1[4], r[3] = src_pix1[5];
+                        }
+                        else {
+                            b[1] = b[0], g[1] = g[0], r[1] = r[0];
+                            b[3] = b[2], g[3] = g[2], r[3] = r[2];
+                        }
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGB888:
+                        r[0] = src_pix0[0], g[0] = src_pix0[1], b[0] = src_pix0[2];
+                        r[2] = src_pix1[0], g[2] = src_pix1[1], b[2] = src_pix1[2];
+                        if(is_end_col == MMP_FALSE) {
+                            r[1] = src_pix0[3], g[1] = src_pix0[4], b[1] = src_pix0[5];
+                            r[3] = src_pix1[3], g[3] = src_pix1[4], b[3] = src_pix1[5];
+                        }
+                        else {
+                            r[1] = r[0], g[1] = g[0], b[1] = b[0];
+                            r[3] = r[2], g[3] = g[2], b[3] = b[2];
+                        }
+                        break;
+
+                    default: 
+                        r[0] = g[0] = b[0] = 0;
+                        r[1] = g[1] = b[1] = 0;
+                        r[2] = g[2] = b[2] = 0;
+                        r[3] = g[3] = b[3] = 0;
+                }
+
+                for(i = 0; i < 4; i++) {
+                    r[i]&=0xff, g[i]&=0xff, b[i]&=0xff;
+                    u[i]= ((-38*r[i]-74*g[i]+112*b[i]+128)>>8)+128;
+                    v[i]= ((112*r[i]-94*g[i]-18*b[i]+128)>>8)+128;
+                }
+         
+                dst_pix[0] = (MMP_U8)((u[0] + u[1] + u[2] + u[3])/4);
+                dst_pix[1] = (MMP_U8)((v[0] + v[1] + v[2] + v[3])/4);
+            
+                src_pix0 += rgb_pixel_byte*2;
+                src_pix1 += rgb_pixel_byte*2;
+                
+                dst_pix+=2;
+            }
+
+            src_line0 += rgb_stride*2;
+            src_line1 += rgb_stride*2;
+
+            dst_line += uv_stride;
+        }
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpImageTool::ConvertRGBtoYUV444_P1(MMP_U8* p_rgb_data, MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc_rgb,
+                                       MMP_U8* p_yuv_data, MMP_S32 yuv_stride) {
+    
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 rgb_stride;
+    
+    /* check fourcc */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        if(fourcc_rgb == MMP_FOURCC_IMAGE_RGB888) {
+            rgb_stride = MMP_BYTE_ALIGN(pic_width*3, 4);
+        }
+        else if(fourcc_rgb == MMP_FOURCC_IMAGE_RGBA8888) {
+            rgb_stride = pic_width*4;
+        }
+        else {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: not supportsrc RGB %c%c%c%c"), MMP_CLASS_FUNC, MMPGETFOURCCARG(fourcc_rgb) ));
+        }
+    }
+
+    /* convert Y/U/V */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        MMP_S32 w, h;
+        MMP_U8 *src_line, *dst_line;
+        MMP_U8 *src_pixel, *dst_pixel;
+        MMP_S32 r, g, b;
+        MMP_S32 y, u, v;
+
+        src_line = p_rgb_data;
+        dst_line = p_yuv_data;
+        for(h = 0; h < pic_height; h++) {
+        
+            src_pixel = src_line;
+            dst_pixel = dst_line;
+            for(w = 0; w < pic_width; w++) {
+                
+                switch(fourcc_rgb) {
+                    case MMP_FOURCC_IMAGE_BGR888:
+                        b = (*src_pixel); src_pixel++;
+                        g = (*src_pixel); src_pixel++;
+                        r = (*src_pixel); src_pixel++;
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGBA8888:
+                        r = (*src_pixel); src_pixel++;
+                        g = (*src_pixel); src_pixel++;
+                        b = (*src_pixel); src_pixel++;
+                        src_pixel++;
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGB888:
+                        r = (*src_pixel); src_pixel++;
+                        g = (*src_pixel); src_pixel++;
+                        b = (*src_pixel); src_pixel++;
+                        break;
+
+                    default: 
+                        r = g = b = 0;
+                }
+
+                r&=0xff, g&=0xff, b&=0xff;
+                y = ((66*r+129*g+25*b+128)>>8)+16;
+                u = ((-38*r-74*g+112*b+128)>>8)+128;
+                v = ((112*r-94*g-18*b+128)>>8)+128;
+
+                (*dst_pixel) = (MMP_U8)y; dst_pixel++;
+                (*dst_pixel) = (MMP_U8)u; dst_pixel++;
+                (*dst_pixel) = (MMP_U8)v; dst_pixel++;
+            }
+
+            src_line += rgb_stride;
+            dst_line += yuv_stride;
+        }
+    }
+
+    
+    return mmpResult;
+}
+
+MMP_RESULT CMmpImageTool::ConvertRGBtoGREY(MMP_U8* p_rgb_data, MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc_rgb,
+                                       MMP_U8* p_grey_data, MMP_S32 grey_stride) {
+    
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    MMP_S32 rgb_stride;
+    
+    /* check fourcc */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        if(fourcc_rgb == MMP_FOURCC_IMAGE_RGB888) {
+            rgb_stride = MMP_BYTE_ALIGN(pic_width*3, 4);
+        }
+        else if(fourcc_rgb == MMP_FOURCC_IMAGE_RGBA8888) {
+            rgb_stride = pic_width*4;
+        }
+        else {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: not supportsrc RGB %c%c%c%c"), MMP_CLASS_FUNC, MMPGETFOURCCARG(fourcc_rgb) ));
+        }
+    }
+
+    /* convert Y/U/V */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        MMP_S32 w, h;
+        MMP_U8 *src_line, *dst_line;
+        MMP_U8 *src_pixel, *dst_pixel;
+        MMP_S32 r, g, b;
+        MMP_S32 y;
+
+        src_line = p_rgb_data;
+        dst_line = p_grey_data;
+        for(h = 0; h < pic_height; h++) {
+        
+            src_pixel = src_line;
+            dst_pixel = dst_line;
+            for(w = 0; w < pic_width; w++) {
+                
+                switch(fourcc_rgb) {
+                    case MMP_FOURCC_IMAGE_BGR888:
+                        b = (*src_pixel); src_pixel++;
+                        g = (*src_pixel); src_pixel++;
+                        r = (*src_pixel); src_pixel++;
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGBA8888:
+                        r = (*src_pixel); src_pixel++;
+                        g = (*src_pixel); src_pixel++;
+                        b = (*src_pixel); src_pixel++;
+                        src_pixel++;
+                        break;
+
+                    case MMP_FOURCC_IMAGE_RGB888:
+                        r = (*src_pixel); src_pixel++;
+                        g = (*src_pixel); src_pixel++;
+                        b = (*src_pixel); src_pixel++;
+                        break;
+
+                    default: 
+                        r = g = b = 0;
+                }
+
+                r&=0xff, g&=0xff, b&=0xff;
+                y = ((66*r+129*g+25*b+128)>>8)+16;
+                
+                (*dst_pixel) = (MMP_U8)y; dst_pixel++;
+            }
+
+            src_line += rgb_stride;
+            dst_line += grey_stride;
+        }
+    }
+
+    
+    return mmpResult;
+}
+
+MMP_RESULT CMmpImageTool::ConvertYUV420P3toYUV444P1(MMP_U8* yuv420_y, MMP_U8* yuv420_u, MMP_U8* yuv420_v, 
+                                                    MMP_S32 y_stride, MMP_S32 u_stride, MMP_S32 v_stride,
+                                                MMP_S32 pic_width, MMP_S32 pic_height, 
+                                                MMP_U8* yuv444, MMP_S32 yuv444_stride) {
+
+    MMP_S32 w, h;
+    MMP_U8 *src_line_y, *src_line_u, *src_line_v;
+    MMP_U8 *dst_line;
+
+    MMP_U8 *src_pix_y, *src_pix_u, *src_pix_v;
+    MMP_U8 *dst_pix;
+
+    src_line_y = yuv420_y;
+    src_line_u = yuv420_u;
+    src_line_v = yuv420_v;
+    dst_line = yuv444;
+    for(h = 0; h < pic_height; h++) {
+    
+        src_pix_y = src_line_y;
+        src_pix_u = src_line_u;
+        src_pix_v = src_line_v;
+        dst_pix = dst_line;
+        for(w = 0; w < pic_width; w++) {
+         
+
+            dst_pix[0] = (*src_pix_y);
+            dst_pix[1] = (*src_pix_u);
+            dst_pix[2] = (*src_pix_v);
+
+            dst_pix += 3;
+            src_pix_y++;
+            if( ((w+1)%2) == 0) {
+                src_pix_u++;
+                src_pix_v++;
+            }
+        }
+
+        src_line_y += y_stride;
+        if( ((h+1)%2) == 0) {
+            src_line_u += u_stride;
+            src_line_v += v_stride;
+        }
+        dst_line += yuv444_stride;
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpImageTool::ConvertYCbCr420P2toYUV444P1(MMP_U8* yuv420_y, MMP_U8* yuv420_uv, 
+                                                      MMP_S32 y_stride, MMP_S32 uv_stride,
+                                                      MMP_S32 pic_width, MMP_S32 pic_height, 
+                                                      MMP_U8* yuv444, MMP_S32 yuv444_stride) {
+
+    MMP_S32 w, h;
+    MMP_U8 *src_line_y, *src_line_uv;
+    MMP_U8 *dst_line;
+
+    MMP_U8 *src_pix_y, *src_pix_uv;
+    MMP_U8 *dst_pix;
+
+    src_line_y = yuv420_y;
+    src_line_uv = yuv420_uv;
+    dst_line = yuv444;
+    for(h = 0; h < pic_height; h++) {
+    
+        src_pix_y = src_line_y;
+        src_pix_uv = src_line_uv;
+        dst_pix = dst_line;
+        for(w = 0; w < pic_width; w++) {
+         
+
+            dst_pix[0] = (*src_pix_y);
+            dst_pix[1] = (*src_pix_uv);
+            dst_pix[2] = (*(src_pix_uv+1));
+
+            dst_pix += 3;
+            src_pix_y++;
+            if( ((w+1)%2) == 0) {
+                src_pix_uv+=2;
+            }
+        }
+
+        src_line_y += y_stride;
+        if( ((h+1)%2) == 0) {
+            src_line_uv += uv_stride;
+        }
+        dst_line += yuv444_stride;
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpImageTool::ConvertYUV422P2toYUV444P1(MMP_U8* yuv420_y, MMP_U8* yuv420_uv, 
+                                                MMP_S32 y_stride, MMP_S32 uv_stride,
+                                                MMP_S32 pic_width, MMP_S32 pic_height, 
+                                                MMP_U8* yuv444, MMP_S32 yuv444_stride) {
+
+    MMP_S32 w, h;
+    MMP_U8 *src_line_y, *src_line_uv;
+    MMP_U8 *dst_line;
+
+    MMP_U8 *src_pix_y, *src_pix_uv;
+    MMP_U8 *dst_pix;
+
+    src_line_y = yuv420_y;
+    src_line_uv = yuv420_uv;
+    dst_line = yuv444;
+    for(h = 0; h < pic_height; h++) {
+    
+        src_pix_y = src_line_y;
+        src_pix_uv = src_line_uv;
+        dst_pix = dst_line;
+        for(w = 0; w < pic_width; w++) {
+         
+
+            dst_pix[0] = (*src_pix_y);
+            dst_pix[1] = (*src_pix_uv);
+            dst_pix[2] = (*(src_pix_uv+1));
+
+            dst_pix += 3;
+            src_pix_y++;
+            if( ((w+1)%2) == 0) {
+                src_pix_uv+=2;
+            }
+        }
+
+        src_line_y += y_stride;
+        src_line_uv += uv_stride;
+        dst_line += yuv444_stride;
+    }
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpImageTool::ConvertYUV444P1toYUV420P3(MMP_U8* yuv444, MMP_S32 yuv444_stride, 
+                                                MMP_S32 pic_width, MMP_S32 pic_height, 
+                                                MMP_U8* yuv420_y, MMP_U8* yuv420_u, MMP_U8* yuv420_v, 
+                                                MMP_S32 y_stride, MMP_S32 u_stride, MMP_S32 v_stride
+                                                ) {
+
+    MMP_S32 w, h, i;
+    MMP_U8 *src_line, *src_line1;
+    MMP_U8 *dst_line_y, *dst_line_u, *dst_line_v;
+    
+    MMP_U8 *src_pix, *src_pix1;
+    MMP_U8 *dst_pix_y, *dst_pix_u, *dst_pix_v;
+
+    MMP_U32 u[4], v[4];
+    const MMP_S32 yuv444_pix_byte = 3;
+        
+    /* Set Y */
+    src_line = yuv444;
+    dst_line_y = yuv420_y;
+    for(h = 0; h < pic_height; h++) {
+        
+        src_pix = src_line;
+        dst_pix_y = dst_line_y;
+        for(w = 0; w < pic_width; w++) {
+        
+            (*dst_pix_y) = (*src_pix);
+
+            src_pix += yuv444_pix_byte;
+            dst_pix_y++;
+        }
+
+        src_line += yuv444_stride;
+        dst_line_y += y_stride;
+    }
+
+    /* Set U, V */
+    src_line = yuv444;
+    src_line1 = yuv444 + yuv444_stride;
+    dst_line_u = yuv420_u;
+    dst_line_v = yuv420_v;
+    for(h = 0; h < pic_height; h+=2) {
+        
+        if( ((h%2) != 0) 
+            && (h == pic_height-1) ) {
+            src_line1 = src_line;
+        }
+
+        src_pix = src_line;
+        src_pix1 = src_line1;
+        dst_pix_u = dst_line_u;
+        dst_pix_v = dst_line_v;
+        for(w = 0; w < pic_width; w+=2) {
+        
+            if( ((w%2) != 0) 
+                && (w == pic_width-1) ) {
+
+                u[0] = (MMP_U32)src_pix[1], u[1] = (MMP_U32)src_pix[1 + 0];
+                u[2] = (MMP_U32)src_pix1[1], u[3] = (MMP_U32)src_pix1[1+ 0];
+
+                v[0] = (MMP_U32)src_pix[2], v[1] = (MMP_U32)src_pix[2 + 0];
+                v[2] = (MMP_U32)src_pix1[2], v[3] = (MMP_U32)src_pix1[2 + 0];
+            }
+            else {
+            
+                u[0] = (MMP_U32)src_pix[1], u[1] = (MMP_U32)src_pix[1 + yuv444_pix_byte];
+                u[2] = (MMP_U32)src_pix1[1], u[3] = (MMP_U32)src_pix1[1+ yuv444_pix_byte];
+
+                v[0] = (MMP_U32)src_pix[2], v[1] = (MMP_U32)src_pix[2 + yuv444_pix_byte];
+                v[2] = (MMP_U32)src_pix1[2], v[3] = (MMP_U32)src_pix1[2 + yuv444_pix_byte];
+            }
+
+            for(i = 0; i < 4; i++) {
+                u[i] &= 0xFF;
+                v[i] &= 0xFF;
+            }
+
+            (*dst_pix_u)  =  (MMP_U8)((u[0]+u[1]+u[2]+u[3])/4);
+            (*dst_pix_v)  =  (MMP_U8)((v[0]+v[1]+v[2]+v[3])/4);
+            
+            src_pix += yuv444_pix_byte;
+            src_pix1 += yuv444_pix_byte;
+            dst_pix_u++;
+            dst_pix_v++;
+        }
+
+        src_line += yuv444_stride*2;
+        src_line1 += yuv444_stride*2;
+        dst_line_u += u_stride;
+        dst_line_v += v_stride;
+    }
+
+    
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpImageTool::ConvertYUV422P2toYUV420P3(MMP_U8* yuv422_y, MMP_U8* yuv422_uv, 
+                                                MMP_S32 yuv422_y_stride,  MMP_S32 yuv422_uv_stride,
+                                                MMP_S32 pic_width, MMP_S32 pic_height, 
+                                                MMP_U8* yuv420_y, MMP_U8* yuv420_u, MMP_U8* yuv420_v, 
+                                                MMP_S32 y_stride, MMP_S32 u_stride, MMP_S32 v_stride
+                                                ) {
+
+    MMP_S32 w, h, i;
+    MMP_U8 *src_line, *src_line1;
+    MMP_U8 *dst_line_y, *dst_line_u, *dst_line_v;
+    
+    MMP_U8 *src_pix, *src_pix1;
+    MMP_U8 *dst_pix_y, *dst_pix_u, *dst_pix_v;
+
+    MMP_U32 u[2], v[2];
+        
+    /* Set Y */
+    src_line = yuv422_y;
+    dst_line_y = yuv420_y;
+    for(h = 0; h < pic_height; h++) {
+        
+        src_pix = src_line;
+        dst_pix_y = dst_line_y;
+        for(w = 0; w < pic_width; w++) {
+        
+            (*dst_pix_y) = (*src_pix);
+
+            src_pix ++;;
+            dst_pix_y++;
+        }
+
+        src_line += yuv422_y_stride;
+        dst_line_y += y_stride;
+    }
+
+    /* Set U, V */
+    src_line = yuv422_uv;
+    src_line1 = yuv422_uv + yuv422_uv_stride;
+    dst_line_u = yuv420_u;
+    dst_line_v = yuv420_v;
+    for(h = 0; h < pic_height; h+=2) {
+        
+        if( ((h%2) != 0) 
+            && (h == pic_height-1) ) {
+            src_line1 = src_line;
+        }
+
+        src_pix = src_line;
+        src_pix1 = src_line1;
+        dst_pix_u = dst_line_u;
+        dst_pix_v = dst_line_v;
+        for(w = 0; w < pic_width; w+=2) {
+        
+            
+            u[0] = (MMP_U32)src_pix[0], v[0] = (MMP_U32)src_pix[1];
+            u[1] = (MMP_U32)src_pix1[0], v[1] = (MMP_U32)src_pix1[1];
+            
+            for(i = 0; i < 2; i++) {
+                u[i] &= 0xFF;
+                v[i] &= 0xFF;
+            }
+
+            (*dst_pix_u)  =  (MMP_U8)((u[0]+u[1])/2);
+            (*dst_pix_v)  =  (MMP_U8)((v[0]+v[1])/2);
+            
+            src_pix += 2;
+            src_pix1 += 2;
+            dst_pix_u++;
+            dst_pix_v++;
+        }
+
+        src_line += yuv422_uv_stride*2;
+        src_line1 += yuv422_uv_stride*2;
+        dst_line_u += u_stride;
+        dst_line_v += v_stride;
+    }
+
+    
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpImageTool::ConvertColor(MMP_U8* p_src_data, MMP_S32 pic_width, MMP_S32 pic_height, enum MMP_FOURCC fourcc_src,
+                                       MMP_U8* p_dst_data, enum MMP_FOURCC fourcc_dst, MMP_S32 dst_stride) {
+    
+    MMP_RESULT mmpResult = MMP_FAILURE;
+    
+    switch(fourcc_src) {
+        case MMP_FOURCC_IMAGE_RGB888:
+            if(fourcc_dst == MMP_FOURCC_IMAGE_YUV444_P1) {
+                mmpResult = CMmpImageTool::ConvertRGBtoYUV444_P1(p_src_data, pic_width, pic_height, fourcc_src, p_dst_data, dst_stride);
+            }
+            break;
+    }
+    
+    return mmpResult;
+}
+
 /********************************************************** 
     Tool of JPEG
 ***********************************************************/
-MMP_RESULT CMmpImageTool::Jpeg_GetWidthHeight(MMP_U8* filename, MMP_OUT MMP_U32 *pic_width, MMP_OUT MMP_U32* pic_height) {
+MMP_RESULT CMmpImageTool::Jpeg_GetWidthHeight(MMP_U8* filename, MMP_OUT MMP_S32 *pic_width, MMP_OUT MMP_S32* pic_height) {
 
     FILE* fp;
     MMP_RESULT mmpResult = MMP_FAILURE;
     MMP_U8* jpegdata = NULL;
     MMP_U32 jpegsize = 0;
-
+    
 
     fp = fopen((const char*)filename, "rb");
     if(fp != NULL) {
@@ -475,19 +1260,32 @@ MMP_RESULT CMmpImageTool::Jpeg_GetWidthHeight(MMP_U8* filename, MMP_OUT MMP_U32 
 
     if(jpegdata != NULL) {
 
-        mmpResult = CMmpImageTool::Jpeg_GetWidthHeight(jpegdata, jpegsize, pic_width, pic_height);
+        mmpResult = CMmpImageTool::Jpeg_GetWidthHeightFourcc(jpegdata, jpegsize, pic_width, pic_height, NULL);
         free(jpegdata);
     }
     
     return mmpResult;
 }
 
-MMP_RESULT CMmpImageTool::Jpeg_GetWidthHeight(MMP_U8* jpegdata, MMP_U32 jpegsize, MMP_OUT MMP_U32 *pic_width, MMP_OUT MMP_U32* pic_height) {
+MMP_RESULT CMmpImageTool::Jpeg_GetWidthHeightFourcc(MMP_U8* jpegdata, MMP_S32 jpegsize, 
+                                                    MMP_OUT MMP_S32 *pic_width, MMP_OUT MMP_S32* pic_height, enum MMP_FOURCC* pfourcc) {
 
     MMP_RESULT mmpResult = MMP_FAILURE;
     MMP_U32 sof_offset;
     MMP_U8* p;
     MMP_U16 w,h;
+    MMP_U8 num_of_component, component_id, sampling_frequecy, component_spec; 
+    MMP_S32 hSampFact, vSampFact;
+    MMP_S32 sampleFactor;
+    enum MMP_FOURCC fourcc;
+
+    enum {
+	    SAMPLE_420 = 0xA,
+	    SAMPLE_H422 = 0x9,
+	    SAMPLE_V422 = 0x6,
+	    SAMPLE_444 = 0x5,
+	    SAMPLE_400 = 0x1
+    };
 
     if(pic_width){ *pic_width = 0; }
     if(pic_height){ *pic_height = 0; }
@@ -500,11 +1298,50 @@ MMP_RESULT CMmpImageTool::Jpeg_GetWidthHeight(MMP_U8* jpegdata, MMP_U32 jpegsize
         memcpy(&h, p, 2); p+=2; /*width*/
         memcpy(&w, p, 2); p+=2; /*height*/
 
+        num_of_component = (*p);     p++; /* Numboer of Component */
+        component_id = (*p);         p++;
+        sampling_frequecy = (*p);    p++;
+        component_spec = (*p); p++;
+
+        hSampFact = ((MMP_S32)(sampling_frequecy>>4)) & 0xf;
+        vSampFact = ((MMP_S32)sampling_frequecy)&0xf;
+
+        if(num_of_component == 1) {
+            sampleFactor = SAMPLE_400;
+        }
+        else {
+            sampleFactor = ((hSampFact&3)<<2) | (vSampFact&3);
+        }
+
+        switch(sampleFactor) {
+	        case SAMPLE_420:
+		        fourcc = MMP_FOURCC_IMAGE_YUV420_P3; // FORMAT_420;
+		        break;
+
+            case SAMPLE_H422:
+		        fourcc = MMP_FOURCC_IMAGE_YCbCr422_P2; //FORMAT_422;
+		        break;
+
+	        case SAMPLE_V422:
+		        fourcc = MMP_FOURCC_IMAGE_YCbCr422_P2; //FORMAT_224;
+		        break;
+
+	        case SAMPLE_444:
+		        fourcc = MMP_FOURCC_IMAGE_YUV444_P1; //FORMAT_444;
+		        break;
+	        
+            default:	// 4:0:0
+		        fourcc = MMP_FOURCC_IMAGE_GREY;//FORMAT_400;
+	    }
+
+
+
         w = MMP_SWAP_U16(w);
         h = MMP_SWAP_U16(h);
 
         if(pic_width){ *pic_width = ((MMP_U32)w)&0xFFFF; }
         if(pic_height){ *pic_height = ((MMP_U32)h)&0xFFFF; }
+        if(pfourcc!=NULL) { *pfourcc = fourcc; }
     }
 
     return mmpResult;
@@ -1161,9 +1998,222 @@ int CMmpImageTool::Jpeg_makeExif(unsigned char *exifOut,
 }
 
 
+extern "C" {
+#include "jpeglib.h"
+}
+#include <setjmp.h>
+struct my_error_mgr {
+  struct jpeg_error_mgr pub;	/* "public" fields */
+  jmp_buf setjmp_buffer;	/* for return to caller */
+};
+typedef struct my_error_mgr * my_error_ptr;
+METHODDEF(void) my_error_exit (j_common_ptr cinfo)
+{
+  /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
+  my_error_ptr myerr = (my_error_ptr) cinfo->err;
+
+  /* Always display the message. */
+  /* We could postpone this until after returning, if we chose. */
+  (*cinfo->err->output_message) (cinfo);
+
+  /* Return control to the setjmp point */
+  longjmp(myerr->setjmp_buffer, 1);
+}
+
+MMP_RESULT CMmpImageTool::Jpeg_Decode_libjpeg_RGB(MMP_U8* jpegdata, MMP_S32 jpegsize, 
+                                          MMP_S32 *pic_width, MMP_S32* pic_height, enum MMP_FOURCC *fourcc,  MMP_U8* p_decoded_data) {
+
+#if (MMP_OS == MMP_OS_WIN32)
+#define JPEG_DEC_TMP_FILE_NAME "d:\\work\\tmpdec.jpg"
+#else
+#define JPEG_DEC_TMP_FILE_NAME "/tmp/tmpdec.jpg"
+#endif
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;    
+    struct jpeg_decompress_struct cinfo;
+    struct my_error_mgr jerr;
+    JSAMPARRAY buffer;		/* Output row buffer */
+    MMP_S32 row_stride;
+    MMP_S32 out_stride;
+    MMP_U8* p_image;
+    
+    FILE* fp =NULL, *infile = NULL;
+    
+    /* write tmp jpg file */
+    if(mmpResult == MMP_SUCCESS) {
+        fp = fopen(JPEG_DEC_TMP_FILE_NAME, "wb");
+        if(fp==NULL) {
+            mmpResult = MMP_FAILURE;
+        }
+        else {
+            fwrite(jpegdata, 1, jpegsize, fp);
+            fclose(fp);
+        }
+    }
+
+    /* open tmp jpg file */
+    if(mmpResult == MMP_SUCCESS) {
+        infile = fopen(JPEG_DEC_TMP_FILE_NAME, "rb");
+        if(infile == NULL) {
+            mmpResult = MMP_FAILURE;
+        }
+    }
+
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = my_error_exit;
+    if (setjmp(jerr.setjmp_buffer)) {
+        jpeg_destroy_decompress(&cinfo);
+        return mmpResult;
+    }
+  
+    jpeg_create_decompress(&cinfo);
+    jpeg_stdio_src(&cinfo, infile);
+    (void) jpeg_read_header(&cinfo, TRUE);
+    (void) jpeg_start_decompress(&cinfo);
+
+    row_stride = cinfo.output_width * cinfo.output_components;
+    out_stride = MMP_BYTE_ALIGN(row_stride, 4);
+    buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+    p_image = p_decoded_data;
+    while (cinfo.output_scanline < cinfo.output_height) {
+        (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+        memcpy(p_image, (void*)(*((unsigned int*)buffer)), row_stride);
+        p_image += out_stride;
+    }
+    (void) jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+
+
+    if(infile != NULL) {
+        fclose(infile);
+    }
+
+    if(pic_width!=NULL) *pic_width = cinfo.output_width;
+    if(pic_height!=NULL) *pic_height = cinfo.output_height;
+    if(fourcc!=NULL) {
+        if(cinfo.output_components == 3) *fourcc = MMP_FOURCC_IMAGE_RGB888;
+        else if(cinfo.output_components == 4) *fourcc = MMP_FOURCC_IMAGE_RGBA8888; 
+        else *fourcc = MMP_FOURCC_VIDEO_UNKNOWN;
+    }
+
+    return mmpResult;
+}
+
+MMP_RESULT CMmpImageTool::Jpeg_Encode_libjpeg_YUV444_P1(MMP_U8* p_src_data, 
+                                              MMP_S32 pic_width, MMP_S32 pic_height, MMP_S32 src_stride,  MMP_S32 quality,
+                                              MMP_U8* jpegdata, MMP_S32 jpegdata_max_size, MMP_S32 *jpegsize) {
+    
+
+#if (MMP_OS == MMP_OS_WIN32)
+#define JPEG_ENC_TMP_FILE_NAME "d:\\work\\tmpenc.jpg"
+#else
+#define JPEG_ENC_TMP_FILE_NAME "/tmp/tmpenc.jpg"
+#endif
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    FILE* outfile = NULL, *fp = NULL;
+    MMP_S32 filesz;
+    
+    if(mmpResult == MMP_SUCCESS) {
+        outfile = fopen(JPEG_ENC_TMP_FILE_NAME, "wb");
+        if(outfile == NULL) {
+            mmpResult = MMP_FAILURE;
+        }
+    }
+    
+    if(mmpResult == MMP_SUCCESS) {
+        
+        struct jpeg_compress_struct cinfo;
+        struct jpeg_error_mgr jerr;
+        JSAMPROW row_pointer[1];	/* pointer to JSAMPLE row[s] */
+        
+        cinfo.err = jpeg_std_error(&jerr);
+        jpeg_create_compress(&cinfo);
+        jpeg_stdio_dest(&cinfo, outfile);
+
+        cinfo.image_width = pic_width; 	/* image width and height, in pixels */
+        cinfo.image_height = pic_height;
+        cinfo.input_components = 3;		/* # of color components per pixel */
+        cinfo.in_color_space = JCS_YCbCr; 	/* colorspace of input image */
+      
+        jpeg_set_defaults(&cinfo);
+
+        if (quality < 0) quality = 0;
+        else if(quality > 100) quality = 100;
+        jpeg_set_quality(&cinfo, quality, TRUE /* limit to baseline-JPEG values */);
+        
+        jpeg_start_compress(&cinfo, TRUE);
+
+        while (cinfo.next_scanline < cinfo.image_height) {
+            /* jpeg_write_scanlines expects an array of pointers to scanlines.
+             * Here the array is only one element long, but you could pass
+             * more than one scanline at a time if that's more convenient.
+             */
+            row_pointer[0] = &p_src_data[cinfo.next_scanline * src_stride];
+            (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+        }
+
+        jpeg_finish_compress(&cinfo);
+        jpeg_destroy_compress(&cinfo);
+
+        fclose(outfile);
+        outfile = NULL;
+        
+        fp = fopen(JPEG_ENC_TMP_FILE_NAME, "rb");
+        if(fp == NULL) {
+            mmpResult = MMP_FAILURE;
+        }
+        else {
+            fseek(fp, 0, SEEK_END);
+            filesz = (MMP_S32)ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+            if(filesz > jpegdata_max_size) {
+                mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: jpegbuff is too samll"), MMP_CLASS_FUNC));
+            }
+            else {
+                fread(jpegdata, 1, filesz, fp);
+                if(jpegsize!=NULL) *jpegsize = filesz;
+            }
+            fclose(fp);
+        }
+    }
+
+    if(outfile != NULL) {
+        fclose(outfile);
+    }
+
+    return mmpResult;
+}
+    
 /********************************************************** 
         Tool of BMP
 ***********************************************************/
+
+MMP_CHAR* CMmpImageTool::Bmp_GetName(enum MMP_FOURCC fourcc, MMP_CHAR* buf) {
+    
+    
+    switch(fourcc) {
+        case MMP_FOURCC_IMAGE_RGB888  :  strcpy(buf, "RGB888");   break;
+	    case MMP_FOURCC_IMAGE_BGR888  :  strcpy(buf, "BGR888");   break;
+	    //case MMP_FOURCC_IMAGE_RGB565  :  strcpy(buf, "RGB565");   break;
+	    //case MMP_FOURCC_IMAGE_BGR565  :  strcpy(buf, "BGR565");   break;
+	    //case MMP_FOURCC_IMAGE_ARGB1555:  strcpy(buf, "ARGB1555");   break;
+	    //case MMP_FOURCC_IMAGE_BGRA1555:  strcpy(buf, "BGRA1555");   break;
+	    //case MMP_FOURCC_IMAGE_RGBA1555:  strcpy(buf, "RGBA1555");   break;
+	    //case MMP_FOURCC_IMAGE_ABGR1555:  strcpy(buf, "ABGR1555");   break;
+	    //case MMP_FOURCC_IMAGE_ARGB8888:  strcpy(buf, "ARGB8888");   break; 
+	    //case MMP_FOURCC_IMAGE_BGRA8888:  strcpy(buf, "BGRA8888");   break; 
+	    case MMP_FOURCC_IMAGE_RGBA8888:  strcpy(buf, "RGBA8888");   break; 
+	    //case MMP_FOURCC_IMAGE_ABGR8888:  strcpy(buf, "ABGR8888");   break; 
+
+        default:  strcpy(buf, "---");   break;
+
+    }
+
+    return buf;
+}
+
 
 MMP_RESULT CMmpImageTool::Bmp_SaveFile(MMP_CHAR* bmp_filename, MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image, MMP_U32 fourcc) {
 
@@ -1187,7 +2237,7 @@ MMP_RESULT CMmpImageTool::Bmp_SaveFile(MMP_CHAR* bmp_filename, MMP_S32 pic_width
     
         case MMP_FOURCC_IMAGE_BGR888:
         case MMP_FOURCC_IMAGE_RGB888: stride = MMP_BYTE_ALIGN(pic_width*3,4); break;
-        case MMP_FOURCC_IMAGE_ARGB8888: stride = pic_width*4; break;
+        case MMP_FOURCC_IMAGE_RGBA8888: stride = pic_width*4; break;
         default:
             mmpResult = MMP_FAILURE;
             MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("CMmpImageTool::%s] FAIL: not support format (%c%c%c%c) "), MMP_CLASS_FUNC, 
@@ -1222,7 +2272,7 @@ MMP_RESULT CMmpImageTool::Bmp_SaveFile(MMP_CHAR* bmp_filename, MMP_S32 pic_width
                 BmpInfoHeader.biCompression = MMP_BI_RGB;
                 break;
 
-            case MMP_FOURCC_IMAGE_ARGB8888:
+            case MMP_FOURCC_IMAGE_RGBA8888:
                 BmpInfoHeader.biPlanes = 1;
                 BmpInfoHeader.biBitCount = 32;
                 BmpInfoHeader.biCompression = MMP_BI_RGB;
@@ -1280,7 +2330,7 @@ MMP_RESULT CMmpImageTool::Bmp_SaveFile(MMP_CHAR* bmp_filename, MMP_S32 pic_width
                 }
                 break;
 
-            case MMP_FOURCC_IMAGE_ARGB8888:
+            case MMP_FOURCC_IMAGE_RGBA8888:
             case MMP_FOURCC_IMAGE_BGR888:
             default:
                 wrsz = fwrite(p_image, 1, BmpInfoHeader.biSizeImage, fp);
@@ -1299,27 +2349,306 @@ MMP_RESULT CMmpImageTool::Bmp_SaveFile(MMP_CHAR* bmp_filename, MMP_S32 pic_width
    return mmpResult;
 }
 
-MMP_CHAR* CMmpImageTool::Bmp_GetName(enum MMP_FOURCC fourcc, MMP_CHAR* buf) {
-    
-    
-    switch(fourcc) {
-        case MMP_FOURCC_IMAGE_RGB888  :  strcpy(buf, "RGB888");   break;
-	    case MMP_FOURCC_IMAGE_BGR888  :  strcpy(buf, "BGR888");   break;
-	    case MMP_FOURCC_IMAGE_RGB565  :  strcpy(buf, "RGB565");   break;
-	    case MMP_FOURCC_IMAGE_BGR565  :  strcpy(buf, "BGR565");   break;
-	    case MMP_FOURCC_IMAGE_ARGB1555:  strcpy(buf, "ARGB1555");   break;
-	    case MMP_FOURCC_IMAGE_BGRA1555:  strcpy(buf, "BGRA1555");   break;
-	    case MMP_FOURCC_IMAGE_RGBA1555:  strcpy(buf, "RGBA1555");   break;
-	    case MMP_FOURCC_IMAGE_ABGR1555:  strcpy(buf, "ABGR1555");   break;
-	    case MMP_FOURCC_IMAGE_ARGB8888:  strcpy(buf, "ARGB8888");   break; 
-	    case MMP_FOURCC_IMAGE_BGRA8888:  strcpy(buf, "BGRA8888");   break; 
-	    case MMP_FOURCC_IMAGE_RGBA8888:  strcpy(buf, "RGBA8888");   break; 
-	    case MMP_FOURCC_IMAGE_ABGR8888:  strcpy(buf, "ABGR8888");   break; 
+MMP_RESULT CMmpImageTool::Bmp_LoadInfo(MMP_CHAR* bmp_filename, MMP_S32* pic_width, MMP_S32* pic_height, enum MMP_FOURCC* fourcc, MMP_S32* stride) {
 
-        default:  strcpy(buf, "---");   break;
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    FILE* fp = NULL;
+    MMPBITMAPFILEHEADER BmpFileHeader;
+    MMPBITMAPINFOHEADER BmpInfoHeader;
+    MMP_S32 rdsz;
 
+    if(pic_width!=NULL) *pic_width = 0;
+    if(pic_height!=NULL) *pic_height = 0;
+    if(stride!=NULL) *stride = 0;
+    if(fourcc!=NULL) *fourcc = MMP_FOURCC_VIDEO_UNKNOWN;
+    
+    /* file open */
+    if(mmpResult == MMP_SUCCESS) {
+        fp = fopen(bmp_filename, "rb");
+        if(fp == NULL) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: open file(%s)"), MMP_CLASS_FUNC, bmp_filename ));
+        }
     }
 
-    return buf;
+    /* read file header */
+    if(mmpResult == MMP_SUCCESS) {
+        rdsz = fread(&BmpFileHeader, 1, sizeof(MMPBITMAPFILEHEADER), fp);
+        if(rdsz != sizeof(MMPBITMAPFILEHEADER)) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: read bmp file header"), MMP_CLASS_FUNC ));
+        }
+    }
+
+    /* read info header */
+    if(mmpResult == MMP_SUCCESS) {
+        rdsz = fread(&BmpInfoHeader, 1, sizeof(MMPBITMAPINFOHEADER), fp);
+        if(rdsz != sizeof(MMPBITMAPINFOHEADER)) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: read bmp info header"), MMP_CLASS_FUNC ));
+        }
+    }
+
+    /* check info */
+    if(mmpResult == MMP_SUCCESS) {
+    
+        if(BmpFileHeader.bfType != BMP_HEADER_MARKER) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: Bmp Marker Error"), MMP_CLASS_FUNC ));
+        }
+        else {
+            if(pic_width!=NULL) *pic_width = BmpInfoHeader.biWidth;
+            if(pic_height!=NULL) {
+                if(BmpInfoHeader.biHeight < 0)
+                    *pic_height = BmpInfoHeader.biHeight * (-1);
+                else 
+                    *pic_height = BmpInfoHeader.biHeight;
+            }
+            if(fourcc!=NULL) {
+                if(BmpInfoHeader.biBitCount == 24) {
+                    *fourcc = MMP_FOURCC_IMAGE_RGB888;
+                    if(stride!=NULL) *stride = MMP_BYTE_ALIGN(BmpInfoHeader.biWidth*3, 4);
+                }
+                else if(BmpInfoHeader.biBitCount == 32) {
+                    *fourcc = MMP_FOURCC_IMAGE_RGBA8888;
+                    if(stride!=NULL) *stride = MMP_BYTE_ALIGN(BmpInfoHeader.biWidth*4, 4);
+                }
+                else {
+                    mmpResult = MMP_FAILURE;
+                    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: Not Support Bitmap Bit Format"), MMP_CLASS_FUNC ));
+                }
+            }
+        }
+    }
+
+    if(mmpResult != MMP_SUCCESS) {
+        if(pic_width!=NULL) *pic_width = 0;
+        if(pic_height!=NULL) *pic_height = 0;
+        if(stride!=NULL) *stride = 0;
+        if(fourcc!=NULL) *fourcc = MMP_FOURCC_VIDEO_UNKNOWN;
+    }
+
+    if(fp != NULL) {
+        fclose(fp);
+    }
+    
+    return mmpResult;
+}
+    
+MMP_RESULT CMmpImageTool::Bmp_LoadFile(MMP_CHAR* bmp_filename, MMP_U8* p_image, MMP_S32 image_max_size) {
+
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+    FILE* fp = NULL;
+    MMPBITMAPFILEHEADER BmpFileHeader;
+    MMPBITMAPINFOHEADER BmpInfoHeader;
+    MMP_S32 rdsz, stride;
+
+    MMP_S32 pic_width, pic_height;
+    enum MMP_FOURCC fourcc;
+
+   
+    /* file open */
+    if(mmpResult == MMP_SUCCESS) {
+        fp = fopen(bmp_filename, "rb");
+        if(fp == NULL) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: open file(%s)"), MMP_CLASS_FUNC, bmp_filename ));
+        }
+    }
+
+    /* read file header */
+    if(mmpResult == MMP_SUCCESS) {
+        rdsz = fread(&BmpFileHeader, 1, sizeof(MMPBITMAPFILEHEADER), fp);
+        if(rdsz != sizeof(MMPBITMAPFILEHEADER)) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: read bmp file header"), MMP_CLASS_FUNC ));
+        }
+    }
+
+    /* read info header */
+    if(mmpResult == MMP_SUCCESS) {
+        rdsz = fread(&BmpInfoHeader, 1, sizeof(MMPBITMAPINFOHEADER), fp);
+        if(rdsz != sizeof(MMPBITMAPINFOHEADER)) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: read bmp info header"), MMP_CLASS_FUNC ));
+        }
+    }
+
+    /* check info */
+    if(mmpResult == MMP_SUCCESS) {
+    
+        if(BmpFileHeader.bfType != BMP_HEADER_MARKER) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: Bmp Marker Error"), MMP_CLASS_FUNC ));
+        }
+        else {
+
+            pic_width = BmpInfoHeader.biWidth;
+            if(BmpInfoHeader.biHeight < 0)
+                pic_height = BmpInfoHeader.biHeight * (-1);
+            else 
+                pic_height = BmpInfoHeader.biHeight;
+                    
+            if(BmpInfoHeader.biBitCount == 24) {
+                fourcc = MMP_FOURCC_IMAGE_RGB888;
+                stride = MMP_BYTE_ALIGN(pic_width*3, 4);
+
+            }
+            else if(BmpInfoHeader.biBitCount == 32) {
+                fourcc = MMP_FOURCC_IMAGE_RGBA8888;
+                stride = pic_width*4;
+            }
+            else {
+                stride = 0;
+                mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: Not Support Bitmap Bit Format"), MMP_CLASS_FUNC ));
+            }
+
+            if(image_max_size < stride*pic_height) {
+                mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: image buffer is too smaall (bufsz=%d imagesz=%d (%dx%d bpp%d)"), MMP_CLASS_FUNC,
+                          image_max_size,  stride*pic_height, pic_width, pic_height, BmpInfoHeader.biBitCount
+                    ));
+            }
+        }
+    }
+
+
+    /* Load Data */
+    if(mmpResult == MMP_SUCCESS) {
+        
+        MMP_S32 h;
+        MMP_U8 *src_line, *dst_line;
+        MMP_U8 *src_data, *dst_data;
+
+        dst_data = p_image;
+        src_data = (MMP_U8*)MMP_MALLOC(stride*pic_height);
+        if(src_data == NULL) {
+            mmpResult = MMP_FAILURE;
+            MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: malloc src_data"), MMP_CLASS_FUNC ));
+        }
+        else {
+
+            rdsz = fread(src_data, 1, stride*pic_height, fp);
+            if(rdsz != (stride*pic_height) ) {
+                mmpResult = MMP_FAILURE;
+                MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpImageTool::%s] FAIL: read data"), MMP_CLASS_FUNC ));
+            }
+            else {
+
+                if(BmpInfoHeader.biHeight > 0)  { src_line = src_data + (pic_height-1)*stride; }
+                else   {  src_line = src_data; }
+                
+                dst_line = dst_data;
+
+                for(h = 0; h < pic_height; h++) {
+                    memcpy(dst_line, src_line, stride);
+
+                    if(BmpInfoHeader.biHeight > 0) { src_line -= stride; }
+                    else { src_line += stride; } 
+                    dst_line += stride;
+                }
+
+            }
+
+            MMP_FREE(src_data);
+        }
+    }
+
+    if(fp != NULL) {
+        fclose(fp);
+    }
+    
+    
+    return mmpResult;
 }
 
+/********************************************************** 
+        Tool of YUV File
+***********************************************************/
+    
+MMP_RESULT CMmpImageTool::YUV_LoadFile_YUV420P3(MMP_CHAR* yuv_filename, MMP_S32 pic_width, MMP_S32 pic_height, 
+                                                MMP_U8* p_data_y, MMP_U8* p_data_u, MMP_U8* p_data_v, 
+                                                MMP_S32 y_stride, MMP_S32 u_stride, MMP_S32 v_stride) {
+    
+    FILE* fp = NULL;
+    MMP_RESULT mmpResult = MMP_SUCCESS;
+
+    MMP_S32 h;
+    MMP_S32 src_height;
+    MMP_S32 src_stride, dst_stride;
+
+    MMP_U8* dst_line;
+    MMP_S32 rdsz;
+    
+    /* File Open */
+    fp = fopen(yuv_filename, "rb");
+    if(fp == NULL) {
+        mmpResult = MMP_FAILURE;
+    }
+    
+    /* Load Y */
+    if(mmpResult == MMP_SUCCESS) {
+    
+        src_stride = pic_width;
+        src_height = pic_height;
+        dst_stride = y_stride;
+        dst_line = p_data_y;
+        for(h = 0; h < src_height; h++) {
+            
+            rdsz = fread(dst_line, 1, src_stride, fp);
+            if(rdsz != src_stride) {
+                mmpResult = MMP_FAILURE;
+                break;
+            }
+
+            dst_line += dst_stride;
+        }
+    }
+
+    /* Load U */
+    if(mmpResult == MMP_SUCCESS) {
+    
+        src_stride = pic_width/2;
+        src_height = pic_height/2;
+
+        dst_stride = u_stride;
+        dst_line = p_data_u;
+
+        for(h = 0; h < src_height; h++) { 
+            rdsz = fread(dst_line, 1, src_stride, fp);
+            if(rdsz != src_stride) {
+                mmpResult = MMP_FAILURE;
+                break;
+            }
+
+            dst_line += dst_stride;
+        }
+    }
+
+    /* Load V */
+    if(mmpResult == MMP_SUCCESS) {
+    
+        src_stride = pic_width/2;
+        src_height = pic_height/2;
+
+        dst_stride = v_stride;
+        dst_line = p_data_v;
+
+        for(h = 0; h < src_height; h++) { 
+            rdsz = fread(dst_line, 1, src_stride, fp);
+            if(rdsz != src_stride) {
+                mmpResult = MMP_FAILURE;
+                break;
+            }
+
+            dst_line += dst_stride;
+        }
+    }
+
+    if(fp != NULL) {
+        fclose(fp);
+    }
+
+    return mmpResult;
+}

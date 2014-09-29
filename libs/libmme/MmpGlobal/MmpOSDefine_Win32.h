@@ -78,20 +78,17 @@ typedef TCHAR MMPCHAR;
 #define MMP_DRIVER_MUNMAP  kernel_driver_munmap
 
 #ifdef __cplusplus
-extern "C" {
+#define MMP_FUNC_EXTERN extern "C" 
+#else
+#define MMP_FUNC_EXTERN extern
 #endif
+MMP_FUNC_EXTERN int kernel_driver_open(const char* drvname, int flag);
+MMP_FUNC_EXTERN int kernel_driver_close(int fd);
+MMP_FUNC_EXTERN int kernel_driver_write(int fd, char* buf, int bufsize);
+MMP_FUNC_EXTERN int kernel_driver_ioctl(int d, unsigned long request, void* arg);
+MMP_FUNC_EXTERN void* kernel_driver_mmap(void *addr, size_t length, int prot, int flags, int fd, unsigned int offset);
+MMP_FUNC_EXTERN int kernel_driver_munmap(void* start, size_t length);
 
-int kernel_driver_open(char* drvname, int flag);
-int kernel_driver_close(int fd);
-int kernel_driver_write(int fd, char* buf, int bufsize);
-int kernel_driver_ioctl(int d, unsigned long request, void* arg);
-
-void* kernel_driver_mmap(void *addr, size_t length, int prot, int flags, int fd, unsigned int offset);
-int kernel_driver_munmap(void* start, size_t length);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

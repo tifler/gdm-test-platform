@@ -136,24 +136,42 @@ enum MMP_FOURCC {
     MMP_FOURCC_VIDEO_TSCC      = MMPMAKEFOURCC('T','S','C','C'),   /* Indeo2 */
     MMP_FOURCC_VIDEO_FFMPEG    = MMPMAKEFOURCC('F','F','M','P'),   
 
-    MMP_FOURCC_IMAGE_YV12    = MMPMAKEFOURCC('Y','V','1','2'),  /* http://www.fourcc.org/yuv.php#YV12  8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes.*/
-    MMP_FOURCC_IMAGE_I420    = MMPMAKEFOURCC('I','4','2','0'),  /* http://www.fourcc.org/yuv.php#IYUV  0x30323449 	12 	8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes..*/
-    MMP_FOURCC_IMAGE_YUV444Packed  = MMPMAKEFOURCC('P','4','4','4'),  /* 8 bit Y/U/V Packed Format */
-    MMP_FOURCC_IMAGE_YUV444P3      = MMPMAKEFOURCC('I','4','4','4'),  /* 8 bit YUV 444  Plane 3 */
+    MMP_FOURCC_IMAGE_GREY      = MMPMAKEFOURCC('G','R','E','Y'), /*  8  Greyscale     */
+
+    MMP_FOURCC_IMAGE_YUV444_P1 = MMPMAKEFOURCC('4','4','4','1'),  /* 24bit Y/U/V 444 Plane 1 */
+    MMP_FOURCC_IMAGE_YCbCr422_P2 = MMPMAKEFOURCC('N','V','1','6'),  /* 16 bit Y/CbCr 4:2:2 Plane 2, V4L2_PIX_FMT_NV16 */
+    MMP_FOURCC_IMAGE_YCrCb422_P2 = MMPMAKEFOURCC('N','V','6','1'),  /* 16 bit Y/CrCb 4:2:2 Plane 2, V4L2_PIX_FMT_NV61 */
+    MMP_FOURCC_IMAGE_YVU420_P3 = MMPMAKEFOURCC('Y','V','1','2'),  /* 12  YVU 4:2:0  3P */
+    MMP_FOURCC_IMAGE_YUV420_P3 = MMPMAKEFOURCC('Y','U','1','2'),  /* 12  YUV 4:2:0  3P */
+    MMP_FOURCC_IMAGE_YCbCr420_P2 = MMPMAKEFOURCC('N','V','1','2'),  /* 12  Y/CbCr 4:2:0  2P*/
+    MMP_FOURCC_IMAGE_YCrCb420_P2 = MMPMAKEFOURCC('N','V','2','1'),  /* 12  Y/CbCr 4:2:0  2P*/
+       
     
-    MMP_FOURCC_IMAGE_RGB888 = MMPMAKEFOURCC('R','G','2','4'),   /* 24bit RGB */
-	MMP_FOURCC_IMAGE_BGR888 = MMPMAKEFOURCC('B','G','2','4'),   /* 24bit BGR */
-	MMP_FOURCC_IMAGE_RGB565 = MMPMAKEFOURCC('R','G','1','5'),   /* 15bit RGB565 */
-	MMP_FOURCC_IMAGE_BGR565 = MMPMAKEFOURCC('B','G','1','5'),   /* 15bit BGR565 */
-	MMP_FOURCC_IMAGE_ARGB1555 = MMPMAKEFOURCC('A','R','1','6'),   /* 16bit ARGB1555 */
-	MMP_FOURCC_IMAGE_BGRA1555 = MMPMAKEFOURCC('B','G','1','6'),   /* 16bit BGRA1555 */
-	MMP_FOURCC_IMAGE_RGBA1555 = MMPMAKEFOURCC('R','G','1','6'),   /* 16bit RGBA1555 */
-	MMP_FOURCC_IMAGE_ABGR1555 = MMPMAKEFOURCC('A','B','1','6'),   /* 16bit ABGR1555 */
-	MMP_FOURCC_IMAGE_ARGB8888 = MMPMAKEFOURCC('A','R','3','2'),   /* 32bit ARGB8888 */
-	MMP_FOURCC_IMAGE_BGRA8888 = MMPMAKEFOURCC('B','R','3','2'),   /* 32bit BGRA8888 */
-	MMP_FOURCC_IMAGE_RGBA8888 = MMPMAKEFOURCC('R','G','3','2'),   /* 32bit RGBA8888 */
-	MMP_FOURCC_IMAGE_ABGR8888 = MMPMAKEFOURCC('A','B','3','2'),   /* 32bit ABGR8888 */
+    MMP_FOURCC_IMAGE_RGB888 = MMPMAKEFOURCC('R','G','B','3'),   /* 24bit RGB */
+	MMP_FOURCC_IMAGE_BGR888 = MMPMAKEFOURCC('B','G','R','3'),   /* 24bit BGR */
+    MMP_FOURCC_IMAGE_RGBA8888 = MMPMAKEFOURCC('R','G','B','4')   /* 32bit RGBA8888 */
+#if 0
+	//MMP_FOURCC_IMAGE_RGB565 = MMPMAKEFOURCC('R','G','1','5'),   /* 15bit RGB565 */
+	//MMP_FOURCC_IMAGE_BGR565 = MMPMAKEFOURCC('B','G','1','5'),   /* 15bit BGR565 */
+	//MMP_FOURCC_IMAGE_ARGB1555 = MMPMAKEFOURCC('A','R','1','6'),   /* 16bit ARGB1555 */
+	//MMP_FOURCC_IMAGE_BGRA1555 = MMPMAKEFOURCC('B','G','1','6'),   /* 16bit BGRA1555 */
+	//MMP_FOURCC_IMAGE_RGBA1555 = MMPMAKEFOURCC('R','G','1','6'),   /* 16bit RGBA1555 */
+	//MMP_FOURCC_IMAGE_ABGR1555 = MMPMAKEFOURCC('A','B','1','6'),   /* 16bit ABGR1555 */
+	//MMP_FOURCC_IMAGE_ARGB8888 = MMPMAKEFOURCC('R','G','B','4'),   /* 32bit ARGB8888 */
+	//MMP_FOURCC_IMAGE_BGRA8888 = MMPMAKEFOURCC('B','G','R','4'),   /* 32bit BGRA8888 */
+	//MMP_FOURCC_IMAGE_ABGR8888 = MMPMAKEFOURCC('A','B','3','2'),   /* 32bit ABGR8888 */
+#endif
 };
+
+#define MMP_IMAGE_MAX_PLANE_COUNT 3
+
+#define MMP_YUV420_PLAINE_INDEX_Y 0 /* if YUV420, Y index */  
+#define MMP_YUV420_PLAINE_INDEX_U 1 /* if YUV420, U index */  
+#define MMP_YUV420_PLAINE_INDEX_V 2 /* if YUV420, V index */  
+
+#define MMP_NV12_PLAINE_INDEX_Y    0 /* if Y/CbCr NV12,, Y index */
+#define MMP_NV12_PLAINE_INDEX_CbCr 1 /* if Y/CbCr NV12,, cbcr index */
+
 
 #define MMP_YV12_FRAME_SIZE(w,h)  ((((w + 15) & (-16))  * ((h + 15) & (-16)) * 3) / 2)
 

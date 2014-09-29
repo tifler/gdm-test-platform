@@ -36,6 +36,8 @@
 #include "../coda960.h"
 #include "mmp_env_mgr.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 static jpu_buffer_t s_jpu_common_buffer;
 
 
@@ -78,7 +80,7 @@ MMP_RESULT mmp_jpu_dev_shm::open() {
 
     /* create external mutex */
     if(mmpResult == MMP_SUCCESS) {
-        m_p_mutex_external_cs = mmp_oal_mutex::create_object(mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_EXTERNAL_MUTEX_KEY));
+        m_p_mutex_external_cs = mmp_oal_mutex::create_object( mmp_env_mgr::get_instance()->get_uint(mmp_env_mgr::ENV_UINT_JPU_EXTERNAL_MUTEX_KEY));
         if(m_p_mutex_external_cs == NULL) {
             mmpResult = MMP_FAILURE;
         }
@@ -449,3 +451,4 @@ void mmp_jpu_dev_shm::JPU_EncSetHostParaAddr(PhysicalAddress baseAddr, PhysicalA
     //::JPU_EncSetHostParaAddr(baseAddr, paraAddr);
 }
 
+#endif

@@ -108,7 +108,7 @@ protected:
     virtual ~CMmpEncoder();
 
     virtual MMP_RESULT Open();
-	virtual MMP_RESULT Open(MMP_U8* pStream, MMP_U32 nStreamSize) = 0;
+//	virtual MMP_RESULT Open(MMP_U8* pStream, MMP_U32 nStreamSize) = 0;
     virtual MMP_RESULT Close();
 
 public:

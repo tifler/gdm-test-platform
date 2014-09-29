@@ -24,6 +24,8 @@
 
 #include "mmp_jpu_if.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 class mmp_jpu_if_ana : public mmp_jpu_if {
 
 friend class mmp_jpu_if;
@@ -83,4 +85,5 @@ public:
 };
 
 
+#endif
 #endif

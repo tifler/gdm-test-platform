@@ -226,6 +226,9 @@ enum MMP_MEDIATYPE
 #define MMPGETFOURCC(fourcc,ch) (MMP_U8)(fourcc>>(8*ch))
 #define MMPGETFOURCCARG(fourcc)  MMPGETFOURCC(fourcc,0),MMPGETFOURCC(fourcc,1),MMPGETFOURCC(fourcc,2),MMPGETFOURCC(fourcc,3)
 #define MMP_BYTE_ALIGN(x, align)   (((x) + (align) - 1) & ~((align) - 1))
+#define MMP_VIDEO_FRAME_STRIDE_ALIGN(stride)  MMP_BYTE_ALIGN(stride, 16) 
+#define MMP_VIDEO_FRAME_HEIGHT_ALIGN(height)  MMP_BYTE_ALIGN(height, 16) 
+#define MMP_VIDEO_STREAM_SIZE_ALIGN(streamsz) MMP_BYTE_ALIGN(streamsz, 1024)
 
 #if (MMP_OS==MMP_OS_WIN32 || MMP_OS==MMP_OS_WINCE60)
 #define MMP_SLEEP(mileSec) Sleep(mileSec)

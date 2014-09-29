@@ -17,12 +17,15 @@ struct mme_support_extension {
 
 static struct mme_support_extension mme_exts[] = { 
     { 0, "jpg" },  
+    { 0, "jpeg" }  
   
 };
 				  
 
 #define MAX_PLAYER_COUNT 4
-static CMmpPlayer* s_pMmpPlayer_Arr[MAX_PLAYER_COUNT] = {NULL, NULL, NULL, NULL};
+static CMmpPlayer* s_pMmpPlayer_Arr[MAX_PLAYER_COUNT] = {
+    NULL, NULL, NULL, NULL
+};
 
 int mme_command_jpegviewer_start(int argc, char* argv[]) {
 
@@ -52,15 +55,32 @@ int mme_command_jpegviewer_start(int argc, char* argv[]) {
     MMP_U32 player_type = CMmpPlayer::DEFAULT;
     
     /* Get Player Index */
-    for(i = 0; i < MAX_PLAYER_COUNT; i++) {
-        if(s_pMmpPlayer_Arr[i] == NULL) {
-            player_index = i;
+    while(1) {
+        for(i = 0; i < MAX_PLAYER_COUNT; i++) {
+            if(s_pMmpPlayer_Arr[i] == NULL) {
+                player_index = i;
+                break;
+            }
+        }
+        if(i == MAX_PLAYER_COUNT) {
+
+            MMESHELL_PRINT(MMESHELL_ERROR, ("Player[0] will destory soon \n"));
+
+            pPlayer = s_pMmpPlayer_Arr[0];
+            pPlayer->PlayStop();
+            CMmpPlayer::DestroyObject(pPlayer);
+            s_pMmpPlayer_Arr[0] = NULL;
+            for(i = 1; i < MAX_PLAYER_COUNT; i++) {
+                s_pMmpPlayer_Arr[i-1] = s_pMmpPlayer_Arr[i];
+            }
+            s_pMmpPlayer_Arr[MAX_PLAYER_COUNT-1] = NULL;
+        
+            //MMESHELL_PRINT(MMESHELL_ERROR, ("All Player is running. \n"));
+            //return -1;
+        }
+        else {
             break;
         }
-    }
-    if(i == MAX_PLAYER_COUNT) {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("All Player is running. \n"));
-        return -1;
     }
 
     /* Check Arg */

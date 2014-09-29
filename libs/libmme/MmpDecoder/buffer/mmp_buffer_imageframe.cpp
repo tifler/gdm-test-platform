@@ -35,7 +35,7 @@ mmp_buffer_imageframe::mmp_buffer_imageframe() : mmp_buffer_media(VIDEO_FRAME)
 {
     MMP_S32 i;
 
-    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+    for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
         m_p_mmp_buffer[i] = NULL;
     }
 
@@ -56,15 +56,15 @@ class mmp_buffer_addr mmp_buffer_imageframe::get_buf_addr(MMP_S32 frame_id) {
     return buf_addr;
 }
 
-MMP_U8* mmp_buffer_imageframe::get_buf_vir_addr(MMP_S32 frame_id) {
+MMP_VIR_ADDR mmp_buffer_imageframe::get_buf_vir_addr(MMP_S32 frame_id) {
 
-    MMP_U8* p_addr = NULL;
+    MMP_VIR_ADDR vir_addr = (MMP_VIR_ADDR)0;
 
     if( (frame_id >= 0) && (frame_id < m_plane_count) ) {
-        p_addr = (MMP_U8*)this->m_p_mmp_buffer[frame_id]->get_vir_addr();
+        vir_addr = this->m_p_mmp_buffer[frame_id]->get_vir_addr();
     }
     
-    return p_addr;
+    return vir_addr;
 }
 
 MMP_U32 mmp_buffer_imageframe::get_buf_phy_addr(MMP_S32 frame_id) {
@@ -87,4 +87,15 @@ MMP_S32 mmp_buffer_imageframe::get_buf_shared_fd(MMP_S32 frame_id) {
     }
     
     return shared_fd;
+}
+
+MMP_S32 mmp_buffer_imageframe::get_buf_size(MMP_S32 frame_id) {
+
+    MMP_S32 buf_size = 0;
+
+    if( (frame_id >= 0) && (frame_id < m_plane_count) ) {
+        buf_size = this->m_p_mmp_buffer[frame_id]->get_buf_size();
+    }
+    
+    return buf_size;
 }

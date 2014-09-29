@@ -35,7 +35,7 @@ mmp_buffer_videoframe::mmp_buffer_videoframe() : mmp_buffer_media(VIDEO_FRAME)
 {
     MMP_S32 i;
 
-    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+    for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
         m_p_mmp_buffer[i] = NULL;
     }
 

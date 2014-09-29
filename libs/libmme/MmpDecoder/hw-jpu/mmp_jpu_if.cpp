@@ -32,6 +32,8 @@
 #include "mmp_jpu_if.hpp"
 #include "mmp_jpu_if_ana.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 /**********************************************************
 create/destroy object
 **********************************************************/
@@ -53,8 +55,10 @@ class mmp_jpu_if* mmp_jpu_if::create_object(struct mmp_jpu_if_create_config* p_c
 
 #elif (MMP_JPU == MMP_JPU_CNM)
 	p_obj = new class mmp_jpu_if_cnm(p_create_config);
+#elif (MMP_JPU == MMP_JPU_V4L2)
+	p_obj = NULL;
 #else
-#error "ERROR : select MMP_VPU "
+#error "ERROR : select MMP_JPU "
 #endif
 	if(p_obj!=NULL) {
         
@@ -94,3 +98,4 @@ mmp_jpu_if::~mmp_jpu_if() {
 }
 
 
+#endif

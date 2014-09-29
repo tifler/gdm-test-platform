@@ -136,12 +136,6 @@ typedef struct CMmpPlayerCreateProp_st
 #define MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD   0x12
 #define MMP_MEDIASAMPLE_BUFFER_TYPE_VIDEO_FRAME  0x13
 
-#define MMP_MEDIASAMPLE_PLANE_COUNT 3
-#define MMP_MEDIASAMPLE_BUF_Y 0
-#define MMP_MEDIASAMPLE_BUF_U 1
-#define MMP_MEDIASAMPLE_BUF_V 2
-#define MMP_MEDIASAMPLE_BUF_CB MMP_MEDIASAMPLE_BUF_U
-#define MMP_MEDIASAMPLE_BUF_CR MMP_MEDIASAMPLE_BUF_V
 
 #define MMP_MEDIASAMPLE_BUF_PCM 0
 
@@ -159,9 +153,9 @@ typedef struct CMmpMediaSample_st
 }CMmpMediaSample;
 
 #define MMP_DECODED_BUF_PCM MMP_MEDIASAMPLE_BUF_PCM
-#define MMP_DECODED_BUF_Y MMP_MEDIASAMPLE_BUF_Y
-#define MMP_DECODED_BUF_U MMP_MEDIASAMPLE_BUF_U
-#define MMP_DECODED_BUF_V MMP_MEDIASAMPLE_BUF_V
+#define MMP_DECODED_BUF_Y MMP_YUV420_PLAINE_INDEX_Y
+#define MMP_DECODED_BUF_U MMP_YUV420_PLAINE_INDEX_U
+#define MMP_DECODED_BUF_V MMP_YUV420_PLAINE_INDEX_V
 #define MMP_DECODED_BUF_VIDEO_FRAME 0
 typedef struct CMmpMediaSampleDecodeResult_st
 {
@@ -170,10 +164,10 @@ typedef struct CMmpMediaSampleDecodeResult_st
     MMP_BOOL bImage;                     //outbuf[0]
 	MMP_BOOL bReconfig; 
 	
-    MMP_U32 uiDecodedBufferPhyAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_U32 uiDecodedBufferLogAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_U32 uiDecodedBufferStride[MMP_MEDIASAMPLE_PLANE_COUNT];       //Buffer Stride
-    MMP_U32 uiDecodedBufferAlignHeight[MMP_MEDIASAMPLE_PLANE_COUNT];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
+    MMP_U32 uiDecodedBufferPhyAddr[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_U32 uiDecodedBufferLogAddr[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_U32 uiDecodedBufferStride[MMP_IMAGE_MAX_PLANE_COUNT];       //Buffer Stride
+    MMP_U32 uiDecodedBufferAlignHeight[MMP_IMAGE_MAX_PLANE_COUNT];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
     MMP_U32 uiDecodedBufferMaxSize; 
     
     MMP_U32 uiDecodedSize;                       //outbuf[7]  reserve
@@ -192,10 +186,10 @@ typedef struct CMmpMediaSampleEncode_st
 {
     MMP_U32 uiSampleType;
 
-    MMP_U32 uiBufferPhyAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_U32 uiBufferLogAddr[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_U32 uiBufferStride[MMP_MEDIASAMPLE_PLANE_COUNT];       //Buffer Stride
-    MMP_U32 uiBufferAlignHeight[MMP_MEDIASAMPLE_PLANE_COUNT];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
+    MMP_U32 uiBufferPhyAddr[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_U32 uiBufferLogAddr[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_U32 uiBufferStride[MMP_IMAGE_MAX_PLANE_COUNT];       //Buffer Stride
+    MMP_U32 uiBufferAlignHeight[MMP_IMAGE_MAX_PLANE_COUNT];  //Buffer Align Height ex) if Mali, height = (height+16 - 15)*16/16
     MMP_U32 uiBufferMaxSize; 
 
     MMP_U32 uiSampleNumber;            //inbuf[4]  (input) sample number for debugging

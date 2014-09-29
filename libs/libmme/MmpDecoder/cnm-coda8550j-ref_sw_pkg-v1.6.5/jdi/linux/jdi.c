@@ -28,6 +28,8 @@
 #include "../jdi.h"
 #include "../../include/jpulog.h"
 
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
+
 #define JPU_BIT_REG_SIZE		0x300
 #define JPU_BIT_REG_BASE		(0x10000000 + 0x3000)
 #define JDI_DRAM_PHYSICAL_BASE	0x00
@@ -805,5 +807,5 @@ void jdi_unregister_dma_memory(jpu_buffer_t *vb)
 
 #endif
 
-
+#endif
 #endif

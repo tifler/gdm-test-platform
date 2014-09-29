@@ -33,7 +33,6 @@
 //////////////////////////////////////////////////////////////
 // CMmpEncoder CreateObject/DestroyObject
 
-
 CMmpEncoder* CMmpEncoder::CreateVideoObject(struct MmpEncoderCreateConfig *pCreateConfig, MMP_BOOL bForceFFMpeg) {
 
 	CMmpEncoder* pObj=NULL;

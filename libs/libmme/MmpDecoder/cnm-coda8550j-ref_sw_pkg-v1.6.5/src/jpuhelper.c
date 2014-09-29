@@ -16,6 +16,8 @@
 
 #include "mme_jpu_compilehelper.h"
 
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
+
 static int FillSdramBurst(BufInfo * pBufInfo, Uint32 targetAddr, PhysicalAddress bsBufStartAddr, PhysicalAddress bsBufEndAddr, Uint32 size, int checkeos, int *streameos, int endian);
 static int StoreYuvImageBurstFormat(Uint8 * dst, int picWidth, int picHeight, int addrY,  int addrCb,  int addrCr,  int stride,  int interLeave, int format, int endian, int packed);
 static void ProcessEncodedBitstreamBurst(FILE * fp, int targetAddr, PhysicalAddress bsBufStartAddr, PhysicalAddress bsBufEndAddr,int size, int endian);
@@ -796,6 +798,23 @@ int jpgGetHuffTable(char *huffFileName, EncMjpgParam *param)
     return 1;
 }
 
+int JPU_jpgGetHuffTable(EncMjpgParam *param)
+{
+    // Rearrange and insert pre-defined Huffman table to deticated variable.
+	memcpy(param->huffBits[DC_TABLE_INDEX0], lumaDcBits, 16);	// Luma DC BitLength
+	memcpy(param->huffVal[DC_TABLE_INDEX0], lumaDcValue, 16);	// Luma DC HuffValue
+
+	memcpy(param->huffBits[AC_TABLE_INDEX0], lumaAcBits, 16);	// Luma DC BitLength
+	memcpy(param->huffVal[AC_TABLE_INDEX0], lumaAcValue, 162);	// Luma DC HuffValue
+
+	memcpy(param->huffBits[DC_TABLE_INDEX1], chromaDcBits, 16);	// Chroma DC BitLength
+	memcpy(param->huffVal[DC_TABLE_INDEX1], chromaDcValue, 16);	// Chroma DC HuffValue
+
+	memcpy(param->huffBits[AC_TABLE_INDEX1], chromaAcBits, 16);	// Chroma AC BitLength
+	memcpy(param->huffVal[AC_TABLE_INDEX1], chromaAcValue, 162); // Chorma AC HuffValue
+
+    return 1;
+}
 
 
 
@@ -827,6 +846,19 @@ int jpgGetQMatrix(char *qMatFileName, EncMjpgParam *param)
     return 1;
 }
 
+int JPU_jpgGetQMatrix(EncMjpgParam *param)
+{
+
+    // Rearrange and insert pre-defined Q-matrix to deticated variable.
+	memcpy(param->qMatTab[DC_TABLE_INDEX0], lumaQ2, 64);
+	memcpy(param->qMatTab[AC_TABLE_INDEX0], chromaBQ2, 64);
+
+	memcpy(param->qMatTab[DC_TABLE_INDEX1], param->qMatTab[DC_TABLE_INDEX0], 64);
+	memcpy(param->qMatTab[AC_TABLE_INDEX1], param->qMatTab[AC_TABLE_INDEX0], 64);
+
+
+    return 1;
+}
 
 /******************************************************************************
     EncOpenParam Initialization
@@ -864,6 +896,25 @@ int getJpgEncOpenParamDefault(JpgEncOpenParam *pEncOP, EncConfigParam *pEncConfi
 		memset(pEncConfig->qMatFileName, 0, MAX_FILE_PATH);
 	ret = jpgGetQMatrix(pEncConfig->qMatFileName, &mjpgParam);
 	if (ret == 0) return ret;
+	
+
+	memcpy(pEncOP->huffVal, mjpgParam.huffVal, 4*162);
+	memcpy(pEncOP->huffBits, mjpgParam.huffBits, 4*256);
+	memcpy(pEncOP->qMatTab, mjpgParam.qMatTab, 4*64);
+	
+	return 1;
+}
+
+int JPU_getJpgEncOpenParam_HuffTable_QMatrix(JpgEncOpenParam *pEncOP)
+{
+	int ret;
+	EncMjpgParam mjpgParam;
+	
+	memset(&mjpgParam, 0x00, sizeof(EncMjpgParam));
+
+	
+	JPU_jpgGetHuffTable(&mjpgParam);
+	JPU_jpgGetQMatrix(&mjpgParam);
 	
 
 	memcpy(pEncOP->huffVal, mjpgParam.huffVal, 4*162);
@@ -1916,3 +1967,5 @@ void jpu_yuv2rgb(int width, int height, yuv2rgb_color_format format, unsigned ch
 		}	
 	}
 }
+
+#endif

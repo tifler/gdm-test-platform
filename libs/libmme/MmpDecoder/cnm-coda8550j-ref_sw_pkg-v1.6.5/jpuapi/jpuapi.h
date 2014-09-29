@@ -121,12 +121,25 @@ typedef enum {
 	ENC_HEADER_MODE_SOS_ONLY	
 } JpgEncHeaderMode;
 
+#if 0
 typedef struct {
 	PhysicalAddress bufY;
 	PhysicalAddress bufCb;
 	PhysicalAddress bufCr;
 	int	stride;	
 } JPU_FrameBuffer;
+#else
+
+
+typedef struct {
+	//PhysicalAddress bufY;
+	//PhysicalAddress bufCb;
+	//PhysicalAddress bufCr;
+    PhysicalAddress phy_addr[3];
+	int	stride_arr[3];	
+} JPU_FrameBuffer;
+
+#endif
 
 
 struct JpgInst;
@@ -328,7 +341,7 @@ extern "C" {
 		PhysicalAddress baseAddr,
 		PhysicalAddress paraAddr);
 
-	
+	void JPU_RegisterDump(void);
 
 #ifdef __cplusplus
 }

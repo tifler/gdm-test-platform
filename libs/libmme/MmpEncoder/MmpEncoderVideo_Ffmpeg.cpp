@@ -249,7 +249,7 @@ MMP_RESULT CMmpEncoderVideo_Ffmpeg::EncodeAu(class mmp_buffer_videoframe* p_buf_
     avpkt.size = 0;
     avpkt.flags = 0;
     
-    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+    for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
         m_pAVFrame_Input->data[i] = (uint8_t*)p_buf_videoframe->get_buf_vir_addr(i);
         m_pAVFrame_Input->linesize[i] = p_buf_videoframe->get_buf_stride(i);
     }

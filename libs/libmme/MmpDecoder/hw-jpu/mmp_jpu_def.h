@@ -39,7 +39,9 @@
 
 #define MMP_JPU_CNM     1 
 #define MMP_JPU_ANAPASS 2 
+#define MMP_JPU_V4L2    3 
 #define MMP_JPU MMP_JPU_ANAPASS
+//#define MMP_JPU MMP_JPU_V4L2
 
 #define MMP_JPU_BIT_REG_SIZE		0x300
 #define MMP_JPU_BIT_REG_BASE		(0x10000000 + 0x3000)

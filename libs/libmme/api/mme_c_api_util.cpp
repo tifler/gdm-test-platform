@@ -85,3 +85,13 @@ long long mme_util_get_tick_count_us() {
 void mme_util_split_file_name(char* file_path_name, char* filename) {
     CMmpUtil::SplitFileName(file_path_name, filename);
 }
+
+/* e.g  IN:/mnt/abcde.dat OUT: dat */
+void mme_util_split_file_ext(char* file_path_name, char* file_ext) {
+    CMmpUtil::SplitExt(file_path_name, file_ext);
+}
+
+/* e.g  IN:/mnt/abcde.dat OUT: dat */
+void mme_util_string_make_lower(char* sz) {
+    CMmpUtil::MakeLower(sz);
+}

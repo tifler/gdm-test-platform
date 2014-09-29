@@ -217,7 +217,7 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
         m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*3;
     }
     else if(cinfo.output_components == 4) {
-        fourcc_rgb = MMP_FOURCC_IMAGE_ARGB8888;
+        fourcc_rgb = MMP_FOURCC_IMAGE_RGBA8888;
         m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*4;
     }
     else {
@@ -225,10 +225,10 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
         m_bih_out.biSizeImage = cinfo.output_width*cinfo.output_height*3;
     }
     m_p_buf_imageframe_rgb = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(m_bih_out.biWidth, m_bih_out.biHeight, fourcc_rgb);
-    m_p_buf_imageframe_yuv = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_IMAGE_I420);
+    m_p_buf_imageframe_yuv = mmp_buffer_mgr::get_instance()->alloc_media_imageframe(m_bih_out.biWidth, m_bih_out.biHeight, MMP_FOURCC_IMAGE_YUV420_P3);
     
     //m_bih_out.biCompression = fourcc_rgb;
-    m_bih_out.biCompression = MMP_FOURCC_IMAGE_I420;
+    m_bih_out.biCompression = MMP_FOURCC_IMAGE_YUV420_P3;
 
     /* Step 6: while (scan lines remain to be read) */
     /*           jpeg_read_scanlines(...); */
@@ -268,16 +268,17 @@ MMP_RESULT CMmpDecoderImage_JpegLib::DecodeAu(class mmp_buffer_imagestream* p_bu
 
     if(pp_buf_imageframe != NULL) {
 
-        if(m_bih_out.biCompression == MMP_FOURCC_IMAGE_I420 ) {
+        if(m_bih_out.biCompression == MMP_FOURCC_IMAGE_YUV420_P3 ) {
 
-            CMmpImageTool::ConvertRGBtoYUV(m_bih_out.biWidth, m_bih_out.biHeight, 
-                                      (MMP_U8*)m_p_buf_imageframe_rgb->get_buf_vir_addr(), fourcc_rgb,
-
-                                      (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_y(),
-                                      (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_cb(),
-                                      (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_cr(),
-                                      (enum MMP_FOURCC)m_bih_out.biCompression,
-                                      m_p_buf_imageframe_yuv->get_stride_luma());
+            CMmpImageTool::ConvertRGBtoYUV420_P3((MMP_U8*)m_p_buf_imageframe_rgb->get_buf_vir_addr(),
+                                                  m_bih_out.biWidth, m_bih_out.biHeight, fourcc_rgb,
+                                                  (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_y(),
+                                                  (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_cb(),
+                                                  (MMP_U8*)m_p_buf_imageframe_yuv->get_buf_vir_addr_cr(),
+                                                  m_p_buf_imageframe_yuv->get_stride(0),
+                                                  m_p_buf_imageframe_yuv->get_stride(1),
+                                                  m_p_buf_imageframe_yuv->get_stride(2)
+                                                  );
 
             *pp_buf_imageframe = m_p_buf_imageframe_yuv;
         }

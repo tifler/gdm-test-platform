@@ -149,7 +149,7 @@ MMP_RESULT CMmpEncoderVpuIF::Open()
 
         vpu_ret = m_p_vpu_if->VPU_EncOpen(&m_EncHandle, &m_encOP);
 	    if( vpu_ret != RETCODE_SUCCESS ) {
-		    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpEncoderVpuIF::Open] FAIL :  m_p_vpu_if->VPU_DecOpen (vpu_ret=%d) \n"), vpu_ret));
+		    MMPDEBUGMSG(MMPZONE_ERROR, (TEXT("[CMmpEncoderVpuIF::Open] FAIL :  m_p_vpu_if->VPU_EncOpen (vpu_ret=%d) \n"), vpu_ret));
             mmpResult = MMP_FAILURE;
 	    }
         else {
@@ -460,7 +460,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx1(CMmpMediaSampleEncode* pMediaSampleEnc,
     chroma_size = luma_size/4;
 
     if(pMediaSampleEnc->uiSampleType == MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD) {
-      //  p_mmp_buf = mmp_buffer_mgr::get_instance()->get_buffer(pMediaSampleEnc->uiBufferPhyAddr[MMP_MEDIASAMPLE_BUF_Y]);
+      //  p_mmp_buf = mmp_buffer_mgr::get_instance()->get_buffer(pMediaSampleEnc->uiBufferPhyAddr[MMP_YUV420_PLAINE_INDEX_Y]);
         //if
         return MMP_FAILURE;
     }
@@ -577,7 +577,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
     MMP_U8* pBuffer;
     MMP_U32 nBufSize, nBufMaxSize, nFlag;
     class mmp_buffer* p_mmp_buf;
-    class mmp_buffer_addr mmp_buf_enc_addr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    class mmp_buffer_addr mmp_buf_enc_addr[MMP_IMAGE_MAX_PLANE_COUNT];
     MMP_S32 i;
 
     class mmp_lock autolock((class mmp_oal_lock*)m_p_vpu_if->get_external_mutex());
@@ -588,7 +588,7 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
     switch(pMediaSampleEnc->uiSampleType) {
         case MMP_MEDIASAMPLE_BUFFER_TYPE_ION_FD:
 
-            for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+            for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
                 p_mmp_buf = mmp_buffer_mgr::get_instance()->get_buffer( pMediaSampleEnc->uiBufferPhyAddr[i] );
                 if(p_mmp_buf == NULL) {
                     break;
@@ -596,14 +596,14 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
                 mmp_buf_enc_addr[i] = p_mmp_buf->get_buf_addr();
             }
         
-            if(i == MMP_MEDIASAMPLE_PLANE_COUNT) {
+            if(i == MMP_IMAGE_MAX_PLANE_COUNT) {
                 
-                m_FrameBuffer_src.bufY = mmp_buf_enc_addr[MMP_MEDIASAMPLE_BUF_Y].m_phy_addr + pMediaSampleEnc->uiBufferLogAddr[MMP_MEDIASAMPLE_BUF_Y]; /* Y PhyAddr + Offset */
-                m_FrameBuffer_src.bufCb = mmp_buf_enc_addr[MMP_MEDIASAMPLE_BUF_U].m_phy_addr + pMediaSampleEnc->uiBufferLogAddr[MMP_MEDIASAMPLE_BUF_U]; /* U PhyAddr + Offset */
-                m_FrameBuffer_src.bufCr = mmp_buf_enc_addr[MMP_MEDIASAMPLE_BUF_V].m_phy_addr + pMediaSampleEnc->uiBufferLogAddr[MMP_MEDIASAMPLE_BUF_V]; /* V PhyAddr + Offset */
+                m_FrameBuffer_src.bufY = mmp_buf_enc_addr[MMP_YUV420_PLAINE_INDEX_Y].m_phy_addr + pMediaSampleEnc->uiBufferLogAddr[MMP_YUV420_PLAINE_INDEX_Y]; /* Y PhyAddr + Offset */
+                m_FrameBuffer_src.bufCb = mmp_buf_enc_addr[MMP_YUV420_PLAINE_INDEX_U].m_phy_addr + pMediaSampleEnc->uiBufferLogAddr[MMP_YUV420_PLAINE_INDEX_U]; /* U PhyAddr + Offset */
+                m_FrameBuffer_src.bufCr = mmp_buf_enc_addr[MMP_YUV420_PLAINE_INDEX_V].m_phy_addr + pMediaSampleEnc->uiBufferLogAddr[MMP_YUV420_PLAINE_INDEX_V]; /* V PhyAddr + Offset */
                 m_FrameBuffer_src.mapType = m_mapType;
-                m_FrameBuffer_src.stride = pMediaSampleEnc->uiBufferStride[MMP_MEDIASAMPLE_BUF_Y];
-                m_FrameBuffer_src.height = pMediaSampleEnc->uiBufferAlignHeight[MMP_MEDIASAMPLE_BUF_Y];
+                m_FrameBuffer_src.stride = pMediaSampleEnc->uiBufferStride[MMP_YUV420_PLAINE_INDEX_Y];
+                m_FrameBuffer_src.height = pMediaSampleEnc->uiBufferAlignHeight[MMP_YUV420_PLAINE_INDEX_Y];
                 m_FrameBuffer_src.myIndex = MAX_FRAMEBUFFER_COUNT;
                 m_FrameBuffer_src.sourceLBurstEn = 0;
                 
@@ -725,12 +725,12 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAu(class mmp_buffer_videoframe* p_buf_videofr
     luma_size = m_framebufStride*m_framebufHeight;
     chroma_size = luma_size/4;
     
-    m_FrameBuffer_src.bufY = p_buf_videoframe->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_Y);
-    m_FrameBuffer_src.bufCb = p_buf_videoframe->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CB);
-    m_FrameBuffer_src.bufCr = p_buf_videoframe->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CR);
+    m_FrameBuffer_src.bufY = p_buf_videoframe->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_Y);
+    m_FrameBuffer_src.bufCb = p_buf_videoframe->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_U);
+    m_FrameBuffer_src.bufCr = p_buf_videoframe->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_V);
     m_FrameBuffer_src.mapType = m_mapType;
     m_FrameBuffer_src.stride = p_buf_videoframe->get_stride_luma();
-    m_FrameBuffer_src.height = p_buf_videoframe->get_pic_height();//p_buf_videoframe->get_buf_height(MMP_MEDIASAMPLE_BUF_Y);
+    m_FrameBuffer_src.height = p_buf_videoframe->get_pic_height();//p_buf_videoframe->get_buf_height(MMP_YUV420_PLAINE_INDEX_Y);
     m_FrameBuffer_src.myIndex = MAX_FRAMEBUFFER_COUNT;
     m_FrameBuffer_src.sourceLBurstEn = 0;
     

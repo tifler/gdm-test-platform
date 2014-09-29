@@ -72,6 +72,9 @@ typedef signed long long MMP_S64;
 
 #endif
 
+typedef MMP_U32 MMP_VIR_ADDR;
+typedef MMP_U32 MMP_PHY_ADDR;
+
 typedef int MMP_BOOL;
 #define MMP_TRUE  1
 #define MMP_FALSE 0

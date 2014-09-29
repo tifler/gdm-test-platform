@@ -33,7 +33,7 @@
 #include "mmp_jpu_dev.hpp"
 #include "MmpUtil.hpp"
 
-
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
 
 /**********************************************************
 class members
@@ -204,3 +204,4 @@ void mmp_jpu_if_ana::JPU_EncSetHostParaAddr(PhysicalAddress baseAddr, PhysicalAd
     mmp_jpu_dev::get_instance()->JPU_EncSetHostParaAddr(baseAddr, paraAddr);
 }
 
+#endif

@@ -24,6 +24,8 @@
 
 #include "mmp_jpu_def.h"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 struct mmp_jpu_if_create_config {
 	MMP_S32 dummy;
 };
@@ -90,4 +92,5 @@ public:
 
 };
 
+#endif
 #endif

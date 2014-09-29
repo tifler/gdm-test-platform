@@ -315,7 +315,7 @@ CMmpRenderer* CMmpPlayer::CreateRendererVideo(CMmpDemuxer* pDemuxer) {
     pRendererProp->m_iPicWidth = pDemuxer->GetVideoPicWidth();
     pRendererProp->m_iPicHeight = pDemuxer->GetVideoPicHeight();
 
-    pRendererProp->pic_format = MMP_FOURCC_IMAGE_I420;
+    pRendererProp->pic_format = MMP_FOURCC_IMAGE_YUV420_P3;
 
     pRendererVideo = CMmpRenderer::CreateVideoObject(pRendererProp);
       

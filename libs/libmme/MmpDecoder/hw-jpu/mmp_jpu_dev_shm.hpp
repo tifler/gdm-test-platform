@@ -28,6 +28,8 @@
 #include "mmp_oal_mutex.hpp"
 #include "mmp_oal_shm.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 #define JDI_SHM_KEY 0xAAAA9829
 #define JDI_INSTANCE_POOL_SIZE (JPU_MAX_INST_HANDLE_SIZE*(JPU_MAX_NUM_INSTANCE+1) + 1024*12)
 //#define VDI_COMMON_MEMORY_INFO_SIZE 1024
@@ -116,4 +118,5 @@ public:
 };
 
 
+#endif
 #endif

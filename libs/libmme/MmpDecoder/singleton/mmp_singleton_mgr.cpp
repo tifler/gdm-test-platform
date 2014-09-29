@@ -74,17 +74,18 @@ mmp_singleton_mgr::mmp_singleton_mgr() {
 #endif
 
 /* create jpu_dev */
-#if 0//(MMP_JPU == MMP_JPU_ANAPASS)
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
     if(mmpResult == MMP_SUCCESS) {
         mmpResult = mmp_jpu_dev::create_instance();
         m_mmpResult[ID_JPU_DEV] = mmpResult;
     }
 #endif
+      
 }
 
 mmp_singleton_mgr::~mmp_singleton_mgr() {
 
-#if 0//(MMP_JPU == MMP_JPU_ANAPASS)
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
     mmp_jpu_dev::destroy_instance();
 #endif
 

@@ -65,6 +65,7 @@ LOCAL_LFLAGS	+=-L$(BASEDIR)/libs/libini -lini
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libsync -lsync
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmsgio -lmsgio
+LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libv4l2_api -lv4l2_api
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmme -lmme
 
 COPY_TARGET_DIR	:= /usr/bin

@@ -107,7 +107,7 @@ MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_videoframe* p_buf_vid
 
     MMP_S32 i, pic_width, pic_height, stride;
     class mmp_buffer_addr buf_addr;
-    int pic_size[MMP_MEDIASAMPLE_PLANE_COUNT];
+    int pic_size[MMP_IMAGE_MAX_PLANE_COUNT];
 
     pic_width = p_buf_videoframe->get_pic_width();
     pic_height = p_buf_videoframe->get_pic_height();
@@ -117,7 +117,7 @@ MMP_RESULT CMmpRenderer_YUVWriter::Render(class mmp_buffer_videoframe* p_buf_vid
     pic_size[1] = (stride*pic_height)/4;
     pic_size[2] = (stride*pic_height)/4;
     
-    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+    for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
         buf_addr = p_buf_videoframe->get_buf_addr(i);
         fwrite((void*)buf_addr.m_vir_addr, 1, pic_size[i], m_fp);
     }

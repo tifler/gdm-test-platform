@@ -352,7 +352,7 @@ void mmp_render_video_init(void* hwnd, void* hdc,
 	renderprop.m_iScreenHeight = scrheight;
 	renderprop.m_iPicWidth = picwidht;
 	renderprop.m_iPicHeight = picheight;
-	renderprop.pic_format = MMP_FOURCC_IMAGE_I420;
+	renderprop.pic_format = MMP_FOURCC_IMAGE_YUV420_P3;
 	
 	s_last_renderprop = renderprop;
 	

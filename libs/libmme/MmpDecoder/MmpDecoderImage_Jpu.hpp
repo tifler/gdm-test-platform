@@ -22,6 +22,8 @@
 #ifndef MMPDECODERIMAGE_JPU_HPP__
 #define MMPDECODERIMAGE_JPU_HPP__
 
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
+
 #include "MmpDecoderImage.hpp"
 #include "mmp_buffer_imageframe.hpp"
 #include "mmp_jpu_if.hpp"
@@ -52,4 +54,4 @@ public:
 };
 
 #endif
-
+#endif

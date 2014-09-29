@@ -710,7 +710,7 @@ MMP_RESULT CMmpMpeg4Parser::Decode_NextStartCodePrefix(CMmpBitExtractor* pBE, MM
       codes[2] = (unsigned int)pBE->Pop_BitCode(dummy, 8);
 
       count++;
-      if( count>maxcount) return MMP_FAILURE;
+      if( count>(int)maxcount) return MMP_FAILURE;
       if( !pBE->CanGetBit(8) ) return MMP_FAILURE;
    }
    

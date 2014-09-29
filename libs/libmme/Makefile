@@ -104,6 +104,7 @@ MME_SRC_DECODER = \
   $(MME_TOP)/MmpDecoder/MmpDecoderImage.cpp \
   $(MME_TOP)/MmpDecoder/MmpDecoderImage_JpegLib.cpp \
   $(MME_TOP)/MmpDecoder/MmpDecoderImage_Jpu.cpp \
+  $(MME_TOP)/MmpDecoder/MmpDecoderImage_V4L2.cpp \
   
   
 MME_SRC_ENCODER = \
@@ -166,17 +167,20 @@ MME_SRC_API = \
   $(MME_TOP)/api/mme_c_api_util.cpp \
   $(MME_TOP)/api/mme_c_api_video_encoder.cpp \
   $(MME_TOP)/api/mme_c_api_muxer.cpp \
+  $(MME_TOP)/api/mme_c_api_jpeg.cpp \
+  $(MME_TOP)/api/mme_c_api_imagetool.cpp \
 
 SRCS = $(MME_SRC_PLAYER) $(MME_SRC_MUXER) $(MME_SRC_DEMUXER) $(MME_SRC_DECODER) $(MME_SRC_ENCODER) $(MME_SRC_RENDERER) \
        $(MME_SRC_UTILS) $(MME_SRC_OAL) $(MME_SRC_API) $(MME_SRC_BUFFER) $(MME_SRC_SINGLETON)\
-       $(MME_SRC_VPULIB) $(MME_SRC_JPULIB) $(MME_SRC_HW_VPU) $(MME_SRC_HW_JPU)
+       $(MME_SRC_VPULIB) $(MME_SRC_JPULIB) $(MME_SRC_HW_VPU) $(MME_SRC_HW_JPU) 
 OBJS   += $(addsuffix .o, $(basename $(SRCS)) )
 
-LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) -D$(MME_VPU_DEFINE) -D$(MME_JPU_DEFINE)\
+LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) -D$(MME_VPU_DEFINE) -D$(MME_JPU_DEFINE) -DJPU_PLATFORM_V4L2_ENABLE=1\
             -I$(BASEDIR)/include\
             -I$(MME_TOP)/../libion \
             -I$(MME_TOP)/../libmsgio\
             -I$(MME_TOP)/../libhwc\
+            -I$(MME_TOP)/../libv4l2_api/inc\
             -I$(FFMPEG_TOP) -I$(JPEGLIB_TOP)\
             -I$(MME_VPULIB_TOP)/vpuapi -I$(MME_VPULIB_TOP)/include -I$(MME_VPULIB_TOP)/vdi/linux/driver  -I$(MME_VPULIB_TOP)/vdi\
             -I$(MME_JPULIB_TOP)/jpuapi -I$(MME_JPULIB_TOP)/include -I$(MME_JPULIB_TOP)/jdi/linux/driver  -I$(MME_JPULIB_TOP)/jdi\
@@ -198,6 +202,7 @@ LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libmsgio -lmsgio
+LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libv4l2_api -lv4l2_api
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE

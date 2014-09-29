@@ -177,14 +177,13 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Open()
                 pvideo->height = m_pRendererProp->m_iPicHeight;
                 break;
 
-            case MMP_FOURCC_IMAGE_YUV444Packed:
+            case MMP_FOURCC_IMAGE_YUV444_P1:
                 pvideo->format = GDMFB_YUV444I;
                 pvideo->width = m_pRendererProp->m_iPicWidth;//MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth*3,16);
                 pvideo->height = m_pRendererProp->m_iPicHeight;//MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
                 break;
 
-            case MMP_FOURCC_IMAGE_YUV444P3:
-            case MMP_FOURCC_IMAGE_I420:
+            case MMP_FOURCC_IMAGE_YUV420_P3:
             default:
                 pvideo->format = GDMFB_YUV420P3;
                 pvideo->width = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16);
@@ -636,15 +635,15 @@ void CMmpRenderer_OdyClientEx2::service_render() {
     MMP_RESULT mmpResult;
     MMP_S32 picWidth, picHeight;
     MMP_U8 *pImageBuffer;
-    MMP_S32 shared_fd[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_U32 offset[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_U32 stride[MMP_MEDIASAMPLE_PLANE_COUNT];
+    MMP_S32 shared_fd[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_U32 offset[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_U32 stride[MMP_IMAGE_MAX_PLANE_COUNT];
     MMP_U8* Y, *U, *V;
     MMP_S32 y_stride, uv_stride;
     MMP_S32 i;
 
     class mmp_buffer* p_mmp_buf;
-    class mmp_buffer_addr buf_addr[MMP_MEDIASAMPLE_PLANE_COUNT];
+    class mmp_buffer_addr buf_addr[MMP_IMAGE_MAX_PLANE_COUNT];
     CMmpGL_MovieEx1* pMmpGL;
 
     if(m_pRendererProp->m_hRenderWnd != NULL) {
@@ -691,30 +690,30 @@ void CMmpRenderer_OdyClientEx2::service_render() {
                     pImageBuffer= pMmpGL->GetImageBuffer();
                     //lumaSize=picWidth*picHeight;
 
-                    shared_fd[MMP_MEDIASAMPLE_BUF_Y] = p_packet->m_int_parm[0];
-                    shared_fd[MMP_MEDIASAMPLE_BUF_U] = p_packet->m_int_parm[1];
-                    shared_fd[MMP_MEDIASAMPLE_BUF_V] = p_packet->m_int_parm[2];
+                    shared_fd[MMP_YUV420_PLAINE_INDEX_Y] = p_packet->m_int_parm[0];
+                    shared_fd[MMP_YUV420_PLAINE_INDEX_U] = p_packet->m_int_parm[1];
+                    shared_fd[MMP_YUV420_PLAINE_INDEX_V] = p_packet->m_int_parm[2];
 
-                    offset[MMP_MEDIASAMPLE_BUF_Y] = p_packet->m_int_parm[3];
-                    offset[MMP_MEDIASAMPLE_BUF_U] = p_packet->m_int_parm[4];
-                    offset[MMP_MEDIASAMPLE_BUF_V] = p_packet->m_int_parm[5];
+                    offset[MMP_YUV420_PLAINE_INDEX_Y] = p_packet->m_int_parm[3];
+                    offset[MMP_YUV420_PLAINE_INDEX_U] = p_packet->m_int_parm[4];
+                    offset[MMP_YUV420_PLAINE_INDEX_V] = p_packet->m_int_parm[5];
 
-                    stride[MMP_MEDIASAMPLE_BUF_Y] = p_packet->m_int_parm[6];
-                    stride[MMP_MEDIASAMPLE_BUF_U] = p_packet->m_int_parm[7];
-                    stride[MMP_MEDIASAMPLE_BUF_V] = p_packet->m_int_parm[8];
+                    stride[MMP_YUV420_PLAINE_INDEX_Y] = p_packet->m_int_parm[6];
+                    stride[MMP_YUV420_PLAINE_INDEX_U] = p_packet->m_int_parm[7];
+                    stride[MMP_YUV420_PLAINE_INDEX_V] = p_packet->m_int_parm[8];
 
-                    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+                    for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
                         p_mmp_buf = mmp_buffer_mgr::get_instance()->get_buffer(shared_fd[i]);
                         if(p_mmp_buf != NULL) {
                             buf_addr[i] = p_mmp_buf->get_buf_addr();
                         }
                     }
 
-                    Y=(MMP_U8*)(buf_addr[MMP_MEDIASAMPLE_BUF_Y].m_vir_addr + offset[MMP_MEDIASAMPLE_BUF_Y]);
-                    U=(MMP_U8*)(buf_addr[MMP_MEDIASAMPLE_BUF_U].m_vir_addr + offset[MMP_MEDIASAMPLE_BUF_U]);
-                    V=(MMP_U8*)(buf_addr[MMP_MEDIASAMPLE_BUF_V].m_vir_addr + offset[MMP_MEDIASAMPLE_BUF_V]);
-                    y_stride = stride[MMP_MEDIASAMPLE_BUF_Y];
-                    uv_stride = stride[MMP_MEDIASAMPLE_BUF_U];
+                    Y=(MMP_U8*)(buf_addr[MMP_YUV420_PLAINE_INDEX_Y].m_vir_addr + offset[MMP_YUV420_PLAINE_INDEX_Y]);
+                    U=(MMP_U8*)(buf_addr[MMP_YUV420_PLAINE_INDEX_U].m_vir_addr + offset[MMP_YUV420_PLAINE_INDEX_U]);
+                    V=(MMP_U8*)(buf_addr[MMP_YUV420_PLAINE_INDEX_V].m_vir_addr + offset[MMP_YUV420_PLAINE_INDEX_V]);
+                    y_stride = stride[MMP_YUV420_PLAINE_INDEX_Y];
+                    uv_stride = stride[MMP_YUV420_PLAINE_INDEX_U];
 
                     (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
 				                    picWidth*3, //int x_stride,

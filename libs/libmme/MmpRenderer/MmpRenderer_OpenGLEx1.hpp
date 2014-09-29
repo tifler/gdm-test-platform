@@ -51,7 +51,9 @@ protected:
 private:
     MMP_RESULT Render_RGB888(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image);
     MMP_RESULT Render_BGR888(MMP_S32 pic_width, MMP_S32 pic_height, MMP_U8* p_image);
-    MMP_RESULT Render_I420(class mmp_buffer_imageframe* p_buf_imageframe);
+    MMP_RESULT Render_YUV444_P1(class mmp_buffer_imageframe* p_buf_imageframe);
+    MMP_RESULT Render_YUV422_P2(class mmp_buffer_imageframe* p_buf_imageframe);
+    MMP_RESULT Render_YUV420_P3(class mmp_buffer_imageframe* p_buf_imageframe);
 
 public:
     virtual MMP_RESULT Render_Ion(CMmpMediaSampleDecodeResult* pDecResult);

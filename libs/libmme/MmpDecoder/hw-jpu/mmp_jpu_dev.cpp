@@ -37,6 +37,8 @@
 #include "mmp_jpu_dev_shm.hpp"  /* usigne shared jdi memory */
 #include "MmpUtil.hpp"
 
+#if (JPU_PLATFORM_V4L2_ENABLE != 1)
+
 /**********************************************************
 create/destroy object
 **********************************************************/
@@ -171,4 +173,5 @@ MMP_S32 mmp_jpu_dev::get_phy_addr_for_common_buffer() {
 void mmp_jpu_dev::VPU_GetCodecInfo(int idx, struct mmp_video_hw_codec_instance_info *p_info) {
     ::VPU_GetCodecInfo(idx,  p_info);
 }
+#endif
 #endif

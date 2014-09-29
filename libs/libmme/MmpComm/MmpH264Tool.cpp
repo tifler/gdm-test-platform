@@ -1166,7 +1166,7 @@ MMP_RESULT CMmpH264Parser::Remake_VideoDSI_AVC1(unsigned char* dsi, int dsiSize,
    unsigned char counter = *ByteStreamBuffer++;
    unsigned char i;
    unsigned short sizeOfSPS, sizeOfPPS;
-   unsigned int sliceHeaderMarker;
+   //unsigned int sliceHeaderMarker;
 
    //make SPS
    counter &= 0x1F; // 0b00011111 Keep only the 5 lsb
@@ -1273,7 +1273,7 @@ MMP_RESULT CMmpH264Parser::ConvertDSI_AVC1_To_H264(MMP_U8* avc_dsi, MMP_S32 avc_
    MMP_U8 counter = *ByteStreamBuffer++;
    MMP_U8 i;
    MMP_U16 sizeOfSPS, sizeOfPPS;
-   MMP_U32 sliceHeaderMarker;
+   //MMP_U32 sliceHeaderMarker;
 
    //make SPS
    counter &= 0x1F; // 0b00011111 Keep only the 5 lsb

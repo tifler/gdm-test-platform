@@ -55,7 +55,7 @@ mmp_buffer_ion_attach::~mmp_buffer_ion_attach() {
 
 MMP_RESULT mmp_buffer_ion_attach::open() {
 
-    int ion_fd, ret;
+    int ion_fd;
     MMP_RESULT mmpResult = MMP_FAILURE;
 
     ion_fd = ion_open();

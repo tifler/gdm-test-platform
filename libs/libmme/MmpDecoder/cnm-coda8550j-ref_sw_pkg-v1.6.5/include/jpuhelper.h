@@ -99,6 +99,9 @@ typedef struct {
 extern "C"{
 #endif 
 	
+    int JPU_getJpgEncOpenParam_HuffTable_QMatrix(JpgEncOpenParam *pEncOP);
+    int JPU_jpgGetHuffTable(EncMjpgParam *param);
+    int JPU_jpgGetQMatrix(EncMjpgParam *param);
 	
 	int jpgGetHuffTable(char *huffFileName, EncMjpgParam *param);
 	int jpgGetQMatrix(char *qMatFileName, EncMjpgParam *param);

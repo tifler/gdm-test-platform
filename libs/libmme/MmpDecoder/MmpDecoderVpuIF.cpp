@@ -367,7 +367,7 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(class mmp_buffer_videostream* p_buf_video
         {
         
             for(i = 0; i < m_regFrameBufCount; i++) {
-                m_p_buf_videoframe[i] = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_dec_init_info.picWidth, m_dec_init_info.picHeight, MMP_FOURCC_IMAGE_I420);
+                m_p_buf_videoframe[i] = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_dec_init_info.picWidth, m_dec_init_info.picHeight, MMP_FOURCC_IMAGE_YUV420_P3);
                 if(m_p_buf_videoframe[i] == NULL) {
                     MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeDSI] FAIL: alloc frame buf idx=%d  m_regFrameBufCount=%d w=%d h=%d "), i, m_regFrameBufCount, m_dec_init_info.picWidth, m_dec_init_info.picHeight));
                     break;
@@ -376,9 +376,9 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(class mmp_buffer_videostream* p_buf_video
 
                     
                     memset(&user_frame[i], 0x00, sizeof(FrameBuffer));
-                    user_frame[i].bufY = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_Y);
-                    user_frame[i].bufCb = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CB);
-                    user_frame[i].bufCr = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_MEDIASAMPLE_BUF_CR);
+                    user_frame[i].bufY = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_Y);
+                    user_frame[i].bufCb = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_U);
+                    user_frame[i].bufCr = m_p_buf_videoframe[i]->get_buf_phy_addr(MMP_YUV420_PLAINE_INDEX_V);
                     user_frame[i].mapType = m_mapType;
                     user_frame[i].stride = framebufStride;
                     user_frame[i].height = framebufHeight;

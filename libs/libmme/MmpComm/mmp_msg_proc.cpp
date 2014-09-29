@@ -339,13 +339,15 @@ MMP_RESULT mmp_msg_proc::open() {
 
 #if 1
     if(mmpResult == MMP_SUCCESS) {
-        m_task_timer_run = MMP_TRUE;
-        oal_task_create_config.flag = 0;
-        oal_task_create_config.service = mmp_msg_proc::service_timerstub;
-        oal_task_create_config.arg = this;
-        m_p_task_timer =  mmp_oal_task::create_object(&oal_task_create_config);
-        
+
         m_p_mutex_timer = mmp_oal_mutex::create_object();
+        if(m_p_mutex_timer != NULL) {
+            m_task_timer_run = MMP_TRUE;
+            oal_task_create_config.flag = 0;
+            oal_task_create_config.service = mmp_msg_proc::service_timerstub;
+            oal_task_create_config.arg = this;
+            m_p_task_timer =  mmp_oal_task::create_object(&oal_task_create_config);
+        }
     }
 #endif
 

@@ -37,9 +37,12 @@
 
 /* Image  */
 #if (MMP_HWCODEC_IMAGE == MMP_HWCODEC_IMAGE_JPU)
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
 #include "MmpDecoderImage_Jpu.hpp"
 #endif
+#endif
 #include "MmpDecoderImage_JpegLib.hpp"
+#include "MmpDecoderImage_V4L2.hpp"
 
 /* Util */
 #include "MmpUtil.hpp"
@@ -136,7 +139,13 @@ CMmpDecoder* CMmpDecoder::CreateImageObject(struct MmpDecoderCreateConfig *pCrea
     else { 
 
 #if (MMP_HWCODEC_IMAGE == MMP_HWCODEC_IMAGE_JPU)
+
+#if (JPU_PLATFORM_V4L2_ENABLE == 1)
+        pObj=new CMmpDecoderImage_V4L2(pCreateConfig);
+#else
         pObj=new CMmpDecoderImage_Jpu(pCreateConfig);
+#endif
+        
         
 #elif (MMP_HWCODEC_IMAGE == MMP_HWCODEC_IMAGE_SW)
         pObj=new CMmpDecoderImage_JpegLib(pCreateConfig);

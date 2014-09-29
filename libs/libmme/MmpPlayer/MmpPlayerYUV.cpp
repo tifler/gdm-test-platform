@@ -93,7 +93,7 @@ MMP_RESULT CMmpPlayerYUV::Open()
 
     /* create video frame buffer */
     if(mmpResult == MMP_SUCCESS) {
-        m_p_framebuf = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_create_config.option.yuv.width, m_create_config.option.yuv.height, MMP_FOURCC_IMAGE_I420);
+        m_p_framebuf = mmp_buffer_mgr::get_instance()->alloc_media_videoframe(m_create_config.option.yuv.width, m_create_config.option.yuv.height, MMP_FOURCC_IMAGE_YUV420_P3);
         if(m_p_framebuf == NULL) {
             mmpResult = MMP_FAILURE;
         }
@@ -134,23 +134,23 @@ void CMmpPlayerYUV::Service()
 {
     MMP_U32 frame_count = 0;
     MMP_S32 pic_luma_size, pic_chroma_size;
-    class mmp_buffer_addr buf_addr[MMP_MEDIASAMPLE_PLANE_COUNT];
-    MMP_S32 buf_size[MMP_MEDIASAMPLE_PLANE_COUNT];
+    class mmp_buffer_addr buf_addr[MMP_IMAGE_MAX_PLANE_COUNT];
+    MMP_S32 buf_size[MMP_IMAGE_MAX_PLANE_COUNT];
     MMP_S32 i, rdsz;
    
     pic_luma_size = m_create_config.option.yuv.width * m_create_config.option.yuv.height;
     pic_chroma_size = pic_luma_size>>2;
 
-    for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+    for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
         buf_addr[i] = this->m_p_framebuf->get_buf_addr(i);
     }
-    buf_size[MMP_MEDIASAMPLE_BUF_Y] = pic_luma_size;
-    buf_size[MMP_MEDIASAMPLE_BUF_U] = pic_chroma_size;
-    buf_size[MMP_MEDIASAMPLE_BUF_V] = pic_chroma_size;
+    buf_size[MMP_YUV420_PLAINE_INDEX_Y] = pic_luma_size;
+    buf_size[MMP_YUV420_PLAINE_INDEX_U] = pic_chroma_size;
+    buf_size[MMP_YUV420_PLAINE_INDEX_V] = pic_chroma_size;
     
     while(m_bServiceRun == MMP_TRUE) {
     
-        for(i = 0; i < MMP_MEDIASAMPLE_PLANE_COUNT; i++) {
+        for(i = 0; i < MMP_IMAGE_MAX_PLANE_COUNT; i++) {
             rdsz = fread((void*)buf_addr[i].m_vir_addr, 1, buf_size[i], m_fp);
             if(rdsz != buf_size[i]) {
                 m_bServiceRun = MMP_FALSE;

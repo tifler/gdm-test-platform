@@ -20,6 +20,8 @@
 #include "../include/jpulog.h"
 #include "mme_jpu_compilehelper.h"
 
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
+
 int JPU_IsBusy()
 {
 	Uint32 val;
@@ -877,6 +879,8 @@ JpgRet JPU_DecStartOneFrame(JpgDecHandle handle, JpgDecParam *param)
 	if (pJpgInst->loggingEnable)
 		jdi_log(JDI_LOG_CMD_PICRUN, 1);
 
+    //JPU_RegisterDump();
+
 	JpuWriteReg(MJPEG_PIC_STATUS_REG, JpuReadReg(MJPEG_PIC_STATUS_REG));
 	JpuWriteReg(MJPEG_PIC_START_REG, (1<<JPG_START_PIC));
 
@@ -1712,6 +1716,9 @@ JpgRet JPU_EncGetOutputInfo(
 
 
 	val = JpuReadReg(MJPEG_PIC_STATUS_REG);
+#ifdef WIN32
+    val = 0;
+#endif
 
 	if ((val & 0x4) >> 2) {
 		SetJpgPendingInst(0);
@@ -1872,4 +1879,18 @@ JpgRet JPU_EncGiveCommand(
 	return JPG_RET_SUCCESS;
 }
 
+#define printk printf
+#define KERN_ERR
 
+void JPU_RegisterDump(void) {
+    
+    int i;
+    unsigned int val;
+
+    for(i = 0; i < NPT_REG_SIZE; i+=4) {
+        val = JpuReadReg(i);
+        printk(KERN_ERR "0x%x = 0x%08x \n\r", i, val);
+    }
+}
+
+#endif

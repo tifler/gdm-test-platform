@@ -17,7 +17,7 @@
 #include "regdefine.h"
 #include "mme_jpu_compilehelper.h"
 
-
+#if (JPU_PLATFORM_V4L2_ENABLE  == 0)
 
 
 /******************************************************************************
@@ -2949,3 +2949,5 @@ JpgInst *GetJpgPendingInst()
 	
 	return jip->pendingInst;
 }
+
+#endif

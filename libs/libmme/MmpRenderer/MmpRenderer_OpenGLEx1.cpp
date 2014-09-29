@@ -181,8 +181,8 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
         lumaSize=picWidth*picHeight;
         
         Y = p_buf_videoframe->get_buf_vir_addr_y();
-        U = p_buf_videoframe->get_buf_vir_addr_cb();
-        V = p_buf_videoframe->get_buf_vir_addr_cr();
+        U = p_buf_videoframe->get_buf_vir_addr_u();
+        V = p_buf_videoframe->get_buf_vir_addr_v();
 
         y_stride = p_buf_videoframe->get_stride_luma();
         uv_stride = p_buf_videoframe->get_stride_chroma();
@@ -216,8 +216,8 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_videoframe* p_buf_vid
         picHeight = this->m_pRendererProp->m_iPicHeight;
 
         Y = p_buf_videoframe->get_buf_vir_addr_y();
-        U = p_buf_videoframe->get_buf_vir_addr_cb();
-        V = p_buf_videoframe->get_buf_vir_addr_cr();
+        U = p_buf_videoframe->get_buf_vir_addr_u();
+        V = p_buf_videoframe->get_buf_vir_addr_v();
 
     }
 
@@ -236,14 +236,22 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render(class mmp_buffer_imageframe* p_buf_ima
     switch(fourcc) {
         
         case MMP_FOURCC_IMAGE_RGB888:
-            mmpResult = this->Render_RGB888(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), p_buf_imageframe->get_buf_vir_addr());
+            mmpResult = this->Render_RGB888(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), (MMP_U8*)p_buf_imageframe->get_buf_vir_addr());
             break;
         case MMP_FOURCC_IMAGE_BGR888:
-            mmpResult = this->Render_RGB888(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), p_buf_imageframe->get_buf_vir_addr());
+            mmpResult = this->Render_RGB888(p_buf_imageframe->get_pic_width(), p_buf_imageframe->get_pic_height(), (MMP_U8*)p_buf_imageframe->get_buf_vir_addr());
             break;
 
-        case MMP_FOURCC_IMAGE_I420:
-            mmpResult = this->Render_I420(p_buf_imageframe);
+        case MMP_FOURCC_IMAGE_YUV444_P1:
+            mmpResult = this->Render_YUV444_P1(p_buf_imageframe);
+            break;
+        
+        case MMP_FOURCC_IMAGE_YCbCr422_P2:
+            mmpResult = this->Render_YUV422_P2(p_buf_imageframe);
+            break;
+        
+        case MMP_FOURCC_IMAGE_YUV420_P3:
+            mmpResult = this->Render_YUV420_P3(p_buf_imageframe);
             break;
     }
 
@@ -284,7 +292,132 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render_BGR888(MMP_S32 pic_width, MMP_S32 pic_
     return MMP_SUCCESS;
 }
 
-MMP_RESULT CMmpRenderer_OpenGLEx1::Render_I420(class mmp_buffer_imageframe* p_buf_imageframe) {
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_YUV444_P1(class mmp_buffer_imageframe* p_buf_imageframe) {
+
+    MMP_U8 *yuv420_y = NULL;
+    MMP_U8 *yuv420_u = NULL;
+    MMP_U8 *yuv420_v = NULL;
+    MMP_U8 *yuv444;
+
+    MMP_S32 y_stride, uv_stride, yuv444_stride;
+        
+    int pic_width, pic_height;
+    unsigned char* pImageBuffer;
+
+    if(m_pMmpGL != NULL) {
+
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
+        
+        pic_width = p_buf_imageframe->get_pic_width();
+        pic_height = p_buf_imageframe->get_pic_height();
+        y_stride = MMP_VIDEO_FRAME_STRIDE_ALIGN(pic_width);
+        uv_stride = MMP_VIDEO_FRAME_STRIDE_ALIGN(pic_width/2);
+        
+        yuv420_y = (MMP_U8*)MMP_MALLOC(y_stride*pic_height);
+        yuv420_u = (MMP_U8*)MMP_MALLOC(uv_stride*pic_height);
+        yuv420_v = (MMP_U8*)MMP_MALLOC(uv_stride*pic_height);
+        
+        yuv444 = (MMP_U8*)p_buf_imageframe->get_buf_vir_addr();
+        yuv444_stride = p_buf_imageframe->get_stride();
+
+        CMmpImageTool::ConvertYUV444P1toYUV420P3(yuv444, yuv444_stride, 
+                                                pic_width, pic_height, 
+                                                yuv420_y, yuv420_u, yuv420_v, 
+                                                y_stride, uv_stride, uv_stride);
+
+            
+        (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
+				        MMP_BYTE_ALIGN(pic_width*3,4), //int x_stride,
+					    yuv420_y, //uint8_t * y_src,
+					    yuv420_v, //uint8_t * v_src,
+					    yuv420_u, //uint8_t * u_src,
+					    y_stride,//int y_stride,
+					    uv_stride, //int uv_stride,
+					    pic_width, //int width,
+					    pic_height, //int height,
+					    1 //int vflip
+                        );
+
+
+    
+        m_pMmpGL->Draw();
+
+        MMP_FREE(yuv420_y);
+        MMP_FREE(yuv420_u);
+        MMP_FREE(yuv420_v);
+    }
+
+    m_iRenderCount++;
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_YUV422_P2(class mmp_buffer_imageframe* p_buf_imageframe) {
+
+    MMP_U8 *yuv420_y = NULL;
+    MMP_U8 *yuv420_u = NULL;
+    MMP_U8 *yuv420_v = NULL;
+    MMP_U8 *yuv422_y;
+    MMP_U8 *yuv422_uv;
+
+    MMP_S32 y_stride, uv_stride;
+    MMP_S32 yuv422_y_stride, yuv422_uv_stride;
+        
+    int pic_width, pic_height;
+    unsigned char* pImageBuffer;
+
+    if(m_pMmpGL != NULL) {
+
+        pImageBuffer= m_pMmpGL->GetImageBuffer();
+        
+        pic_width = p_buf_imageframe->get_pic_width();
+        pic_height = p_buf_imageframe->get_pic_height();
+        y_stride = MMP_VIDEO_FRAME_STRIDE_ALIGN(pic_width);
+        uv_stride = MMP_VIDEO_FRAME_STRIDE_ALIGN(pic_width/2);
+        yuv420_y = (MMP_U8*)MMP_MALLOC(y_stride*pic_height);
+        yuv420_u = (MMP_U8*)MMP_MALLOC(uv_stride*pic_height);
+        yuv420_v = (MMP_U8*)MMP_MALLOC(uv_stride*pic_height);
+        
+        yuv422_y = (MMP_U8*)p_buf_imageframe->get_buf_vir_addr(0);
+        yuv422_uv = (MMP_U8*)p_buf_imageframe->get_buf_vir_addr(1);
+        yuv422_y_stride = p_buf_imageframe->get_stride(0);
+        yuv422_uv_stride = p_buf_imageframe->get_stride(1);
+
+        CMmpImageTool::ConvertYUV422P2toYUV420P3(yuv422_y, yuv422_uv, 
+                                            yuv422_y_stride, yuv422_uv_stride,
+                                            pic_width, pic_height, 
+                                            yuv420_y, yuv420_u, yuv420_v, 
+                                            y_stride, uv_stride, uv_stride
+                                            );
+
+            
+        (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
+				        MMP_BYTE_ALIGN(pic_width*3,4), //int x_stride,
+					    yuv420_y, //uint8_t * y_src,
+					    yuv420_v, //uint8_t * v_src,
+					    yuv420_u, //uint8_t * u_src,
+					    y_stride,//int y_stride,
+					    uv_stride, //int uv_stride,
+					    pic_width, //int width,
+					    pic_height, //int height,
+					    1 //int vflip
+                        );
+
+
+    
+        m_pMmpGL->Draw();
+
+        MMP_FREE(yuv420_y);
+        MMP_FREE(yuv420_u);
+        MMP_FREE(yuv420_v);
+    }
+
+    m_iRenderCount++;
+
+    return MMP_SUCCESS;
+}
+
+MMP_RESULT CMmpRenderer_OpenGLEx1::Render_YUV420_P3(class mmp_buffer_imageframe* p_buf_imageframe) {
 
     MMP_U8 *Y,*Cb,*Cr;
     int picWidth, picHeight;
@@ -298,12 +431,12 @@ MMP_RESULT CMmpRenderer_OpenGLEx1::Render_I420(class mmp_buffer_imageframe* p_bu
         pImageBuffer= m_pMmpGL->GetImageBuffer();
         lumaSize=picWidth*picHeight;
         
-        Y = p_buf_imageframe->get_buf_vir_addr_y();
-        Cb = p_buf_imageframe->get_buf_vir_addr_cb();
-        Cr = p_buf_imageframe->get_buf_vir_addr_cr();
+        Y = (MMP_U8*)p_buf_imageframe->get_buf_vir_addr_y();
+        Cb = (MMP_U8*)p_buf_imageframe->get_buf_vir_addr_cb();
+        Cr = (MMP_U8*)p_buf_imageframe->get_buf_vir_addr_cr();
 
-        y_stride = p_buf_imageframe->get_stride_luma();
-        uv_stride = p_buf_imageframe->get_stride_chroma();
+        y_stride = p_buf_imageframe->get_stride(0);
+        uv_stride = p_buf_imageframe->get_stride(1);
             
         (*yv12_to_bgr)( pImageBuffer, //uint8_t * x_ptr,
 				        MMP_BYTE_ALIGN(picWidth*3,4), //int x_stride,
