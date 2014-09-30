@@ -183,11 +183,17 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Open()
                 pvideo->height = m_pRendererProp->m_iPicHeight;//MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
                 break;
 
+            case MMP_FOURCC_IMAGE_YCbCr422_P2:
+                pvideo->format = GDMFB_YUV422P2;
+                pvideo->width = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16);
+                pvideo->height = m_pRendererProp->m_iPicHeight;//MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
+                break;
+
             case MMP_FOURCC_IMAGE_YUV420_P3:
             default:
                 pvideo->format = GDMFB_YUV420P3;
                 pvideo->width = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicWidth,16);
-                pvideo->height = MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
+                pvideo->height = m_pRendererProp->m_iPicHeight;//MMP_BYTE_ALIGN(m_pRendererProp->m_iPicHeight,16);
         }
 
         /* alloc rotate buffer */

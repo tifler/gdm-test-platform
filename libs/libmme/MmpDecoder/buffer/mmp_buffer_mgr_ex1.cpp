@@ -507,7 +507,8 @@ class mmp_buffer_imageframe* mmp_buffer_mgr_ex1::alloc_media_imageframe(MMP_S32 
                     p_mmp_imageframe->m_plane_count = 3;        
 
                     buffer_stride[0] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width);
-                    buffer_stride[1] = MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width/2);
+                      /* Note : gdm_dss suppose that chroma stride is half of luma stride */
+                    buffer_stride[1] = buffer_stride[0]>>1;//MMP_VIDEO_FRAME_STRIDE_ALIGN(p_mmp_imageframe->m_pic_width/2);
                     buffer_stride[2] = buffer_stride[1];
                 
                     buffer_height_arr[0] = MMP_VIDEO_FRAME_HEIGHT_ALIGN(p_mmp_imageframe->m_pic_height);

@@ -102,15 +102,17 @@ CMmpRenderer* CMmpRenderer::CreateVideoObject(CMmpRendererCreateProp* pRendererP
         default:
 #if (MMP_OS == MMP_OS_WIN32)
 
+#if 0
             if(pRendererProp->m_hRenderWnd != NULL) {
                 pObj=new CMmpRenderer_OpenGLEx1(pRendererProp);
             }
             else {
                 pObj=new CMmpRenderer_YUVWriter(pRendererProp);
             }
-            //pObj=new CMmpRenderer_OdyClientEx1(pRendererProp);
-            //pObj=new CMmpRenderer_Dummy(pRendererProp);
-            //pObj=new CMmpRenderer_FileWriter(pRendererProp);
+#else
+            pObj=new CMmpRenderer_OdyClientEx2(pRendererProp);
+#endif
+      
 #elif (MMP_OS_LINUX == MMP_OS_LINUX_ANDROID)
             pObj=new CMmpRenderer_AndroidSurfaceEx1(pRendererProp);
 #elif (MMP_OS_LINUX == MMP_OS_LINUX_ARM)

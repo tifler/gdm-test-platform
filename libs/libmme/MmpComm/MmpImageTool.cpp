@@ -93,6 +93,13 @@ MMP_S32 CMmpImageTool::GetPlaneCount(enum MMP_FOURCC fourcc) {
             plane_count = 1;
             break;
 
+        case MMP_FOURCC_IMAGE_YCbCr422_P2:
+        case MMP_FOURCC_IMAGE_YCrCb422_P2:
+        case MMP_FOURCC_IMAGE_YCbCr420_P2:
+        case MMP_FOURCC_IMAGE_YCrCb420_P2:
+            plane_count = 2;
+            break;
+
         case MMP_FOURCC_IMAGE_YVU420_P3:
         case MMP_FOURCC_IMAGE_YUV420_P3:
             plane_count = 3;
