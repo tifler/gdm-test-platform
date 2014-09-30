@@ -5,6 +5,7 @@
 #include <poll.h>
 #include <getopt.h>
 #include <signal.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -28,16 +29,27 @@
 /*****************************************************************************/
 
 struct PortContext {
+    struct STREAM *stream;
     struct GDMDisplay *display;
     struct GDMEncoder *encoder;
     struct GDMYUVWriter *yuvWriter;
     struct GDMImageInfo yuvInfo;
     uint32_t yuvCount;
+    int enableEffect;
+    int currEffect;
+
+    pthread_mutex_t captureLock;
+    uint32_t captureCount;
 };
 
 /*****************************************************************************/
 
 static int mainStop;
+static struct PortContext portCtx[STREAM_PORT_COUNT] = {
+    [STREAM_PORT_CAPTURE] = {
+        .captureLock = PTHREAD_MUTEX_INITIALIZER,
+    },
+};
 
 /*****************************************************************************/
 
@@ -51,11 +63,11 @@ static void helpExit(int argc, char **argv)
 
 static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    struct PortContext *dispPort = (struct PortContext *)param;
+    struct PortContext *port = (struct PortContext *)param;
 
-    if (dispPort->display) {
+    if (port->display) {
         //DBG("DISPLAY CALLBACK: Buffer Index = %d, Send Frame.", index);
-        GDispSendFrame(dispPort->display, buffer, 1000);
+        GDispSendFrame(port->display, buffer, 1000);
     }
     else {
         //DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
@@ -66,20 +78,20 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
 
 static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
 {
-    struct PortContext *videoPort = (struct PortContext *)param;
+    struct PortContext *port = (struct PortContext *)param;
 
-    if (videoPort->encoder) {
-        GEncEncodeFrame(videoPort->encoder, buffer);
+    if (port->encoder) {
+        GEncEncodeFrame(port->encoder, buffer);
     }
 
-    if (videoPort->yuvWriter) {
-        if (videoPort->yuvCount > 0) {
-            GYUVWriterWrite(videoPort->yuvWriter, &videoPort->yuvInfo, buffer);
-            videoPort->yuvCount--;
+    if (port->yuvWriter) {
+        if (port->yuvCount > 0) {
+            GYUVWriterWrite(port->yuvWriter, &port->yuvInfo, buffer);
+            port->yuvCount--;
         }
         else {
-            GYUVWriterClose(videoPort->yuvWriter);
-            videoPort->yuvWriter = (struct GDMYUVWriter *)NULL;
+            GYUVWriterClose(port->yuvWriter);
+            port->yuvWriter = (struct GDMYUVWriter *)NULL;
         }
     }
     //DBG("VIDEO CALLBACK: Buffer Index = %d", index);
@@ -88,12 +100,22 @@ static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
 
 static int captureCallback(void *param, struct GDMBuffer *buffer, int index)
 {
+    struct PortContext *port = (struct PortContext *)param;
+
+    pthread_mutex_lock(&port->captureLock);
+    if (port->captureCount > 0) {
+        DBG("CaptureCount = %d", port->captureCount);
+        port->captureCount--;
+        // TODO capture image and save it.
+    }
+    pthread_mutex_unlock(&port->captureLock);
     //DBG("CAPTURE CALLBACK: Buffer Index = %d", index);
     return 0;
 }
 
 static int faceDetectCallback(void *param, struct GDMBuffer *buffer, int index)
 {
+    struct PortContext *port = (struct PortContext *)param;
     //DBG("FD CALLBACK: Buffer Index = %d", index);
     return 0;
 }
@@ -121,7 +143,7 @@ static struct STREAM *createStream(
     port = &opt->port[portId];
     ASSERT(!port->disable);
 
-    stream = streamOpen(portId);
+    stream = streamOpen(portId, opt->global.showFPS);
     ASSERT(stream);
 
     dxoPortId = portId2DXOPortId[portId];
@@ -170,8 +192,15 @@ static void destroyStream(struct STREAM *stream)
 
 static void captureSignalHandler(int signo)
 {
+    struct PortContext *port = &portCtx[STREAM_PORT_CAPTURE];
+
     ASSERT(signo == CAPTURE_SIGNAL);
     DBG("[PID=%d] Capture Signal(%d) received.", getpid(), signo);
+
+    pthread_mutex_lock(&port->captureLock);
+    port->captureCount++;
+    DBG("Increase capture count: %d", port->captureCount);
+    pthread_mutex_unlock(&port->captureLock);
 }
 
 static void closeHandler(int signo)
@@ -261,6 +290,20 @@ static void opt2ImageInfo(
     }
 }
 
+static void changeEffect(void)
+{
+    int i;
+    struct PortContext *port;
+
+    for (i = 0; i < STREAM_PORT_COUNT; i++) {
+        port = &portCtx[i];
+        if (port->stream && port->enableEffect) {
+            streamSetColorEffect(port->stream, port->currEffect);
+            port->currEffect = (port->currEffect + 1) % 9;
+        }
+    }
+}
+
 /*****************************************************************************/
 
 int main(int argc, char **argv)
@@ -272,11 +315,8 @@ int main(int argc, char **argv)
     struct ISP *isp;
     struct SIF *sif;
     struct DXO *dxo;
-    struct STREAM *streams[STREAM_PORT_COUNT];
     struct Option *opt;
-    struct PortContext portCtx[STREAM_PORT_COUNT];
-
-    memset(&portCtx, 0, sizeof(portCtx));
+    struct PortContext *port;
 
     if (argc != 2)
         helpExit(argc, argv);
@@ -317,28 +357,29 @@ int main(int argc, char **argv)
     // parent(main thread)'s signal mask.
     blockSignals();
 
-    memset(streams, 0, sizeof(streams));
     // Display
     if (!opt->port[STREAM_PORT_DISPLAY].disable) {
+        port = &portCtx[STREAM_PORT_DISPLAY];
         if (opt->global.display) {
             struct GDMDispFormat dispFmt;
-            portCtx[STREAM_PORT_DISPLAY].display =
-                GDispOpen(opt->display.unixPath, 0);
-            ASSERT(portCtx[STREAM_PORT_DISPLAY].display);
+            port->display = GDispOpen(opt->display.unixPath, 0);
+            ASSERT(port->display);
 
             dispFmt.pixelformat = opt->port[STREAM_PORT_DISPLAY].pixelFormat;
             dispFmt.width = opt->port[STREAM_PORT_DISPLAY].width;
             dispFmt.height = opt->port[STREAM_PORT_DISPLAY].height;
 
-            GDispSetFormat(portCtx[STREAM_PORT_DISPLAY].display, &dispFmt);
+            GDispSetFormat(port->display, &dispFmt);
         }
-        streams[STREAM_PORT_DISPLAY] = createStream(opt, dxo,
-                STREAM_PORT_DISPLAY, displayCallback, &portCtx[STREAM_PORT_DISPLAY]);
-        ASSERT(streams[STREAM_PORT_DISPLAY]);
+        port->stream = createStream(opt, dxo,
+                STREAM_PORT_DISPLAY, displayCallback, port);
+        ASSERT(port->stream);
+        port->enableEffect = opt->port[STREAM_PORT_DISPLAY].enableEffect;
     }
 
     // Video
     if (!opt->port[STREAM_PORT_VIDEO].disable) {
+        port = &portCtx[STREAM_PORT_VIDEO];
         if (opt->global.videoEncode) {
             struct GDMEncConfig encConf;
             encConf.width = opt->port[STREAM_PORT_VIDEO].width;
@@ -349,40 +390,43 @@ int main(int argc, char **argv)
             encConf.encFormat = opt->videoEncoder.format;
             encConf.useSWEnc = 0;
 
-            portCtx[STREAM_PORT_VIDEO].encoder =
-                GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
-            ASSERT(portCtx[STREAM_PORT_VIDEO].encoder);
+            port->encoder = GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
+            ASSERT(port->encoder);
 
-            GEncStart(portCtx[STREAM_PORT_VIDEO].encoder);
+            GEncStart(port->encoder);
         }
 
         if (opt->port[STREAM_PORT_VIDEO].writeYUV > 0) {
-            portCtx[STREAM_PORT_VIDEO].yuvWriter = GYUVWriterOpen("video.yuv");
-            ASSERT(portCtx[STREAM_PORT_VIDEO].yuvWriter);
-            portCtx[STREAM_PORT_VIDEO].yuvCount =
-                opt->port[STREAM_PORT_VIDEO].writeYUV;
-            opt2ImageInfo(opt,
-                    &portCtx[STREAM_PORT_VIDEO].yuvInfo, STREAM_PORT_VIDEO);
+            port->yuvWriter = GYUVWriterOpen("video.yuv");
+            ASSERT(port->yuvWriter);
+            port->yuvCount = opt->port[STREAM_PORT_VIDEO].writeYUV;
+            opt2ImageInfo(opt, &port->yuvInfo, STREAM_PORT_VIDEO);
         }
 
-        streams[STREAM_PORT_VIDEO] = createStream(opt, dxo,
-                STREAM_PORT_VIDEO, videoCallback, &portCtx[STREAM_PORT_VIDEO]);
-        ASSERT(streams[STREAM_PORT_VIDEO]);
+        port->stream = createStream(opt, dxo,
+                STREAM_PORT_VIDEO, videoCallback, port);
+        ASSERT(port->stream);
+        port->enableEffect = opt->port[STREAM_PORT_VIDEO].enableEffect;
     }
 
     // Capture
     if (!opt->port[STREAM_PORT_CAPTURE].disable) {
-        streams[STREAM_PORT_CAPTURE] = 
-            createStream(opt, dxo, STREAM_PORT_CAPTURE, captureCallback, NULL);
-        ASSERT(streams[STREAM_PORT_CAPTURE]);
+        port = &portCtx[STREAM_PORT_CAPTURE];
+        port->stream = 
+            createStream(opt, dxo, STREAM_PORT_CAPTURE, captureCallback, port);
+        ASSERT(port->stream);
+        port->enableEffect = opt->port[STREAM_PORT_CAPTURE].enableEffect;
     }
 
     // FaceDetect
     if (!opt->port[STREAM_PORT_FACEDETECT].disable) {
-        streams[STREAM_PORT_FACEDETECT] = 
-            createStream(opt, dxo, STREAM_PORT_FACEDETECT, faceDetectCallback, NULL);
-        ASSERT(streams[STREAM_PORT_FACEDETECT]);
+        port = &portCtx[STREAM_PORT_VIDEO];
+        port->stream = createStream(opt, dxo,
+                STREAM_PORT_FACEDETECT, faceDetectCallback, port);
+        ASSERT(port->stream);
     }
+
+    changeEffect();
 
     DXORunState(dxo, opt->global.runState, 0);
 
@@ -390,16 +434,19 @@ int main(int argc, char **argv)
 
     installSigHandler();
 
-    while (!mainStop)
-        pause();
+    while (!mainStop) {
+        changeEffect();
+        sleep(1);
+    }
 
     for (i = 0; i < STREAM_PORT_COUNT; i++) {
-        if (streams[i])
-            destroyStream(streams[i]);
+        port = &portCtx[i];
+        if (port->stream)
+            destroyStream(port->stream);
 
-        if (portCtx[i].encoder) {
-            GEncStop(portCtx[i].encoder);
-            GEncClose(portCtx[i].encoder);
+        if (port->encoder) {
+            GEncStop(port->encoder);
+            GEncClose(port->encoder);
         }
     }
 

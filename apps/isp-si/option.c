@@ -43,6 +43,7 @@ static void parseGlobal(dictionary *dict, struct Option *option)
     option->global.captureEncode = iniparser_getint(dict, "Global:CaptureEncode", 0);
     option->global.needPostEvent = iniparser_getint(dict, "Global:NeedPostEvent", 0);
     option->global.estimateIRQ = iniparser_getint(dict, "Global:EstimateIRQ", 0);
+    option->global.showFPS = iniparser_getint(dict, "Global:ShowFPS", 0);
     state = iniparser_getstring(dict, "Global:RunState", "preview");
     option->global.runState = str2State(state);
 }
@@ -112,6 +113,9 @@ static void parsePort(dictionary *dict, struct Option *option, int index)
 
     snprintf(key, sizeof(key) - 1, "Port-%s:WriteYUV", portName[index]);
     port->writeYUV = iniparser_getint(dict, key, 0);
+
+    snprintf(key, sizeof(key) - 1, "Port-%s:EnableEffect", portName[index]);
+    port->enableEffect = iniparser_getint(dict, key, 0);
 }
 
 static void parseDisplay(dictionary *dict, struct Option *option)

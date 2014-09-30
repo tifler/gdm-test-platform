@@ -10,6 +10,7 @@
 #include "stream.h"
 #include "gdm-buffer.h"
 #include "v4l2.h"
+#include "gisp-ioctl.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -19,6 +20,8 @@
 #define STREAM_STAT_SET_FORMAT              (0x0001)
 #define STREAM_STAT_SET_BUFFER              (0x0002)
 #define STREAM_STAT_START                   (0x0004)
+
+#define ARRAY_SIZE(a)                       (sizeof(a) / sizeof(a[0]))
 
 /*****************************************************************************/
 
@@ -40,6 +43,8 @@ struct STREAM {
     // for debugging
     uint32_t frames;
     time_t lastSec;
+
+    int showFPS;
 };
 
 static const char *streamName[] = {
@@ -102,7 +107,9 @@ static void *streamThread(void *arg)
         stream->frames++;
         time(&sec);
         if (sec != stream->lastSec) {
-            DBG("Stream-%s: %d FPS", streamName[stream->port], stream->frames);
+            if (stream->showFPS)
+                DBG("Stream-%s: %d FPS",
+                        streamName[stream->port], stream->frames);
             stream->lastSec = sec;
             stream->frames = 0;
         }
@@ -113,7 +120,7 @@ static void *streamThread(void *arg)
 
 /*****************************************************************************/
 
-struct STREAM *streamOpen(int port)
+struct STREAM *streamOpen(int port, int showFPS)
 {
     char path[256];
     struct STREAM *stream;
@@ -128,6 +135,8 @@ struct STREAM *streamOpen(int port)
     snprintf(path, sizeof(path) - 1, "/dev/video%d", port + 1);
     stream->fd = open(path, O_RDWR);
     ASSERT(stream->fd > 0);
+
+    stream->showFPS = showFPS;
 
     return stream;
 }
@@ -243,4 +252,38 @@ void streamStop(struct STREAM *stream)
 
     stream->status &= ~STREAM_STAT_START;
     pthread_join(stream->thread, NULL);
+}
+
+void streamSetColorEffect(struct STREAM *stream, int effect)
+{
+    int ret;
+    static int effectConvTable[] = {
+        V4L2_COLORFX_NONE,
+        V4L2_COLORFX_NEGATIVE,
+        V4L2_COLORFX_SEPIA,
+        V4L2_COLORFX_MONOCHROME,
+        V4L2_COLORFX_DESATURATION,
+        V4L2_COLORFX_COLORFILTER,
+        V4L2_COLORFX_OVEREXPOSER,
+        V4L2_COLORFX_POSTERIZER,
+        V4L2_COLORFX_VINTAGE,
+    };
+    static const char *effectStringTable[] = {
+        "NONE",
+        "NEGATIVE",
+        "SEPIA",
+        "MONOCHROME",
+        "DESATURATION",
+        "COLORFILTER",
+        "OVEREXPOSER",
+        "POSTERIZER",
+        "VINTAGE",
+    };
+
+    ASSERT(effect >= 0);
+    ASSERT(effect < ARRAY_SIZE(effectConvTable));
+
+    ret = v4l2_s_ctrl(stream->fd, V4L2_CID_COLORFX, effectConvTable[effect]);
+    ASSERT(ret >= 0);
+    DBG("Current Effect is %s", effectStringTable[effect]);
 }

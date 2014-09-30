@@ -1,23 +1,19 @@
-#ifndef	__ISP_DRIVER_H__
-#define __ISP_DRIVER_H__
+/* 
+ * Copyright (c) 2013-2014 Anapass Inc.
+ *
+ * This program is free software; you can redistribute it and/or 
+ * modify it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * GDM7243V Image Subsystem Driver Header
+ *
+ */
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#ifndef __GDM_ISP_IOCTL_H__
+#define	__GDM_ISP_IOCTL_H__
 
-// for setup reg
-typedef struct
-{
-	uint32_t addr;
-	uint32_t data;
-} reg_table;
-
-// for event set regdata
-typedef struct
-{
-	uint16_t	index;
-	uint16_t	length;
-	uint32_t	*pbuf;
-} __attribute__((packed)) event_reg;
+#include <linux/ioctl.h>
+#include <linux/v4l2-controls.h>
 
 /*****************************************************************************/
 
@@ -45,17 +41,22 @@ struct gdm_isp_iodev_reg {
 
 #define ISP_I2C_IOC_MAGIC       ('i')
 
-typedef struct _ioctl_i2cm_info {
-	unsigned short	id;
-	unsigned short	addr;
-	unsigned int	length;	// length
+typedef struct {
+    unsigned short id;
+    unsigned short addr;
+    unsigned int length;
 } __attribute__((packed)) ioctl_i2cm_info;
 
 #define ISP_I2C_IOC_WRITE       _IOWR(ISP_I2C_IOC_MAGIC, 0, ioctl_i2cm_info)
 #define ISP_I2C_IOC_READ        _IOWR(ISP_I2C_IOC_MAGIC, 1, ioctl_i2cm_info)
 
+// we re-defined V4L2_COLORFX_* for readability.
 
-#endif
+#define V4L2_COLORFX_MONOCHROME                 V4L2_COLORFX_BW
+#define V4L2_COLORFX_DESATURATION               V4L2_COLORFX_ANTIQUE
+#define V4L2_COLORFX_COLORFILTER                V4L2_COLORFX_SOLARIZATION
+#define V4L2_COLORFX_OVEREXPOSER                V4L2_COLORFX_SILHOUETTE
+#define V4L2_COLORFX_POSTERIZER                 V4L2_COLORFX_VIVID
+#define V4L2_COLORFX_VINTAGE                    V4L2_COLORFX_SKIN_WHITEN
 
-/* EOF */
-
+#endif	/*__GDM_ISP_IOCTL_H__*/

@@ -21,7 +21,7 @@ struct GDMBuffer;
 
 /*****************************************************************************/
 
-struct STREAM *streamOpen(int port);
+struct STREAM *streamOpen(int port, int showFPS);
 void streamClose(struct STREAM *stream);
 int streamSetFormat(struct STREAM *stream,
         uint32_t width, uint32_t height, uint32_t pixelformat);
@@ -33,5 +33,6 @@ int streamSetCallback(struct STREAM *stream,
         void *callbackParam);
 int streamStart(struct STREAM *stream);
 void streamStop(struct STREAM *stream);
+void streamSetColorEffect(struct STREAM *stream, int effect);
 
 #endif  /*__GISP_STREAM_H__*/

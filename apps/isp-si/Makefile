@@ -15,22 +15,24 @@ endif
 #------------------------------------------------------------------------------
 
 TARGET			:= isp
+
 CALIB_OBJS		:= gisp/calibData/data.o gisp/calibData/calibDataTabSelection.o
 CALIB_OBJS		+= gisp/calibData/ccParams.o gisp/calibData/ccParamsTabSelection.o
 CALIB_OBJS		+= gisp/calibData/ctlParams.o
+
 SENSOR_OBJS		:= gisp/OV2715/sensorOVT2715.o
 SENSOR_OBJS		+= gisp/VIGEN/vigen.o
-#OBJS			:= main.o DxOISP_ahblAccess.o dxo.o isp-io.o ioctl.o v4l2.o \
-#	$(CALIB_OBJS) $(SENSOR_OBJS)
+
 GISP_OBJS		:= gisp/gisp-isp.o gisp/gisp-dxo.o gisp/gisp-sif.o
 GISP_OBJS		+= gisp/gisp-iodev.o gisp/gisp-sensor.o
-OBJS			:= main.o v4l2.o gdm-buffer.o display.o stream.o option.o
-OBJS			+= encoder.o
-OBJS			+= yuv-writer.o
-OBJS			+= v4l2.o
-OBJS			+= $(CALIB_OBJS)
+
+MAIN_OBJS		:= main.o v4l2.o gdm-buffer.o display.o stream.o option.o
+MAIN_OBJS		+= encoder.o yuv-writer.o v4l2.o
+
+OBJS			:= $(CALIB_OBJS)
 OBJS			+= $(SENSOR_OBJS)
 OBJS			+= $(GISP_OBJS)
+OBJS			+= $(MAIN_OBJS)
 
 LOCAL_CFLAGS	:=-DDATA_SYMS_H_DIR=gisp/firmware/correctionData/include
 LOCAL_CFLAGS	+=-DDATA_GLOBAL_HEADER=gisp/firmware/include/DxOISP.h

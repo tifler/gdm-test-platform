@@ -1,6 +1,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 #include "v4l2.h"
 #include "debug.h"
@@ -427,7 +428,7 @@ int v4l2_s_ctrl(int fd, unsigned int id, int value)
 
     ret = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
     if (ret < 0) {
-        ERR("VIDIOC_S_CTRL(id=0x%x, value=0x%x) failed.", id, value);
+        ERR("VIDIOC_S_CTRL(id=0x%x, value=0x%x) failed. ret = %d, errno = %d", id, value, ret, errno);
         return ret;
     }
 
