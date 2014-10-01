@@ -280,7 +280,6 @@ static int unregister_overlay_cfg(struct hwc_context_t *hwc_ctx,
 	return 0;
 }
 
-
 // default thread fb0
 void *commit_thread(void *argp)
 {
@@ -297,28 +296,30 @@ void *commit_thread(void *argp)
 	memset(&buf_sync, 0x00, sizeof(buf_sync));
 	memset(&display_commit, 0x00, sizeof(struct gdm_display_commit));
 
-
 	// VSYNC Ctrl Enable
 	gdss_io_vsync_ctl(fb_fd, 1);
 
 
+	hwc_ctx->release_fence = -1;
 	buf_sync.acq_fen_fd_cnt = 0;
 	buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
 	gdss_io_buffer_sync(fb_fd, &buf_sync);
 
 	while(1) {
-
 		pthread_cond_wait(&hwc_ctx->commit_cond, &hwc_ctx->ov_lock);
+		//printf("commit_lock\n");
 
 		/* prepare */
 		//	pthread_mutex_lock(&hwc_ctx->ov_lock);
 
 		if(hwc_ctx->is_update == 0) {
+			printf("commit_unlock\n");
 			pthread_mutex_unlock(&hwc_ctx->ov_lock);
 			usleep(10*1000);
 			continue;
 		}
 
+		hwc_ctx->is_update = 0;
 
 		for(i = 0; i < MAX_VID_OVERLAY; i++) {
 			if(hwc_ctx->vid_cfg[i].application_id != 0) {
@@ -394,17 +395,16 @@ void *commit_thread(void *argp)
 			}
 		}
 
+		hwc_ctx->vsync_check = 1;
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 		/* commit */
 
-#if 1
 		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, vi) < 0) {
 			printf("failed to get fb0 info");
 		}
 
 		vi->activate = FB_ACTIVATE_VBL;
 
-		// TODO:
 		if(FRAMEBUFFER_NUM == 3) {
 			if(vi->yoffset == 0)
 				vi->yoffset = vi->yres;
@@ -425,29 +425,36 @@ void *commit_thread(void *argp)
 			printf("%s::GDMFB_OVERLAY_COMMIT fail(%s)", __func__, strerror(errno));
 
 		}
-
-		pthread_mutex_lock(&hwc_ctx->ov_lock);
-		buf_sync.acq_fen_fd_cnt = 0;
-		if(hwc_ctx->release_fence > 0)
-			close(hwc_ctx->release_fence);
-
-		hwc_ctx->release_fence = -1;
-		buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
-		gdss_io_buffer_sync(fb_fd, &buf_sync);
-		pthread_mutex_unlock(&hwc_ctx->ov_lock);
-
-#else
-		if(ioctl(fb_fd, FBIOGET_VSCREENINFO, &display_commit.var) < 0) {
-			printf("failed to get fb0 info");
-		}
-		gdss_io_display_commit(fb_fd, &display_commit);
-
-#endif
-
 	}
 
 }
 
+int vsync_func(void *parg)
+{
+	struct hwc_context_t *hwc_ctx = (struct hwc_context_t *)parg;
+
+	struct gdm_dss_buf_sync buf_sync;
+	int fb_fd = hwc_ctx->dpyAttr[0].fd;
+
+	memset(&buf_sync, 0x00, sizeof(struct gdm_dss_buf_sync));
+	pthread_mutex_lock(&hwc_ctx->vsync_lock);
+	if(hwc_ctx->vsync_check) {
+		//printf("vsync_lock\n");
+		buf_sync.acq_fen_fd_cnt = 0;
+		if(hwc_ctx->release_fence > 0) {
+			close(hwc_ctx->release_fence);
+		}
+
+		hwc_ctx->release_fence = -1;
+		buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
+		gdss_io_buffer_sync(fb_fd, &buf_sync);
+		hwc_ctx->vsync_check = 0;
+	}
+	//printf("vsync_unlock\n");
+	pthread_cond_signal(&hwc_ctx->vsync_cond);
+	pthread_mutex_unlock(&hwc_ctx->vsync_lock);
+	return 0;
+}
 
 static void *client_thread(void *arg)
 {
@@ -462,6 +469,8 @@ static void *client_thread(void *arg)
 	struct gdmfb_nrp_data *nrp_data;
 	struct gdmfb_pp1_data *pp1_data;
 	struct gdmfb_pp2_data *pp2_data;
+
+	int ii, loop_count;
 
 	printf("Client %d launched.\n", getpid());
 
@@ -492,58 +501,97 @@ static void *client_thread(void *arg)
 		cmd_msg = gdm_recvmsg(client->sockfd);
 		disp_message = (struct gdm_hwc_msg*)cmd_msg->buf;
 
+		loop_count = cmd_msg->buflen / sizeof(struct gdm_hwc_msg);
+
+		//printf("loop_count: %d, cmd_msg->buflen: %d, unit_size: %d\n",
+		//	loop_count, cmd_msg->buflen, sizeof(struct gdm_hwc_msg));
+
 		pthread_mutex_lock(&hwc_ctx->ov_lock);
-		switch(disp_message->hwc_cmd) {
-			case GDMFB_NR_PEAKING:
-				nrp_data = (struct gdmfb_nrp_data *)disp_message->data;
-				ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_NR_PEAKING, nrp_data);
-				break;
-			case GDMFB_PP1:
-				pp1_data = (struct gdmfb_pp1_data *)disp_message->data;
-				ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_PP1, pp1_data);
-				break;
-			case GDMFB_PP2:
-				pp2_data = (struct gdmfb_pp2_data *)disp_message->data;
-				ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_PP2, pp2_data);
-				break;
-			case GDMFB_OVERLAY_GET:
-				break;
-			case GDMFB_OVERLAY_SET:
-				printf("HWCOMPOSER: GDMFB_OVERLAY_SET\n");
-				ret = register_overlay_cfg(hwc_ctx, disp_message->app_id,
-						(struct gdm_dss_overlay*)disp_message->data);
-				
-				resp_msg = gdm_alloc_msghdr(10, 0);
-				*(int *)resp_msg->buf = ret;
-				gdm_sendmsg(client->sockfd, resp_msg);
-				
-				break;
-			case GDMFB_OVERLAY_UNSET:
-				unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
-				gdm_free_msghdr(cmd_msg);
-				hwc_ctx->is_update = 1;
-				pthread_mutex_unlock(&hwc_ctx->ov_lock);
-				printf("client_exit\n");
-				goto Exit;
+		printf("client_lock\n");
 
-			case GDMFB_OVERLAY_PLAY:
-				ret = register_overlay_data(hwc_ctx, disp_message->app_id,
-						cmd_msg);
+		for(ii=0; ii<loop_count;ii++) {
 
-				resp_msg = gdm_alloc_msghdr(10, 1);
-				*(int *)resp_msg->buf = ret;
-				resp_msg->fds[0] = hwc_ctx->release_fence;
-				gdm_sendmsg(client->sockfd, resp_msg);
-				break;
-			case GDMFB_DISPLAY_COMMIT:
-				resp_msg = gdm_alloc_msghdr(10, 1);
-				resp_msg->fds[0] = hwc_ctx->release_fence;
-				gdm_sendmsg(client->sockfd, resp_msg);
-				break;
+			disp_message = (struct gdm_hwc_msg*)(cmd_msg->buf + ii*(sizeof(struct gdm_hwc_msg)));
+
+			switch(disp_message->hwc_cmd) {
+				case GDMFB_NR_PEAKING:
+					nrp_data = (struct gdmfb_nrp_data *)disp_message->data;
+					ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_NR_PEAKING, nrp_data);
+					break;
+				case GDMFB_PP1:
+					pp1_data = (struct gdmfb_pp1_data *)disp_message->data;
+					ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_PP1, pp1_data);
+					break;
+				case GDMFB_PP2:
+					pp2_data = (struct gdmfb_pp2_data *)disp_message->data;
+					ret = ioctl(hwc_ctx->dpyAttr[0].fd, GDMFB_PP2, pp2_data);
+					break;
+				case GDMFB_OVERLAY_GET:
+					break;
+				case GDMFB_OVERLAY_SET:
+					printf("HWCOMPOSER: GDMFB_OVERLAY_SET\n");
+					ret = register_overlay_cfg(hwc_ctx, disp_message->app_id,
+							(struct gdm_dss_overlay*)disp_message->data);
+
+					resp_msg = gdm_alloc_msghdr(10, 0);
+					*(int *)resp_msg->buf = ret;
+					gdm_sendmsg(client->sockfd, resp_msg);
+
+					break;
+				case GDMFB_OVERLAY_UNSET:
+					unregister_overlay_cfg(hwc_ctx, disp_message->app_id);
+					gdm_free_msghdr(cmd_msg);
+					hwc_ctx->is_update = 1;
+					pthread_mutex_unlock(&hwc_ctx->ov_lock);
+					printf("client_exit\n");
+					goto Exit;
+
+				case GDMFB_OVERLAY_PLAY:
+					ret = register_overlay_data(hwc_ctx, disp_message->app_id,
+							cmd_msg);
+
+					pthread_mutex_lock(&hwc_ctx->vsync_lock);
+					if(hwc_ctx->release_fence == -1) {
+						resp_msg = gdm_alloc_msghdr(10, 0);
+						*(int *)resp_msg->buf = -1;
+						resp_msg->fds[0] = hwc_ctx->release_fence;
+						printf("EEEEEEEEEEEEEEEEEError - %d\n", hwc_ctx->release_fence);
+						gdm_sendmsg(client->sockfd, resp_msg);
+					}
+					else {
+						resp_msg = gdm_alloc_msghdr(10, 1);
+						*(int *)resp_msg->buf = ret;
+						resp_msg->fds[0] = hwc_ctx->release_fence;
+
+						gdm_sendmsg(client->sockfd, resp_msg);
+					}
+					pthread_mutex_unlock(&hwc_ctx->vsync_lock);
+					break;
+				case GDMFB_DISPLAY_COMMIT:
+					pthread_mutex_lock(&hwc_ctx->vsync_lock);
+					if(hwc_ctx->release_fence == -1) {
+						resp_msg = gdm_alloc_msghdr(10, 0);
+						*(int *)resp_msg->buf = -1;
+						//resp_msg->fds[0] = hwc_ctx->release_fence;
+						printf("EEEEEEEEEEEEEEEEEError - %d\n", hwc_ctx->release_fence);
+						gdm_sendmsg(client->sockfd, resp_msg);
+					}
+					else {
+						resp_msg = gdm_alloc_msghdr(10, 1);
+						*(int *)resp_msg->buf = ret;
+						resp_msg->fds[0] = hwc_ctx->release_fence;
+
+						gdm_sendmsg(client->sockfd, resp_msg);
+					}
+					pthread_mutex_unlock(&hwc_ctx->vsync_lock);
+
+					break;
+			}
+			hwc_ctx->is_update = 1;
+			gdm_free_msghdr(cmd_msg);
 		}
-		hwc_ctx->is_update = 1;
+		printf("client_unlock\n");
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
-		gdm_free_msghdr(cmd_msg);
 
 	}
 Exit:
@@ -650,23 +698,21 @@ void *server_loop(void *argp)
 void timer_handler(struct hwc_context_t *hwc_ctx)
 {
 	int status = 0;
-	//int skip;
-	//	printf("timer expired %d timers\n", ++ count);
+	int vsync = 0;
 
 	pthread_mutex_lock(&hwc_ctx->ov_lock);
 	status = hwc_ctx->is_update;
-	//skip = hwc_ctx->skip;
-	pthread_mutex_unlock(&hwc_ctx->ov_lock);
 
 	if(status) {
 		pthread_cond_signal(&hwc_ctx->commit_cond);
-		hwc_ctx->is_update = 0;
-		hwc_ctx->skip = 0;
+		pthread_mutex_unlock(&hwc_ctx->ov_lock);
+
+		pthread_cond_wait(&hwc_ctx->vsync_cond, &hwc_ctx->vsync_lock);
+		pthread_mutex_unlock(&hwc_ctx->vsync_lock);
 	}
 	else {
-		hwc_ctx->skip ++;
-		if(hwc_ctx->skip >=3)
-			hwc_ctx->is_update = 1;
+		pthread_mutex_unlock(&hwc_ctx->ov_lock);
+		usleep(40*1000);
 	}
 }
 
@@ -675,9 +721,9 @@ int main(int argc, char **argv)
 {
 	struct hwc_context_t *hwc_ctx = NULL;
 	pthread_t commitThread, serverThread;;
+	struct gdm_dss_buf_sync buf_sync;
 
 	signal(SIGPIPE, SIG_IGN);
-
 
 	hwc_ctx = (struct hwc_context_t *)malloc(sizeof(struct hwc_context_t));
 	memset(hwc_ctx, 0x00, sizeof(*hwc_ctx));
@@ -687,11 +733,21 @@ int main(int argc, char **argv)
 	if(pthread_cond_init(&hwc_ctx->commit_cond, NULL) != 0) {
 		goto Exit;
 	}
+	if(pthread_cond_init(&hwc_ctx->vsync_cond, NULL) != 0) {
+		goto Exit;
+	}
 
 	pthread_mutex_init(&hwc_ctx->ov_lock, NULL);
+	pthread_mutex_init(&hwc_ctx->vsync_lock, NULL);
 
+//	hwc_ctx->release_fence = -1;
+//	buf_sync.acq_fen_fd_cnt = 0;
+//	buf_sync.rel_fen_fd = &hwc_ctx->release_fence;
+//	gdss_io_buffer_sync(fb_fd, &buf_sync);
+//	gdss_io_vsync_ctl(hwc_ctx->dpyAttr[0].fd, 1);
+
+	hwc_ctx->vsync_func = vsync_func;
 	init_vsync_thread(hwc_ctx);
-
 
 	pthread_create(&commitThread, NULL, commit_thread, hwc_ctx);
 	pthread_create(&serverThread, NULL, server_loop, hwc_ctx);
@@ -699,12 +755,14 @@ int main(int argc, char **argv)
 	pthread_detach(serverThread);
 	pthread_detach(commitThread);
 
-
 	while(!hwc_ctx->bstop){
-		usleep(20*1000);
 		timer_handler(hwc_ctx);
+		usleep(20*1000);
+		//sleep(1);
 	}
 
+	pthread_mutex_destroy(&hwc_ctx->ov_lock);
+	pthread_mutex_destroy(&hwc_ctx->vsync_lock);
 Exit:
 	free(hwc_ctx);
 	return 0;

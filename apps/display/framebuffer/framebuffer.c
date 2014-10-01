@@ -473,17 +473,20 @@ void *framebuffer_renderer(void *arg)
 			break;
 		}
 
+		usleep(100*1000);
+	//	printf("commit - in (%d)\n", frame_count);
 		dss_overlay_commit(sockfd);
 		dss_get_fence_fd(sockfd, &fb_ctx->release_fd);
-
 
 		if(fb_ctx->release_fd != -1) {
 			ret = sync_wait(fb_ctx->release_fd, 1000);
 			close(fb_ctx->release_fd);
 			fb_ctx->release_fd = -1;
 		}
-
+	//	printf("commit - out (%d)\n", frame_count);
 		pthread_mutex_unlock(&ren_mutex);
+
+		frame_count ++;
 	}
 
 	close(sockfd);

@@ -115,7 +115,7 @@ int gdss_io_display_commit(int fd, struct gdm_display_commit *info)
 int gdss_io_buffer_sync(int fd, struct gdm_dss_buf_sync *buf_sync)
 {
 	if(ioctl(fd, GDMFB_BUFFER_SYNC, buf_sync) < 0) {
-		ALOGE("Failed to call ioctl GDMFB_DISPLAY_COMMIT err=%s\n",
+		ALOGE("Failed to call ioctl GDMFB_BUFFER_SYNC err=%s\n",
 			strerror(errno));
 		return -1;
 	}
@@ -125,7 +125,7 @@ int gdss_io_buffer_sync(int fd, struct gdm_dss_buf_sync *buf_sync)
 int gdss_io_vsync_ctl(int fd, int value)
 {
 	if(ioctl(fd, GDMFB_VSYNC_CTRL, &value) < 0) {
-		ALOGE("Failed to call ioctl GDMFB_DISPLAY_COMMIT err=%s\n",
+		ALOGE("Failed to call ioctl GDMFB_VSYNC_CTRL err=%s\n",
 			strerror(errno));
 		return -1;
 	}

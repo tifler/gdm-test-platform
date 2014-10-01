@@ -77,6 +77,8 @@ static void *vsync_loop(void *param)
 	//setpriority(PRIO_PROCESS, 0, HAL_PRIORITY_URGENT_DISPLAY +
 	//		PRIORITY_MORE_FAVORABLE);
 
+	// VSYNC Ctrl Enable
+	//gdss_io_vsync_ctl(ctx->dpyAttr[0].fd, 1);
 
 	num_displays = 1;
 
@@ -129,9 +131,12 @@ static void *vsync_loop(void *param)
 						//if(logvsync)
 						//	ALOGD("%s: timestamp %llu sent to SF for dpy=%d\n",
 						//		__FUNCTION__, timestamp[dpy], dpy);
+						// TODO::
+						//ctx->proc->vsync(ctx->proc, HWC_DISPLAY_PRIMARY,
+						//		timestamp[HWC_DISPLAY_PRIMARY]);
 
-						// TODO:
-						//ctx->proc->vsync(ctx->proc, dpy, timestamp[dpy]);
+						ctx->vsync_func(ctx);
+
 					}
 				}
 
