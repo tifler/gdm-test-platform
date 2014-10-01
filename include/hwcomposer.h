@@ -114,9 +114,11 @@ struct hwc_context_t {
 
 	bool bstop;
 	bool is_update;
-	int skip;
+	bool vsync_check;
 	pthread_cond_t	commit_cond;
+	pthread_cond_t  vsync_cond;
 	pthread_mutex_t ov_lock;
+	pthread_mutex_t vsync_lock;
 
 	int release_fence;
 
@@ -132,6 +134,9 @@ struct hwc_context_t {
 	struct overlay_context_t fb_cfg;
 
 	struct writeback_ctx_t *wb_ctx;
+
+	int (*vsync_func)(void *);
+
 };
 
 typedef struct {
