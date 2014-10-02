@@ -90,6 +90,7 @@ private:
     class mmp_buffer* m_p_buf_rotate[ROTATE_BUF_COUNT];
     MMP_S32 m_rend_rot_buf_idx;
     MMP_ROTATE m_rotate;
+	MMP_BOOL m_roate_rand;
 
 #if (MMP_OS==MMP_OS_WIN32)
     class mmp_msg_res m_msg_res;

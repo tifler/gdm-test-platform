@@ -96,7 +96,8 @@ struct sockaddr_un {
 #endif
 
 static int dss_get_response(int sockfd);
-static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
+//static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
+static int dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi);
 static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer, enum MMP_ROTATE rotate);
 static int dss_overlay_set(int sockfd, struct gdm_dss_overlay *req);
 static int dss_overlay_queue(int sockfd, struct gdm_dss_overlay_data *req_data);
@@ -114,7 +115,9 @@ CMmpRenderer_OdyClientEx2::CMmpRenderer_OdyClientEx2(CMmpRendererCreateProp* pRe
 ,m_buf_idx(0)
 
 ,m_rend_rot_buf_idx(0)
-,m_rotate(MMP_ROTATE_0)
+,m_rotate(MMP_ROTATE_OFF)
+,m_roate_rand(0)
+
 
 #if (MMP_OS==MMP_OS_WIN32)
 ,m_msg_res(256)
@@ -312,9 +315,18 @@ void CMmpRenderer_OdyClientEx2::SetFirstRenderer() {
         //m_rotate = rotate;
 
         CMmpRenderer::SetFirstRenderer();
-        dss_overlay_default_config(&m_req, &this->m_gplayer, m_rotate);
-        dss_overlay_set(m_sock_fd, &m_req);
-		dss_get_response(m_sock_fd);
+
+		if(m_rotate== MMP_ROTATE_RAND)
+        {
+			m_roate_rand = 1;        
+		}
+		else
+		{
+			dss_overlay_default_config(&m_req, &this->m_gplayer, m_rotate);
+			dss_overlay_set(m_sock_fd, &m_req);
+			dss_get_response(m_sock_fd);
+			m_roate_rand = 0;				
+		}
     }
 }
 
@@ -325,7 +337,7 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_videoframe* p_buf_
     MMP_S32 i;
 
     class mmp_lock autolock(m_p_mutex);
-
+    static int rotate_cnt;
 
     if( CMmpRenderer::s_pFirstRenderer[m_MediaType] != this ) {
 
@@ -342,21 +354,53 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_videoframe* p_buf_
         m_req_data.data[i].offset = 0;
     }
 
-    if(this->m_rotate != MMP_ROTATE_0) {
+    if(this->m_rotate != MMP_ROTATE_OFF) {
         m_req_data.dst_data.memory_id = this->m_p_buf_rotate[m_rend_rot_buf_idx]->get_buf_shared_fd();
     	m_req_data.dst_data.offset = 0;
         m_rend_rot_buf_idx = (m_rend_rot_buf_idx+1)%ROTATE_BUF_COUNT;
     }
-
-
+	
+	if(m_roate_rand == 1) {
+		int rotate_mode = 0;
+		rotate_cnt++;
+		rotate_mode = rotate_cnt%60;
+		switch(rotate_mode)
+		{
+			case 0:
+				m_rotate = MMP_ROTATE_0;
+			break;
+			case 10:
+				m_rotate = MMP_ROTATE_90;
+			break;
+			case 20:
+				m_rotate = MMP_ROTATE_180;
+			break;
+			case 30:
+				m_rotate = MMP_ROTATE_270;
+			break;
+			case 40:
+				m_rotate = MMP_ROTATE_HFLIP;
+			break;
+			case 50:
+				m_rotate = MMP_ROTATE_VFLIP;
+			break;			
+		}
+        dss_overlay_default_config(&m_req, &this->m_gplayer, m_rotate);
+        dss_overlay_set(m_sock_fd, &m_req);
+        dss_get_response(m_sock_fd);	
+	}
+	
 #if (MMP_OS == MMP_OS_WIN32)
     this->dss_overlay_queue_win32(m_sock_fd, &m_req_data);
 #endif
 
 	dss_overlay_queue(m_sock_fd, &m_req_data);
-    if(m_gplayer.release_fd == -1) {
-        dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
-    }
+    iret = dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
+	
+	if(iret == -1) {
+		m_gplayer.stop = 1;
+		return MMP_SUCCESS;
+	}
 
     if(m_gplayer.release_fd != -1) {
 		//printf("wait frame done signal\n");
@@ -413,9 +457,13 @@ MMP_RESULT CMmpRenderer_OdyClientEx2::Render(class mmp_buffer_imageframe* p_buf_
 #endif
 
 	dss_overlay_queue(m_sock_fd, &m_req_data);
-    if(m_gplayer.release_fd == -1) {
-        dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
-    }
+
+	iret = dss_get_fence_fd(m_sock_fd, &m_gplayer.release_fd, NULL);
+	
+	if(iret == -1) {
+		m_gplayer.stop = 1;
+		return mmpResult;
+	}
 
     if(m_gplayer.release_fd != -1) {
 		//printf("wait frame done signal\n");
@@ -455,26 +503,29 @@ static int dss_get_response(int sockfd)
 	return ret;
 }
 
-
-
-static void dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
+static int dss_get_fence_fd(int sockfd, int *release_fd, struct fb_var_screeninfo *vi)
 {
+	int ret = 0;
 	struct gdm_msghdr *msg = NULL;
 
-//	printf("dss_get_fence_fd - start\n");
 	msg = gdm_recvmsg(sockfd);
 
-//	printf("received msg: %0x\n", (unsigned int)msg);
 	if(msg != NULL){
+
 		if(vi) {
 			memcpy(vi, msg->buf, sizeof(struct fb_var_screeninfo));
 		}
-//		printf("msg->fds[0]: %d\n", msg->fds[0]);
+
+		if(*(int *)msg->buf == -1)
+			ret = -1;
+
 		*release_fd = msg->fds[0];
 		gdm_free_msghdr(msg);
 	}
 
+	return ret;
 }
+
 
 static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_player *gplayer, enum MMP_ROTATE rotate)
 {
@@ -503,7 +554,13 @@ static void dss_overlay_default_config(struct gdm_dss_overlay *req,	struct ody_p
 	req->id = GDMFB_NEW_REQUEST;
 
     switch(rotate) {
-
+		
+	  case MMP_ROTATE_0:	
+        req->dst_rect.w = gplayer->vi.yres;
+		req->dst_rect.h = gplayer->vi.yres;
+		req->flags = (GDM_DSS_FLAG_SCALING | GDM_DSS_FLAG_ROTATION);
+		break;
+	  	
       case MMP_ROTATE_90:
 	    req->dst_rect.w = gplayer->vi.yres;
 	    req->dst_rect.h = gplayer->vi.yres;

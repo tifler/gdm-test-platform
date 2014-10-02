@@ -422,11 +422,11 @@ int mme_command_player_set_rotate(int argc, char* argv[]) {
     }
 
     rotate_degree = atoi(argv[2]);
-    if( (rotate_degree == 0) || (rotate_degree == 90) || (rotate_degree == 180) || (rotate_degree == 270) || (rotate_degree == 360) || (rotate_degree == 450) ) {
+    if( (rotate_degree == 0) || (rotate_degree == 90) || (rotate_degree == 180) || (rotate_degree == 270) || (rotate_degree == 360) || (rotate_degree == 450) || (rotate_degree == 540) ) {
         
     }
     else {
-        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: rotate degree is  one of 0, 90, 180, 270 and 360,450 (HFLIP VFLIP) \n"));
+        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR: rotate degree is  one of 0, 90, 180, 270 and 360,450 (HFLIP VFLIP),540(Rand) \n"));
         return -1;
     }
 
