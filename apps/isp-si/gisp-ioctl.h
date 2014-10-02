@@ -37,6 +37,8 @@ struct gdm_isp_iodev_reg {
 #define ISP_CTRL_IOC_READ           _IOWR(ISP_CTRL_IOC_MAGIC, 6, struct gdm_isp_iodev_reg)
 #define ISP_CTRL_IOC_WRITE          _IOW(ISP_CTRL_IOC_MAGIC, 7, struct gdm_isp_iodev_reg)
 
+#define ISP_CTRL_IOC_BT601          _IOWR(ISP_CTRL_IOC_MAGIC, 8, int)
+
 /*****************************************************************************/
 
 #define ISP_I2C_IOC_MAGIC       ('i')

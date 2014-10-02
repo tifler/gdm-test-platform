@@ -26,6 +26,7 @@ void streamClose(struct STREAM *stream);
 int streamSetFormat(struct STREAM *stream,
         uint32_t width, uint32_t height, uint32_t pixelformat);
 int streamGetBufferSize(struct STREAM *stream, uint32_t planeSizes[3]);
+int streamGetBufferStride(struct STREAM *stream, uint32_t strides[3]);
 int streamSetBuffers(struct STREAM *stream,
         uint32_t bufferCount, struct GDMBuffer **buffers);
 int streamSetCallback(struct STREAM *stream,

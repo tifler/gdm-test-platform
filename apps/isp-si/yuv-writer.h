@@ -7,9 +7,11 @@
 
 struct GDMBuffer;
 struct GDMYUVWriter;
+struct GDMImageInfo;
 
 /*****************************************************************************/
 
+#if 0
 struct GDMPlaneInfo {
     uint32_t stride;
     uint32_t bpl;       // effective bytes per line
@@ -22,6 +24,7 @@ struct GDMImageInfo {
     uint32_t planeCount;
     struct GDMPlaneInfo plane[3];
 };
+#endif  /*0*/
 
 /*****************************************************************************/
 

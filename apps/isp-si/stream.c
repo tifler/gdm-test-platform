@@ -186,6 +186,22 @@ int streamGetBufferSize(struct STREAM *stream, uint32_t planeSizes[3])
     return planes;
 }
 
+int streamGetBufferStride(struct STREAM *stream, uint32_t strides[3])
+{
+    int i;
+    int planes;
+    struct v4l2_pix_format_mplane *pixmp;
+
+    ASSERT(stream->status & STREAM_STAT_SET_FORMAT);
+
+    pixmp = &stream->fmt.fmt.pix_mp;
+    planes = pixmp->num_planes;
+    for (i = 0; i < planes; i++)
+        strides[i] = pixmp->plane_fmt[i].bytesperline;
+
+    return planes;
+}
+
 int streamSetBuffers(
         struct STREAM *stream, uint32_t bufferCount, struct GDMBuffer **buffers)
 {

@@ -10,12 +10,10 @@
 #include <linux/videodev2.h>
 
 #include "yuv-writer.h"
+#include "image-info.h"
+#include "file-io.h"
 #include "gdm-buffer.h"
 #include "debug.h"
-
-/*****************************************************************************/
-
-#define ARRAY_SIZE(a)               (sizeof(a) / sizeof(a[0]))
 
 /*****************************************************************************/
 
@@ -26,39 +24,6 @@ struct GDMYUVWriter {
 };
 
 /*****************************************************************************/
-
-static int safeWrite(int fd, void *buffer, size_t size)
-{
-    int ret;
-    char *ptr;
-    size_t nwrite;
-
-    ASSERT(fd > 0);
-
-    nwrite = 0;
-    ptr = (char *)buffer;
-
-    while (nwrite < size) {
-        ret = write(fd, &ptr[nwrite], size - nwrite);
-        if (ret < 0) {
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    continue;
-
-                default:
-                    DIE("write failed.");
-                    break;
-            }
-        }
-        else if (ret == 0)
-            break;
-
-        nwrite += ret;
-    }
-
-    return nwrite;
-}
 
 static void writeImagePlane(int fd,
         void *bufptr, const struct GDMImageInfo *info, int plane)
@@ -122,7 +87,8 @@ void GYUVWriterWrite(struct GDMYUVWriter *w,
     }
 
     for (i = 0; i < buffer->planeCount; i++) {
-        writeImagePlane(w->fd, buffer->plane[i].base, info, i);
+        writeImagePlane(w->fd,
+                buffer->plane[i].base + info->plane[i].offset, info, i);
     }
     w->writeImages++;
     DBG("Write Image = %d", w->writeImages);

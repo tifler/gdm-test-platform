@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <linux/videodev2.h>
 
-#include "encoder.h"
+#include "vid-enc.h"
 #include "api/mme_c_api.h"
 #include "gdm-buffer.h"
 #include "debug.h"

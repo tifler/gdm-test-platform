@@ -4,6 +4,7 @@
 
 #include "gisp-isp.h"
 #include "gisp-iodev.h"
+#include "gisp-ioctl.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -66,3 +67,9 @@ uint32_t writeCommand(uint32_t cmd, uint32_t value)
     return result;
 }
 
+void ISPSetBT601Port(struct ISP *isp, int portId)
+{
+    int ret;
+    ret = ioctl(isp->io->fd, ISP_CTRL_IOC_BT601, portId);
+    ASSERT(ret == 0);
+}

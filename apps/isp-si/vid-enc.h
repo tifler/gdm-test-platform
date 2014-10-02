@@ -1,5 +1,5 @@
-#ifndef __ENCODER_H__
-#define __ENCODER_H__
+#ifndef __VID_ENC_H__
+#define __VID_ENC_H__
 
 struct GDMBuffer;
 struct GDMEncoder;
@@ -35,4 +35,4 @@ void GEncStart(struct GDMEncoder *e);
 void GEncStop(struct GDMEncoder *e);
 int GEncEncodeFrame(struct GDMEncoder *e, struct GDMBuffer *frame);
 
-#endif  /*__ENCODER_H__*/
+#endif  /*__VID_ENC_H__*/

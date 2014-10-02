@@ -27,7 +27,9 @@ GISP_OBJS		:= gisp/gisp-isp.o gisp/gisp-dxo.o gisp/gisp-sif.o
 GISP_OBJS		+= gisp/gisp-iodev.o gisp/gisp-sensor.o
 
 MAIN_OBJS		:= main.o v4l2.o gdm-buffer.o display.o stream.o option.o
-MAIN_OBJS		+= encoder.o yuv-writer.o v4l2.o
+MAIN_OBJS		+= vid-enc.o jpeg-enc.o
+MAIN_OBJS		+= yuv-writer.o v4l2.o
+MAIN_OBJS		+= file-io.o image-info.o
 
 OBJS			:= $(CALIB_OBJS)
 OBJS			+= $(SENSOR_OBJS)
@@ -50,10 +52,10 @@ LOCAL_CFLAGS	+=-IOV2715
 LOCAL_CFLAGS	+=-Igisp
 LOCAL_CFLAGS	+=-g
 
-# for display
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libhwc
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmsgio
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmme
+LOCAL_CFLAGS	+= -I$(BASEDIR)/libs/libv4l2_api/inc/
 LOCAL_CFLAGS    += -I$(BASEDIR)/include
 
 #LOCAL_CFLAGS	+=-D__USE_IOCTL_IO

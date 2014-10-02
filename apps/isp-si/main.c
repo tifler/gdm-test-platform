@@ -17,13 +17,17 @@
 #include "gdm-buffer.h"
 #include "stream.h"
 #include "display.h"
-#include "encoder.h"
+#include "vid-enc.h"
+#include "jpeg-enc.h"
+#include "image-info.h"
 #include "yuv-writer.h"
+#include "file-io.h"
 #include "option.h"
 #include "debug.h"
 
 /*****************************************************************************/
 
+#define GISP_ALIGN                          (16)
 #define CAPTURE_SIGNAL                      (SIGUSR1)
 
 /*****************************************************************************/
@@ -31,7 +35,8 @@
 struct PortContext {
     struct STREAM *stream;
     struct GDMDisplay *display;
-    struct GDMEncoder *encoder;
+    struct GDMEncoder *videoEncoder;
+    struct GDMJPEGEncoder *jpegEncoder;
     struct GDMYUVWriter *yuvWriter;
     struct GDMImageInfo yuvInfo;
     uint32_t yuvCount;
@@ -40,6 +45,9 @@ struct PortContext {
 
     pthread_mutex_t captureLock;
     uint32_t captureCount;
+    struct GDMJPEGEncConfig jpegConf;
+    struct GDMBuffer *jpegDstBuffer;
+    const char *jpegBasePath;
 };
 
 /*****************************************************************************/
@@ -80,8 +88,8 @@ static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
 {
     struct PortContext *port = (struct PortContext *)param;
 
-    if (port->encoder) {
-        GEncEncodeFrame(port->encoder, buffer);
+    if (port->videoEncoder) {
+        GEncEncodeFrame(port->videoEncoder, buffer);
     }
 
     if (port->yuvWriter) {
@@ -98,12 +106,40 @@ static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
     return 0;
 }
 
+static void writeJpeg(const struct GDMBuffer *buffer,
+        struct GDMJPEGEncConfig *conf, const char *basePath)
+{
+    int fd;
+    char path[256];
+    static int jpegID = 0;
+
+    ASSERT(buffer);
+    ASSERT(conf);
+    ASSERT(basePath);
+
+    snprintf(path, sizeof(path) - 1, "%s/CAP-%dx%d-%d.jpg",
+            basePath, conf->image.width, conf->image.height, jpegID++);
+
+    DBG("JPEG path = %s", path);
+    fd = open(path, O_RDWR | O_TRUNC | O_CREAT, 0644);
+    DBG("fd = %d", fd);
+    ASSERT(fd >= 0);
+
+    safeWrite(fd, buffer->plane[0].base, buffer->plane[0].used);
+
+    close(fd);
+}
+
 static int captureCallback(void *param, struct GDMBuffer *buffer, int index)
 {
     struct PortContext *port = (struct PortContext *)param;
 
     pthread_mutex_lock(&port->captureLock);
     if (port->captureCount > 0) {
+        port->jpegDstBuffer->plane[0].used = 0;
+        GJPEGEncEncodeFrame(port->jpegEncoder,
+                buffer, port->jpegDstBuffer, &port->jpegConf);
+        writeJpeg(port->jpegDstBuffer, &port->jpegConf, port->jpegBasePath);
         DBG("CaptureCount = %d", port->captureCount);
         port->captureCount--;
         // TODO capture image and save it.
@@ -252,44 +288,6 @@ static void installSigHandler(void)
     ASSERT(ret == 0);
 }
 
-static void opt2ImageInfo(
-        const struct Option *opt, struct GDMImageInfo *info, int streamId)
-{
-    int i;
-
-    ASSERT(opt);
-    ASSERT(info);
-
-    memset(info, 0, sizeof(*info));
-
-    info->width = opt->port[streamId].width;
-    info->height = opt->port[streamId].height;
-
-    switch (opt->port[streamId].pixelFormat) {
-        case V4L2_PIX_FMT_YUV420M:
-            info->planeCount = 3;
-            info->plane[0].stride = ((info->width + 7) >> 3) << 3;
-            info->plane[0].bpl = opt->port[streamId].width;
-            info->plane[0].lines = info->height;
-            info->plane[1].stride = ((info->width + 7) >> 3) << 2;
-            info->plane[1].bpl = opt->port[streamId].width >> 1;
-            info->plane[1].lines = info->height >> 1;
-            info->plane[2].stride = ((info->width + 7) >> 3) << 2;
-            info->plane[2].bpl = opt->port[streamId].width >> 1;
-            info->plane[2].lines = info->height >> 1;
-            break;
-
-        default:
-            ASSERT(! "Not implemented.");
-            break;
-    }
-
-    for (i = 0; i < info->planeCount; i++) {
-        DBG("Plane[%d].stride = %u, bpl = %u",
-                i, info->plane[i].stride, info->plane[i].bpl);
-    }
-}
-
 static void changeEffect(void)
 {
     int i;
@@ -325,6 +323,8 @@ int main(int argc, char **argv)
     ASSERT(opt);
 
     isp = ISPInit();
+    ISPSetBT601Port(isp, opt->global.bt601PortId);
+
     sif = SIFInit();
 
     sifConf.id = opt->sensor.id;
@@ -390,17 +390,22 @@ int main(int argc, char **argv)
             encConf.encFormat = opt->videoEncoder.format;
             encConf.useSWEnc = 0;
 
-            port->encoder = GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
-            ASSERT(port->encoder);
+            port->videoEncoder = GEncOpen(&encConf, opt->videoEncoder.basePath, 0);
+            ASSERT(port->videoEncoder);
 
-            GEncStart(port->encoder);
+            GEncStart(port->videoEncoder);
         }
 
         if (opt->port[STREAM_PORT_VIDEO].writeYUV > 0) {
             port->yuvWriter = GYUVWriterOpen("video.yuv");
             ASSERT(port->yuvWriter);
             port->yuvCount = opt->port[STREAM_PORT_VIDEO].writeYUV;
-            opt2ImageInfo(opt, &port->yuvInfo, STREAM_PORT_VIDEO);
+
+            port->yuvInfo.width = opt->port[STREAM_PORT_VIDEO].width;
+            port->yuvInfo.height = opt->port[STREAM_PORT_VIDEO].height;
+            port->yuvInfo.pixelFormat = opt->port[STREAM_PORT_VIDEO].pixelFormat;
+            port->yuvInfo.align = GISP_ALIGN;
+            GDMGetImageInfo(&port->yuvInfo);
         }
 
         port->stream = createStream(opt, dxo,
@@ -416,6 +421,31 @@ int main(int argc, char **argv)
             createStream(opt, dxo, STREAM_PORT_CAPTURE, captureCallback, port);
         ASSERT(port->stream);
         port->enableEffect = opt->port[STREAM_PORT_CAPTURE].enableEffect;
+
+        if (opt->global.captureEncode) {
+            unsigned int planeSizes[3];
+            port->jpegConf.image.width = opt->port[STREAM_PORT_CAPTURE].width;
+            port->jpegConf.image.height = opt->port[STREAM_PORT_CAPTURE].height;
+            port->jpegConf.image.pixelFormat =
+                opt->port[STREAM_PORT_CAPTURE].pixelFormat;
+            port->jpegConf.image.align = GISP_ALIGN;
+            GDMGetImageInfo(&port->jpegConf.image);
+            port->jpegConf.quality = opt->jpegEncoder.ratio;
+            port->captureCount = opt->jpegEncoder.captureCount;
+
+            memset(planeSizes, 0, sizeof(planeSizes));
+            planeSizes[0] =
+                port->jpegConf.image.width * port->jpegConf.image.height;
+            port->jpegDstBuffer = allocContigMemory(1, planeSizes, GDM_BUF_FLAG_MAP);
+            ASSERT(port->jpegDstBuffer);
+
+            port->jpegEncoder = GJPEGEncOpen();
+            ASSERT(port->jpegEncoder);
+
+            port->jpegBasePath = opt->jpegEncoder.basePath;
+            ASSERT(port->jpegBasePath);
+    
+        }
     }
 
     // FaceDetect
@@ -444,9 +474,9 @@ int main(int argc, char **argv)
         if (port->stream)
             destroyStream(port->stream);
 
-        if (port->encoder) {
-            GEncStop(port->encoder);
-            GEncClose(port->encoder);
+        if (port->videoEncoder) {
+            GEncStop(port->videoEncoder);
+            GEncClose(port->videoEncoder);
         }
     }
 

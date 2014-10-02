@@ -31,11 +31,35 @@ static uint32_t str2State(const char *name)
     return state;
 }
 
+static int str2PortId(const char *portName)
+{
+    int i;
+    int portId = -1;
+    static const char *__portName[] = {
+        "capture", "video", "display", "facedetect",
+    };
+
+    if (portName) {
+        for (i = 0; i < ARRAY_SIZE(__portName); i++) {
+            if (strcasecmp(portName, __portName[i]) == 0) {
+                portId = i;
+                break;
+            }
+        }
+
+        if (portId < 0) {
+            DBG("PortName [%s] is unknown. Ignored.", portName);
+        }
+    }
+
+    return portId;
+}
+
 /*****************************************************************************/
 
 static void parseGlobal(dictionary *dict, struct Option *option)
 {
-    char *state;
+    char *str;
     option->global.sysClkMul = iniparser_getint(dict, "Global:SysClkMul", 32);
     option->global.sysClkDiv = iniparser_getint(dict, "Global:SysClkDiv", 0);
     option->global.display = iniparser_getint(dict, "Global:Display", 0);
@@ -44,8 +68,10 @@ static void parseGlobal(dictionary *dict, struct Option *option)
     option->global.needPostEvent = iniparser_getint(dict, "Global:NeedPostEvent", 0);
     option->global.estimateIRQ = iniparser_getint(dict, "Global:EstimateIRQ", 0);
     option->global.showFPS = iniparser_getint(dict, "Global:ShowFPS", 0);
-    state = iniparser_getstring(dict, "Global:RunState", "preview");
-    option->global.runState = str2State(state);
+    str = iniparser_getstring(dict, "Global:RunState", "preview");
+    option->global.runState = str2State(str);
+    str = iniparser_getstring(dict, "Global:BT601", NULL);
+    option->global.bt601PortId = str2PortId(str);
 }
 
 static void parseSensor(dictionary *dict, struct Option *option)

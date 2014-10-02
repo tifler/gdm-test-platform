@@ -11,8 +11,9 @@
 /*****************************************************************************/
 
 struct GDMPlane {
-    int fd;
-    unsigned int length;
+    int fd;                 // ion buffer fd
+    unsigned int length;    // buffer length
+    unsigned int used;      // effective length(effective data size)
     void *base; // if GDM_BUF_FLAG_MAP is used, base has it's user virt. addr.
     void *user; // generic container for user like GDMBuffer.user
 };
