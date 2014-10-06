@@ -396,9 +396,7 @@ int GDispSendFrame(struct GDMDisplay *d, struct GDMBuffer *frame, int timeout)
     dss_get_fence_fd(d->sockfd, &releaseFd, NULL, timeout);
 
     if (releaseFd != -1) {
-        //DBG("============> SYNC WAIT <===========");
         ret = sync_wait(releaseFd, 1000);
-        //DBG("============> SYNC WAIT DONE : ret = %d <===========", ret);
         if (ret != 0) {
             DBG("=======> SYNC WAIT FAILED : ret = %d <=======", ret);
         }

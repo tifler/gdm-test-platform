@@ -89,7 +89,7 @@ int v4l2_jpeg_enc_set_config(int fd, struct v4l2_ion_frame *p_ion_frame_src, int
         fmt.fmt.pix_mp.num_planes = p_ion_frame_src->plane_count;
         fmt.fmt.pix_mp.pixelformat = p_ion_frame_src->pix_fourcc;
         for(i = 0; i < fmt.fmt.pix_mp.num_planes; i++) {
-            fmt.fmt.pix_mp.plane_fmt[i].sizeimage = p_ion_frame_src->plane[i].buf_size;
+            fmt.fmt.pix_mp.plane_fmt[i].sizeimage = p_ion_frame_src->plane[i].buf_size - p_ion_frame_src->plane[i].mem_offset;
             fmt.fmt.pix_mp.plane_fmt[i].bytesperline = p_ion_frame_src->plane[i].stride;
         }
         
@@ -257,6 +257,8 @@ int v4l2_jpeg_enc_exe(int fd, struct v4l2_ion_frame *p_ion_frame_src, struct v4l
         for (i = 0; i < p_ion_frame_src->plane_count; i++) {
             v4l2_buf_src.m.planes[i].m.fd = p_ion_frame_src->plane[i].shared_fd;
             v4l2_buf_src.m.planes[i].length = p_ion_frame_src->plane[i].buf_size;
+            // tifler
+            v4l2_buf_src.m.planes[i].data_offset = p_ion_frame_src->plane[i].mem_offset;
         }
     //}
 

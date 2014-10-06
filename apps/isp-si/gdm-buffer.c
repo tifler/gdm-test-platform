@@ -150,7 +150,9 @@ void freeContigMemory(struct GDMBuffer *buf)
     ASSERT(ion);
 
     for (i = 0; i < buf->planeCount; i++) {
-        munmap(buf->plane[i].base, buf->plane[i].length);
+        // munmap is ONLY needed if base is not null
+        if (buf->plane[i].base)
+            munmap(buf->plane[i].base, buf->plane[i].length);
         close(buf->plane[i].fd);
         ion_free(ion->fd, ion->handle[i]);
         buf->plane[i].base = NULL;

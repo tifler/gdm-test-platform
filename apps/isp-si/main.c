@@ -325,7 +325,7 @@ int main(int argc, char **argv)
     isp = ISPInit();
     ISPSetBT601Port(isp, opt->global.bt601PortId);
 
-    sif = SIFInit();
+    sif = SIFInit(opt->global.useBT601);
 
     sifConf.id = opt->sensor.id;
     sifConf.width = opt->sensor.width;

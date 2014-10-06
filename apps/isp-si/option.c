@@ -71,6 +71,7 @@ static void parseGlobal(dictionary *dict, struct Option *option)
     str = iniparser_getstring(dict, "Global:RunState", "preview");
     option->global.runState = str2State(str);
     str = iniparser_getstring(dict, "Global:BT601", NULL);
+    option->global.useBT601 = (str ? 1 : 0);
     option->global.bt601PortId = str2PortId(str);
 }
 

@@ -17,6 +17,7 @@ struct Option {
         int needPostEvent;
         int estimateIRQ;
         int showFPS;
+        int useBT601;
         int bt601PortId;
     } global;
 

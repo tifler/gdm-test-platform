@@ -301,5 +301,5 @@ void streamSetColorEffect(struct STREAM *stream, int effect)
 
     ret = v4l2_s_ctrl(stream->fd, V4L2_CID_COLORFX, effectConvTable[effect]);
     ASSERT(ret >= 0);
-    DBG("Current Effect is %s", effectStringTable[effect]);
+    DBG("Port[%d] Current Effect is %s", stream->port, effectStringTable[effect]);
 }

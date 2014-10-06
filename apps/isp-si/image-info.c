@@ -182,7 +182,9 @@ void GDMGetImageInfo(struct GDMImageInfo *info)
     info->planeCount = fmt->components;
     for (i = offset = 0; i < fmt->components; i++) {
         info->plane[i].offset = offset;
-        info->plane[i].bpl = ((info->width * fmt->bitperpixel[i]) + 7) >> 3;
+        // vdiv를 곱하는 이유는 420_2p, 420_3p를 위해서 이다.
+        info->plane[i].bpl = 
+            (((info->width * fmt->bitperpixel[i]) + 7) >> 3) * fmt->vdiv[i];
         info->plane[i].stride =
             (info->plane[i].bpl + info->align - 1) / info->align * info->align;
         ASSERT(fmt->vdiv[0] > 0);

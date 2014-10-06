@@ -35,7 +35,7 @@ static unsigned char *SIFBase;
 
 /*****************************************************************************/
 
-struct SIF *SIFInit(void)
+struct SIF *SIFInit(int useBT601)
 {
     struct SIF *sif;
 
@@ -48,9 +48,9 @@ struct SIF *SIFInit(void)
     SIFBase = (unsigned char *)sif->io->mapBase;
 
     // sensor reset
-    SIF_WRITE(0x10, 0x830);
+    SIF_WRITE(0x10, 0x30 | (useBT601 ? 0 : 0x800));
     usleep(100000);
-    SIF_WRITE(0x10, 0x820);
+    SIF_WRITE(0x10, 0x20 | (useBT601 ? 0 : 0x800));
 
     // for isp setting
     SIF_WRITE(0x304, 0x0);  // vsync normal

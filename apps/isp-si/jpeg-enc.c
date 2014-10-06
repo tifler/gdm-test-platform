@@ -28,6 +28,7 @@ struct GDMJPEGEncoder {
 
 /*****************************************************************************/
 
+#if 0
 static int encodeJPEG(struct GDMJPEGEncoder *e,
         struct v4l2_ion_frame *src, struct v4l2_ion_buffer *dst, int quality)
 {
@@ -54,6 +55,7 @@ static int encodeJPEG(struct GDMJPEGEncoder *e,
 
     return ret;
 }
+#endif  /*0*/
 
 /*****************************************************************************/
 
@@ -63,18 +65,20 @@ struct GDMJPEGEncoder *GJPEGEncOpen(void)
 
     e = calloc(1, sizeof(*e));
     ASSERT(e);
-
+#if 0
     e->fd = v4l2_jpeg_enc_open();
     ASSERT(e->fd > 0);
-
+#endif  /*0*/
     return e;
 }
 
 void GJPEGEncClose(struct GDMJPEGEncoder *e)
 {
     ASSERT(e);
+#if 0
     ASSERT(e->fd > 0);
     v4l2_jpeg_enc_close(e->fd);
+#endif  /*0*/
     free(e);
 }
 
@@ -93,8 +97,12 @@ void GJPEGEncEncodeFrame(struct GDMJPEGEncoder *e,
     for (i = 0; i < conf->image.planeCount; i++) {
         if (conf->image.planeCount > src->planeCount) {
             srcFrame.plane[i].shared_fd = src->plane[0].fd;
+#if 0
             srcFrame.plane[i].buf_size =
                 conf->image.plane[i].stride * conf->image.plane[i].lines;
+#else
+            srcFrame.plane[i].buf_size = src->plane[0].length;
+#endif  /*0*/
         }
         else {
             srcFrame.plane[i].shared_fd = src->plane[i].fd;
@@ -117,5 +125,11 @@ void GJPEGEncEncodeFrame(struct GDMJPEGEncoder *e,
     dstBuffer.mem_offset = 0;
     dstBuffer.stride = 0;
 
+#if 0
     dst->plane[0].used = encodeJPEG(e, &srcFrame, &dstBuffer, conf->quality);
+#else
+    i = v4l2_jpeg_encode_ion(
+            &srcFrame, conf->quality, &dstBuffer, &dst->plane[0].used);
+    ASSERT(i == 0);
+#endif  /*0*/
 }

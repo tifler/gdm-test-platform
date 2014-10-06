@@ -16,7 +16,7 @@ struct SIFConfig {
 
 /*****************************************************************************/
 
-struct SIF *SIFInit(void);
+struct SIF *SIFInit(int useBT601);
 void SIFExit(struct SIF *sif);
 
 void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf);
