@@ -12,6 +12,7 @@
 #include "gisp-sif.h"
 #include "gisp-sensor.h"
 #include "gisp-iodev.h"
+#include "regs-isp.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -48,24 +49,18 @@ struct SIF *SIFInit(int useBT601)
     SIFBase = (unsigned char *)sif->io->mapBase;
 
     // sensor reset
-    SIF_WRITE(0x10, 0x30 | (useBT601 ? 0 : 0x800));
+    SIF_WRITE(REG_SIF_FPGA_CON, 0x30 | (useBT601 ? 0 : 0x800));
     usleep(100000);
-    SIF_WRITE(0x10, 0x20 | (useBT601 ? 0 : 0x800));
+    SIF_WRITE(REG_SIF_FPGA_CON, 0x20 | (useBT601 ? 0 : 0x800));
 
-    // for isp setting
-    SIF_WRITE(0x304, 0x0);  // vsync normal
-
-    // for input debug
-    SIF_WRITE(0x20, 0x1);   // sensor input enable
-
-    SIF_WRITE(0x300, 1);    // 0:  high resolution 1: front sensor
+    SIF_WRITE(REG_SIF_PAR_SENSOR_INVERT, 0x0);  // vsync normal
+    SIF_WRITE(REG_SIF_CONT_SENSOR, 1);   // sensor input enable
+    SIF_WRITE(REG_SIF_SEL_SENSOR, 1);   // PAR Front Sensor
 
     //SIF_WRITE(0x320, (IMAGE_HEIGHT<<16)|IMAGE_WIDTH);
-    SIF_WRITE(0x310, 0x00); // eof = vsync rear sof=href start
-
-    SIF_WRITE(0x330, 0x0);  // input ctrl vsync sync action
-
-    SIF_WRITE(0x14, 0x2);   // mclk 1/2 div
+    SIF_WRITE(REG_SIF_PAR_VSYNC_POINT, 0x00); // eof = vsync rear sof=href start
+    SIF_WRITE(REG_SIF_PAR_ENB_BYPASS, 0x0);  // input ctrl vsync sync action
+    SIF_WRITE(REG_SIF_FPGA_CLOCK, 0x2);   // mclk 1/2 div
 
     return sif;
 }
@@ -89,7 +84,7 @@ void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf)
     }
 
     SensorSetMode(conf->id, i);
-    SIF_WRITE(0x320, (conf->height << 16) | conf->width);
+    SIF_WRITE(REG_SIF_PAR_IMAGE_SIZE, (conf->height << 16) | conf->width);
 }
 
 void SIFExit(struct SIF *sif)

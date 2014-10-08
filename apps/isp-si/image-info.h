@@ -7,9 +7,9 @@
 
 struct GDMImagePlaneInfo {
     uint32_t offset;        // memory offset
-    uint32_t stride;        // bytes per line
-    uint32_t bpl;           // effective bytes per line(exclude align pad)
-    uint32_t lines;
+    uint32_t stride;        // bytes between two adjcent line
+    uint32_t bpl;           // effective bytes per line(exclude align & pad)
+    uint32_t lines;         // in YUV420P[2,3], this value is half of height.
 };
 
 struct GDMImageInfo {
