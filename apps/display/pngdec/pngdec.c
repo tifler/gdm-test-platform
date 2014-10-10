@@ -402,12 +402,12 @@ static void dss_overlay_default_gfx_config(struct gdm_dss_overlay *req,
 	req->src.height = desc->height;
 
 	if(desc->pixelformat == DSPF_RGB24) {
-		req->src.format = GDMFB_BGR888;
+		req->src.format = GDMFB_RGB888;
 		//req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
 		//req->src.swap = GDM_DSS_PF_ORDER_BGR;
 	}
 	else {
-		req->src.format = GDMFB_BGRA8888;
+		req->src.format = GDMFB_RGBA8888;
 		//req->src.endian = GDM_DSS_PF_ENDIAN_BIG;
 		//req->src.swap = GDM_DSS_PF_ORDER_BGR;
 	}
@@ -607,7 +607,7 @@ void *gfx_renderer(void *arg)
 
 		if(gfx_ctx->release_fd != -1) {
 			//printf("wait frame done signal\n");
-			ret = sync_wait(gfx_ctx->release_fd, 10000);
+			ret = sync_wait(gfx_ctx->release_fd, 1000);
 			close(gfx_ctx->release_fd);
 			gfx_ctx->release_fd = -1;
 		}

@@ -507,7 +507,7 @@ static void *client_thread(void *arg)
 		//	loop_count, cmd_msg->buflen, sizeof(struct gdm_hwc_msg));
 
 		pthread_mutex_lock(&hwc_ctx->ov_lock);
-		printf("client_lock\n");
+	//	printf("client_lock\n");
 
 		for(ii=0; ii<loop_count;ii++) {
 
@@ -590,7 +590,7 @@ static void *client_thread(void *arg)
 			hwc_ctx->is_update = 1;
 			gdm_free_msghdr(cmd_msg);
 		}
-		printf("client_unlock\n");
+		//printf("client_unlock\n");
 		pthread_mutex_unlock(&hwc_ctx->ov_lock);
 
 	}
