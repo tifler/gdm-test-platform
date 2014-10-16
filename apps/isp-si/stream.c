@@ -10,7 +10,8 @@
 #include "stream.h"
 #include "gdm-buffer.h"
 #include "v4l2.h"
-#include "gisp-ioctl.h"
+#include "image-info.h"
+#include "gdm-isp-ioctl.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -31,6 +32,7 @@ struct STREAM {
     uint32_t width;
     uint32_t height;
     uint32_t pixelformat;
+    int planeCount;
     int bufferCount;
     unsigned long status;
     struct GDMBuffer **buffers;
@@ -44,11 +46,12 @@ struct STREAM {
     uint32_t frames;
     time_t lastSec;
 
+    int isOutput;
     int showFPS;
 };
 
 static const char *streamName[] = {
-    "CAPTURE", "VIDEO", "DISPLAY", "FACEDETECT"
+    "CAPTURE", "VIDEO", "DISPLAY", "FACEDETECT", "VSENSOR"
 };
 
 /*****************************************************************************/
@@ -81,7 +84,7 @@ static void *streamThread(void *arg)
         if (!(stream->status & STREAM_STAT_START))
             break;
 
-        idx = v4l2_dqbuf(pollfd.fd, 3);
+        idx = v4l2_dqbuf(pollfd.fd, stream->planeCount, stream->isOutput);
         if (idx < 0) {
             perror("v4l2_dqbuf");
             exit(0);
@@ -97,8 +100,8 @@ static void *streamThread(void *arg)
         if (ret)
             break;
 
-        ret = v4l2_qbuf(stream->fd,
-                stream->width, stream->height, stream->buffers[idx], idx);
+        ret = v4l2_qbuf(stream->fd, stream->width, stream->height,
+                stream->buffers[idx], idx, stream->isOutput);
 
         if (ret) {
             DBG("=====> QBUF(%d) FAILED <=====", idx);
@@ -137,6 +140,7 @@ struct STREAM *streamOpen(int port, int showFPS)
     ASSERT(stream->fd > 0);
 
     stream->showFPS = showFPS;
+    stream->isOutput = (port == STREAM_PORT_VSENSOR ? 1 : 0);
 
     return stream;
 }
@@ -153,16 +157,24 @@ int streamSetFormat(struct STREAM *stream,
         uint32_t width, uint32_t height, uint32_t pixelformat)
 {
     int ret;
+    struct GDMImageInfo imageInfo;
 
     stream->width = width;
     stream->height = height;
     stream->pixelformat = pixelformat;
 
-    ret = v4l2_enum_fmt(stream->fd, stream->pixelformat);
+    imageInfo.width = width;
+    imageInfo.height = height;
+    imageInfo.pixelFormat = pixelformat;
+    imageInfo.align = 16;
+    GDMGetImageInfo(&imageInfo);
+    stream->planeCount = imageInfo.planeCountPhy;
+
+    ret = v4l2_enum_fmt(stream->fd, stream->pixelformat, stream->isOutput);
     ASSERT(ret == 0);
 
-    ret = v4l2_s_fmt(stream->fd,
-            stream->width, stream->height, stream->pixelformat, &stream->fmt);
+    ret = v4l2_s_fmt(stream->fd, stream->width, stream->height,
+            stream->pixelformat, &stream->fmt, stream->isOutput);
     ASSERT(ret == 0);
 
     stream->status |= STREAM_STAT_SET_FORMAT;
@@ -208,7 +220,8 @@ int streamSetBuffers(
     int i;
     int ret;
 
-    stream->bufferCount = v4l2_reqbufs(stream->fd, bufferCount);
+    stream->bufferCount =
+        v4l2_reqbufs(stream->fd, bufferCount, stream->isOutput);
     ASSERT(stream->bufferCount >= 0);
 
     if (stream->buffers)
@@ -219,11 +232,13 @@ int streamSetBuffers(
         ASSERT(stream->buffers);
     }
 
-    for (i = 0; i < stream->bufferCount; i++) {
-        stream->buffers[i] = buffers[i];
-        ret = v4l2_qbuf(
-                stream->fd, stream->width, stream->height, buffers[i], i);
-        ASSERT(ret == 0);
+    if (buffers) {
+        for (i = 0; i < stream->bufferCount; i++) {
+            stream->buffers[i] = buffers[i];
+            ret = v4l2_qbuf(stream->fd, stream->width, stream->height,
+                    buffers[i], i, stream->isOutput);
+            ASSERT(ret == 0);
+        }
     }
 
     stream->status |= STREAM_STAT_SET_BUFFER;
@@ -248,12 +263,13 @@ int streamStart(struct STREAM *stream)
     ASSERT(stream);
     ASSERT(stream->status & (STREAM_STAT_SET_FORMAT|STREAM_STAT_SET_BUFFER));
 
-    stream->status |= STREAM_STAT_START;
+    if (!stream->isOutput) {
+        stream->status |= STREAM_STAT_START;
+        ret = pthread_create(&stream->thread, NULL, streamThread, stream);
+        ASSERT(ret == 0);
+    }
 
-    ret = pthread_create(&stream->thread, NULL, streamThread, stream);
-    ASSERT(ret == 0);
-
-    ret = v4l2_streamon(stream->fd);
+    ret = v4l2_streamon(stream->fd, stream->isOutput);
     ASSERT(ret == 0);
 
     return ret;
@@ -263,11 +279,13 @@ void streamStop(struct STREAM *stream)
 {
     int ret;
 
-    ret = v4l2_streamoff(stream->fd);
+    ret = v4l2_streamoff(stream->fd, stream->isOutput);
     ASSERT(ret == 0);
 
-    stream->status &= ~STREAM_STAT_START;
-    pthread_join(stream->thread, NULL);
+    if (!stream->isOutput) {
+        stream->status &= ~STREAM_STAT_START;
+        pthread_join(stream->thread, NULL);
+    }
 }
 
 void streamSetColorEffect(struct STREAM *stream, int effect)
@@ -299,7 +317,33 @@ void streamSetColorEffect(struct STREAM *stream, int effect)
     ASSERT(effect >= 0);
     ASSERT(effect < ARRAY_SIZE(effectConvTable));
 
+    if (stream->isOutput)
+        return;
+
     ret = v4l2_s_ctrl(stream->fd, V4L2_CID_COLORFX, effectConvTable[effect]);
     ASSERT(ret >= 0);
     DBG("Port[%d] Current Effect is %s", stream->port, effectStringTable[effect]);
+}
+
+void streamSendOutputBuffer(
+        struct STREAM *stream, struct GDMBuffer *buffer, int index)
+{
+    int ret;
+
+    ASSERT(stream->isOutput);
+    ret = v4l2_qbuf(stream->fd,
+            stream->width, stream->height, buffer, index, stream->isOutput);
+    ASSERT(ret == 0);
+
+    ret = v4l2_dqbuf(stream->fd, stream->planeCount, stream->isOutput);
+    ASSERT(ret == index);
+}
+
+void streamSetVSensorTo(struct STREAM *stream, int vsensorTo)
+{
+    int ret;
+    ASSERT(stream);
+    ASSERT(stream->isOutput);
+    ret = v4l2_s_ctrl(stream->fd, GISP_CID_SELECT_VS_TO, vsensorTo);
+    ASSERT(ret >= 0);
 }

@@ -179,6 +179,7 @@ void GDMGetImageInfo(struct GDMImageInfo *info)
     fmt = lookupImageFormat(info->pixelFormat);
     ASSERT(fmt && "Unknown format");
 
+    info->planeCountPhy = fmt->planes;
     info->planeCount = fmt->components;
     for (i = offset = 0; i < fmt->components; i++) {
         info->plane[i].offset = offset;

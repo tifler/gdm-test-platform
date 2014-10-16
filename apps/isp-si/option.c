@@ -70,9 +70,8 @@ static void parseGlobal(dictionary *dict, struct Option *option)
     option->global.showFPS = iniparser_getint(dict, "Global:ShowFPS", 0);
     str = iniparser_getstring(dict, "Global:RunState", "preview");
     option->global.runState = str2State(str);
-    str = iniparser_getstring(dict, "Global:BT601", NULL);
-    option->global.useBT601 = (str ? 1 : 0);
-    option->global.bt601PortId = str2PortId(str);
+    option->global.vSensor = iniparser_getint(dict, "Global:VSensor", 0);
+    option->global.bt601PortId = iniparser_getint(dict, "Global:BT601", -1);
 }
 
 static void parseSensor(dictionary *dict, struct Option *option)
@@ -209,7 +208,7 @@ struct Option *createOption(const char *iniPath)
     parseGlobal(dict, option);
     parseSensor(dict, option);
 
-    for (i = 0; i < STREAM_PORT_COUNT; i++)
+    for (i = 0; i < STREAM_IN_PORT_COUNT; i++)
         parsePort(dict, option, i);
 
     if (option->global.display)

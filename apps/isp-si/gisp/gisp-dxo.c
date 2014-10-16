@@ -4,14 +4,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <gisp-ioctl.h>
 #include <linux/videodev2.h>
 
 #include "gisp-dxo.h"
 #include "gisp-iodev.h"
+#include "gdm-isp-ioctl.h"
 #include "DxOISP.h"
 #include "DxOISP_ahblAccess.h"
 #include "debug.h"

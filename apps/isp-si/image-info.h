@@ -20,6 +20,7 @@ struct GDMImageInfo {
     uint32_t align;
     /* output parameter */
     uint32_t planeCount;
+    uint32_t planeCountPhy;
     struct GDMImagePlaneInfo plane[3];
 };
 

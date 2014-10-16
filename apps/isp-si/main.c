@@ -43,6 +43,8 @@ struct PortContext {
     int enableEffect;
     int currEffect;
 
+    int sendToVSensor;
+
     pthread_mutex_t captureLock;
     uint32_t captureCount;
     struct GDMJPEGEncConfig jpegConf;
@@ -81,6 +83,12 @@ static int displayCallback(void *param, struct GDMBuffer *buffer, int index)
         //DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
     }
 
+    if (port->sendToVSensor) {
+        ASSERT(portCtx[STREAM_PORT_VSENSOR].stream);
+        streamSendOutputBuffer(
+                portCtx[STREAM_PORT_VSENSOR].stream, buffer, index);
+    }
+
     return 0;
 }
 
@@ -103,6 +111,13 @@ static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
         }
     }
     //DBG("VIDEO CALLBACK: Buffer Index = %d", index);
+    
+    if (port->sendToVSensor) {
+        ASSERT(portCtx[STREAM_PORT_VSENSOR].stream);
+        streamSendOutputBuffer(
+                portCtx[STREAM_PORT_VSENSOR].stream, buffer, index);
+    }
+
     return 0;
 }
 
@@ -145,6 +160,13 @@ static int captureCallback(void *param, struct GDMBuffer *buffer, int index)
         // TODO capture image and save it.
     }
     pthread_mutex_unlock(&port->captureLock);
+
+    if (port->sendToVSensor) {
+        ASSERT(portCtx[STREAM_PORT_VSENSOR].stream);
+        streamSendOutputBuffer(
+                portCtx[STREAM_PORT_VSENSOR].stream, buffer, index);
+    }
+
     //DBG("CAPTURE CALLBACK: Buffer Index = %d", index);
     return 0;
 }
@@ -153,8 +175,34 @@ static int faceDetectCallback(void *param, struct GDMBuffer *buffer, int index)
 {
     struct PortContext *port = (struct PortContext *)param;
     //DBG("FD CALLBACK: Buffer Index = %d", index);
+    
+    if (port->sendToVSensor) {
+        ASSERT(portCtx[STREAM_PORT_VSENSOR].stream);
+        streamSendOutputBuffer(
+                portCtx[STREAM_PORT_VSENSOR].stream, buffer, index);
+    }
+
     return 0;
 }
+
+#if 0
+static int vSensorCallback(void *param, struct GDMBuffer *buffer, int index)
+{
+    struct PortContext *port = (struct PortContext *)param;
+
+    if (port->display) {
+        //DBG("DISPLAY CALLBACK: Buffer Index = %d, Send Frame.", index);
+        GDispSendFrame(port->display, buffer, 1000);
+    }
+    else {
+        //DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
+    }
+
+    return 0;
+}
+#endif  /*0*/
+
+/*****************************************************************************/
 
 static struct STREAM *createStream(
         const struct Option *opt, struct DXO *dxo, int portId,
@@ -302,6 +350,67 @@ static void changeEffect(void)
     }
 }
 
+static struct STREAM *initVSensorStream(struct Option *opt, int portId)
+{
+    struct STREAM *stream;
+    const struct OptionPort *port;
+
+    port = &opt->port[portId];
+    ASSERT(!port->disable);
+
+    portCtx[portId].sendToVSensor = 1;
+
+    stream = streamOpen(STREAM_PORT_VSENSOR, opt->global.showFPS);
+    ASSERT(stream);
+
+    streamSetFormat(stream, port->width, port->height, port->pixelFormat);
+
+    // buffer count should be the same as feeder stream's one.
+    streamSetBuffers(stream,
+            opt->port[portId].bufferCount, (struct GDMBuffer **)0);
+
+    streamSetVSensorTo(stream, opt->global.vSensor);
+    streamStart(stream);
+    return stream;
+}
+
+static struct STREAM *initVSensor(struct Option *opt)
+{
+    struct STREAM *stream = (struct STREAM *)NULL;
+    struct PortContext *port = &portCtx[STREAM_PORT_VSENSOR];
+
+    switch (opt->global.vSensor) {
+        case 2:
+            // VS -> DXO:
+            // 이 경우는 별도 메모리를 할당하고 영상을 422P1으로 저장한 후
+            // RDMA가 그것을 읽도록 한다.
+            // TODO
+            break;
+
+        case 3:
+            // DXO -> WDMA & VS -> BT601
+            // XXX bt601PortID가 지정되어야 한다.
+            //     WDMA[portId] -> Memory -> RDMA(VSENSOR) -> BT601
+            stream = initVSensorStream(opt, opt->global.bt601PortId % 4);
+            ASSERT(stream);
+            break;
+
+        case 4 ... 7:
+            // VS -> WDMA
+            // 이 경우도 2번경우와 마찬가지로 외부 영상을 넣어준다.
+            // TODO
+           
+            // XXX bt601PortID가 지정되어야 한다.
+            ASSERT(opt->global.bt601PortId >= 0);
+            break;
+
+        default:
+            break;
+    }
+    port->stream = stream;
+    return stream;
+}
+
 /*****************************************************************************/
 
 int main(int argc, char **argv)
@@ -322,10 +431,7 @@ int main(int argc, char **argv)
     opt = createOption(argv[1]);
     ASSERT(opt);
 
-    isp = ISPInit();
-    ISPSetBT601Port(isp, opt->global.bt601PortId);
-
-    sif = SIFInit(opt->global.useBT601);
+    sif = SIFInit(opt->global.bt601PortId >= 0 ? 1 : 0);
 
     sifConf.id = opt->sensor.id;
     sifConf.width = opt->sensor.width;
@@ -333,6 +439,16 @@ int main(int argc, char **argv)
     sifConf.fps = opt->sensor.fps;
     DBG("SIF = (%d x %d x %d FPS)", sifConf.width, sifConf.height, sifConf.fps);
     SIFSetConfig(sif, &sifConf);
+
+    isp = ISPInit();
+    DBG("bt601PortId = %d", opt->global.bt601PortId);
+    if (opt->global.bt601PortId >= 0) {
+        ISPSetBT601Port(isp, opt->global.bt601PortId);
+        ISPSetBT601Enable(isp, 1);
+        ISPSetBT601Size(isp,
+                opt->port[opt->global.bt601PortId % 4].width,
+                opt->port[opt->global.bt601PortId % 4].height);
+    }
 
     memset(&conf, 0, sizeof(conf));
     conf.sysFreqMul = opt->global.sysClkMul;
@@ -455,6 +571,9 @@ int main(int argc, char **argv)
                 STREAM_PORT_FACEDETECT, faceDetectCallback, port);
         ASSERT(port->stream);
     }
+
+    // VSensor
+    initVSensor(opt);
 
     changeEffect();
 

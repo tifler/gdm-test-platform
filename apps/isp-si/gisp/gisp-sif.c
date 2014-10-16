@@ -6,9 +6,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <gisp-ioctl.h>
 #include <linux/videodev2.h>
 
+#include "gdm-isp-ioctl.h"
 #include "gisp-sif.h"
 #include "gisp-sensor.h"
 #include "gisp-iodev.h"

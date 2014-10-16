@@ -16,7 +16,7 @@
 #include "registerMapOVT2715.h"
 #include "gisp-sensor.h"
 #include "DxOISP_SensorAPI.h"
-#include "gisp-ioctl.h"
+#include "gdm-isp-ioctl.h"
 #include "gisp-i2c.h"
 #include "debug.h"
 

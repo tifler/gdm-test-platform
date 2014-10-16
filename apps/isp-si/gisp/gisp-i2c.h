@@ -2,7 +2,7 @@
 #define __GISP_I2C_H__
 
 #include <stdint.h>
-#include "gisp-ioctl.h"
+#include "gdm-isp-ioctl.h"
 
 /*****************************************************************************/
 

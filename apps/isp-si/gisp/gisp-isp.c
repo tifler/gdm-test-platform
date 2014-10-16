@@ -4,7 +4,7 @@
 
 #include "gisp-isp.h"
 #include "gisp-iodev.h"
-#include "gisp-ioctl.h"
+#include "gdm-isp-ioctl.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -70,6 +70,24 @@ uint32_t writeCommand(uint32_t cmd, uint32_t value)
 void ISPSetBT601Port(struct ISP *isp, int portId)
 {
     int ret;
-    ret = ioctl(isp->io->fd, ISP_CTRL_IOC_BT601, portId);
+    ret = ioctl(isp->io->fd, ISP_CTRL_IOC_SEL_BT601, portId);
+    ASSERT(ret == 0);
+}
+
+void ISPSetBT601Enable(struct ISP *isp, int enable)
+{
+    int ret;
+    ret = ioctl(isp->io->fd, ISP_CTRL_IOC_ENABLE_BT601, enable);
+    ASSERT(ret == 0);
+}
+
+void ISPSetBT601Size(struct ISP *isp, unsigned width, unsigned height)
+{
+    int ret;
+    struct gdm_isp_bt_size btSize;
+
+    btSize.width = width;
+    btSize.height = height;
+    ret = ioctl(isp->io->fd, ISP_CTRL_IOC_FORMAT_BT601, &btSize);
     ASSERT(ret == 0);
 }

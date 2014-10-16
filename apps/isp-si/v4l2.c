@@ -9,9 +9,12 @@
 
 /*****************************************************************************/
 
-#define GISP_BUF_TYPE               V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+#define GISP_IN_BUF_TYPE            V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+#define GISP_OUT_BUF_TYPE           V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
 #define GISP_FIELD_TYPE             V4L2_FIELD_NONE
 #define GISP_MEM_TYPE               V4L2_MEMORY_DMABUF
+
+#define GISP_BUF_TYPE(out)          (out ? GISP_OUT_BUF_TYPE : GISP_IN_BUF_TYPE)
 
 #define ALIGN(x, a)                 (((x) + (a) - 1) & ~((a) - 1))
 
@@ -199,12 +202,12 @@ static struct GISPPixelFormat *lookupFormat(unsigned int pixelformat)
 
 /*****************************************************************************/
 
-int v4l2_enum_fmt(int fd, unsigned int pixelFormat)
+int v4l2_enum_fmt(int fd, unsigned int pixelFormat, int isOutput)
 {
     int found = 0;
     struct v4l2_fmtdesc fmtdesc;
 
-    fmtdesc.type = GISP_BUF_TYPE;
+    fmtdesc.type = GISP_BUF_TYPE(isOutput);
     fmtdesc.index = 0;
 
     while (ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
@@ -230,7 +233,7 @@ int v4l2_enum_fmt(int fd, unsigned int pixelFormat)
 }
 
 int v4l2_s_fmt(int fd, int width, int height,
-        unsigned int pixelFormat, struct v4l2_format *fmtbuf)
+        unsigned int pixelFormat, struct v4l2_format *fmtbuf, int isOutput)
 {
     struct v4l2_format v4l2_fmt;
     struct GISPPixelFormat *gispFormat;
@@ -240,7 +243,7 @@ int v4l2_s_fmt(int fd, int width, int height,
 
     memset(&v4l2_fmt, 0, sizeof(struct v4l2_format));
 
-    v4l2_fmt.type = GISP_BUF_TYPE;
+    v4l2_fmt.type = GISP_BUF_TYPE(isOutput);
     v4l2_fmt.fmt.pix_mp.width = width;
     v4l2_fmt.fmt.pix_mp.height = height;
     v4l2_fmt.fmt.pix_mp.pixelformat = pixelFormat;
@@ -258,7 +261,7 @@ int v4l2_s_fmt(int fd, int width, int height,
     return 0;
 }
 
-int v4l2_querycap(int fd)
+int v4l2_querycap(int fd, int isOutput)
 {
     struct v4l2_capability cap;
 
@@ -267,9 +270,17 @@ int v4l2_querycap(int fd)
         return -1;
     }
 
-    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE)) {
-        ERR("Not a multi-planar capture device.");
-        return -1;
+    if (isOutput) {
+        if (!(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT_MPLANE)) {
+            ERR("Not a multi-planar capture device.");
+            return -1;
+        }
+    }
+    else {
+        if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE)) {
+            ERR("Not a multi-planar capture device.");
+            return -1;
+        }
     }
 
     return 0;
@@ -306,14 +317,14 @@ int v4l2_s_input(int fd, int index)
     return 0;
 }
 
-int v4l2_reqbufs(int fd, int bufferCount)
+int v4l2_reqbufs(int fd, int bufferCount, int isOutput)
 {
     struct v4l2_requestbuffers req;
 
     memset(&req, 0, sizeof(req));
 
     req.count = bufferCount;
-    req.type = GISP_BUF_TYPE;
+    req.type = GISP_BUF_TYPE(isOutput);
     req.memory = GISP_MEM_TYPE;
 
     if (ioctl(fd, VIDIOC_REQBUFS, &req) < 0) {
@@ -324,15 +335,15 @@ int v4l2_reqbufs(int fd, int bufferCount)
     return req.count;
 }
 
-int v4l2_qbuf(int fd,
-        int width, int height, const struct GDMBuffer *buffer, int index)
+int v4l2_qbuf(int fd, int width, int height,
+        const struct GDMBuffer *buffer, int index, int isOutput)
 {
     int i;
     int ret;
     struct v4l2_buffer v4l2_buf;
     struct v4l2_plane planes[VIDEO_MAX_PLANES];
 
-    v4l2_buf.type = GISP_BUF_TYPE;
+    v4l2_buf.type = GISP_BUF_TYPE(isOutput);
     v4l2_buf.memory = GISP_MEM_TYPE;
     v4l2_buf.index = index;
     v4l2_buf.length = buffer->planeCount;
@@ -354,7 +365,7 @@ int v4l2_qbuf(int fd,
     return 0;
 }
 
-int v4l2_dqbuf(int fd, int planeCount)
+int v4l2_dqbuf(int fd, int planeCount, int isOutput)
 {
     int ret;
     struct v4l2_buffer v4l2_buf;
@@ -362,7 +373,7 @@ int v4l2_dqbuf(int fd, int planeCount)
 
     v4l2_buf.m.planes = planes;
     v4l2_buf.length = planeCount;
-    v4l2_buf.type = GISP_BUF_TYPE;
+    v4l2_buf.type = GISP_BUF_TYPE(isOutput);
     v4l2_buf.memory = GISP_MEM_TYPE;
 
     ret = ioctl(fd, VIDIOC_DQBUF, &v4l2_buf);
@@ -374,10 +385,10 @@ int v4l2_dqbuf(int fd, int planeCount)
     return v4l2_buf.index;
 }
 
-int v4l2_streamon(int fd)
+int v4l2_streamon(int fd, int isOutput)
 {
     int ret;
-    enum v4l2_buf_type bufferType = GISP_BUF_TYPE;
+    enum v4l2_buf_type bufferType = GISP_BUF_TYPE(isOutput);
 
     ret = ioctl(fd, VIDIOC_STREAMON, &bufferType);
     if (ret < 0) {
@@ -388,10 +399,10 @@ int v4l2_streamon(int fd)
     return ret;
 }
 
-int v4l2_streamoff(int fd)
+int v4l2_streamoff(int fd, int isOutput)
 {
     int ret;
-    enum v4l2_buf_type bufferType = GISP_BUF_TYPE;
+    enum v4l2_buf_type bufferType = GISP_BUF_TYPE(isOutput);
 
     ret = ioctl(fd, VIDIOC_STREAMOFF, &bufferType);
     if (ret < 0) {

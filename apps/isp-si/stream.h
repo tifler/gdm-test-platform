@@ -11,6 +11,8 @@ enum {
     STREAM_PORT_VIDEO,
     STREAM_PORT_DISPLAY,
     STREAM_PORT_FACEDETECT,
+    STREAM_IN_PORT_COUNT,
+    STREAM_PORT_VSENSOR = STREAM_IN_PORT_COUNT,
     STREAM_PORT_COUNT,
 };
 
@@ -35,5 +37,8 @@ int streamSetCallback(struct STREAM *stream,
 int streamStart(struct STREAM *stream);
 void streamStop(struct STREAM *stream);
 void streamSetColorEffect(struct STREAM *stream, int effect);
+void streamSendOutputBuffer(
+        struct STREAM *stream, struct GDMBuffer *buffer, int index);
+void streamSetVSensorTo(struct STREAM *stream, int vsensorTo);
 
 #endif  /*__GISP_STREAM_H__*/

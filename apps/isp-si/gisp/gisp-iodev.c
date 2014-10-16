@@ -5,8 +5,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "gdm-isp-ioctl.h"
 #include "gisp-iodev.h"
-#include "gisp-ioctl.h"
 #include "debug.h"
 
 /*****************************************************************************/
