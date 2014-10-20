@@ -12,23 +12,15 @@
 #define VIDIOC_MSCALER_SET_SCALER_COEFF (BASE_VIDIOC_PRIVATE + 4)
 
 struct mscaler_scaler_coeff {
-#define MSCALER_SCALER_COEFF_APPLY_YH_UP        (0x01)
-#define MSCALER_SCALER_COEFF_APPLY_YH_DN        (0x02)
-#define MSCALER_SCALER_COEFF_APPLY_YV_UP        (0x04)
-#define MSCALER_SCALER_COEFF_APPLY_YV_DN        (0x08)
-#define MSCALER_SCALER_COEFF_APPLY_CH_UP        (0x10)
-#define MSCALER_SCALER_COEFF_APPLY_CH_DN        (0x20)
-#define MSCALER_SCALER_COEFF_APPLY_CV_UP        (0x40)
-#define MSCALER_SCALER_COEFF_APPLY_CV_DN        (0x80)
+#define MSCALER_SCALER_COEFF_APPLY_YH           (0x01)
+#define MSCALER_SCALER_COEFF_APPLY_YV           (0x02)
+#define MSCALER_SCALER_COEFF_APPLY_CH           (0x10)
+#define MSCALER_SCALER_COEFF_APPLY_CV           (0x20)
     int apply;              // MSCALER_SCALER_COEFF_APPLY_*
-    __s16 yh_up[204];       // real 12x17 = 204
-    __s16 yh_dn[204];       // real 12x17 = 204
-    __s16 yv_up[86];        // real 5x17 = 85 + 1padding
-    __s16 yv_dn[86];        // real 5x17 = 85 + 1padding
-    __s16 ch_up[136];       // real 8x17 = 136
-    __s16 ch_dn[136];       // real 8x17 = 136
-    __s16 cv_up[86];        // real 5x17 = 85 + 1padding
-    __s16 cv_dn[86];        // real 5x17 = 85 + 1padding
+    __s16 yh[204];          // real 12x17 = 204
+    __s16 yv[86];           // real 5x17 = 85 + 1padding
+    __s16 ch[136];          // real 8x17 = 136
+    __s16 cv[86];           // real 5x17 = 85 + 1padding
 };
 
 #define VIDIOC_MSCALER_SET_RGB_COEFF    (BASE_VIDIOC_PRIVATE + 5)
