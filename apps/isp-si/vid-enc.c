@@ -232,7 +232,11 @@ void GEncStop(struct GDMEncoder *e)
 void GEncClose(struct GDMEncoder *e)
 {
     ASSERT(e);
+    // XXX 다음 함수를 호출하면 SIGSEGV 발생.
+    //     임시로 막음.
+#if 0
     mme_video_encoder_destroy_object(e->encHandle);
+#endif  //0
     mme_muxer_destroy_object(e->muxHandle);
     pthread_cond_destroy(&e->cond);
     pthread_mutex_destroy(&e->lock);

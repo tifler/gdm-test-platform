@@ -175,7 +175,7 @@ static int faceDetectCallback(void *param, struct GDMBuffer *buffer, int index)
 {
     struct PortContext *port = (struct PortContext *)param;
     //DBG("FD CALLBACK: Buffer Index = %d", index);
-    
+   
     if (port->sendToVSensor) {
         ASSERT(portCtx[STREAM_PORT_VSENSOR].stream);
         streamSendOutputBuffer(
@@ -355,6 +355,7 @@ static struct STREAM *initVSensorStream(struct Option *opt, int portId)
     struct STREAM *stream;
     const struct OptionPort *port;
 
+    DBG("VSensor From Port %d", portId);
     port = &opt->port[portId];
     ASSERT(!port->disable);
 
@@ -380,13 +381,6 @@ static struct STREAM *initVSensor(struct Option *opt)
     struct PortContext *port = &portCtx[STREAM_PORT_VSENSOR];
 
     switch (opt->global.vSensor) {
-        case 2:
-            // VS -> DXO:
-            // 이 경우는 별도 메모리를 할당하고 영상을 422P1으로 저장한 후
-            // RDMA가 그것을 읽도록 한다.
-            // TODO
-            break;
-
         case 3:
             // DXO -> WDMA & VS -> BT601
             // XXX bt601PortID가 지정되어야 한다.
@@ -395,13 +389,26 @@ static struct STREAM *initVSensor(struct Option *opt)
             ASSERT(stream);
             break;
 
+        case 2:
+            // VS -> DXO:
+            // 이 경우는 별도 메모리를 할당하고 영상을 422P1으로 저장한 후
+            // RDMA가 그것을 읽도록 한다.
+            // 문제는 DxO에서 아마도 Bayer 영상을 받을텐데
+            // Bayer를 넣어줘야 하는가? 확인 필요
+            // TODO
+            // XXX 이 기능은 지원하지 않기로 SoC와 합의함 
+            ASSERT(! "Only support VSENSOR=3 mode");
+            break;
+
         case 4 ... 7:
             // VS -> WDMA
             // 이 경우도 2번경우와 마찬가지로 외부 영상을 넣어준다.
             // TODO
            
             // XXX bt601PortID가 지정되어야 한다.
+            // XXX 이 기능은 지원하지 않기로 SoC와 합의함 
             ASSERT(opt->global.bt601PortId >= 0);
+            ASSERT(! "Only support VSENSOR=3 mode");
             break;
 
         default:
@@ -566,7 +573,7 @@ int main(int argc, char **argv)
 
     // FaceDetect
     if (!opt->port[STREAM_PORT_FACEDETECT].disable) {
-        port = &portCtx[STREAM_PORT_VIDEO];
+        port = &portCtx[STREAM_PORT_FACEDETECT];
         port->stream = createStream(opt, dxo,
                 STREAM_PORT_FACEDETECT, faceDetectCallback, port);
         ASSERT(port->stream);
