@@ -2500,6 +2500,11 @@ RetCode VPU_DecGetOutputInfo(
 			}
 		}
 
+		// ANABB-91
+		if (pCodecInst->codecMode == MP2_DEC) {
+			info->chunkReuseRequired = ((val >> 16) & 0x01);
+		}
+
 		if (pCodecInst->codecMode == MP4_DEC) {
 			info->chunkReuseRequired = ((val >> 16) & 0x01); // in case of mpeg4 packed mode
 		}

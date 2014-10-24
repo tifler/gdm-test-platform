@@ -52,7 +52,7 @@ m_create_config(*pCreateConfig)
 
 ,m_p_vpu_if(NULL)
 ,m_vpu_instance_index(-1)
-
+,m_reUseChunk(0)
 ,m_codec_idx(0)
 ,m_version(0)
 ,m_revision(0)
@@ -446,6 +446,7 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
                    p_stream[12], p_stream[13], p_stream[14], p_stream[15] 
     ));
 
+CHUNK_REUSE:
     /* check header */
     switch(this->m_create_config.nFormat) {
 
@@ -481,49 +482,68 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
     }
 
 
-    if(mmpResult == MMP_SUCCESS) {
-
-        if(p_buf_videostream->get_header_size() > 0) {
-            size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
-                                                       &m_vpu_stream_buffer, 
-                                                       (BYTE*)p_buf_videostream->get_header_buffer(), p_buf_videostream->get_header_size(), 
-                                                       m_decOP.streamEndian);
-            if (size <0)
-	        {
-		        mmpResult = MMP_FAILURE;
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
-	        }
-        }
-
+	if(m_reUseChunk==1)
+	{
+		MMPDEBUGMSG(0, (TEXT("\n --------- Reuse Process ---------- "))); 
+	}
+	else		
+	{
+        m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, m_decOP.bitstreamBuffer, 1);	
+		MMPDEBUGMSG(0, (TEXT("\n --------- NormalProcess ---------- "))); 
+       
         if(mmpResult == MMP_SUCCESS) {
-            size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
-                                                       &m_vpu_stream_buffer, 
-                                                       p_buf_videostream->get_stream_real_ptr(), p_buf_videostream->get_stream_real_size(), 
-                                                       m_decOP.streamEndian);
-            if (size <0)
-	        {
-		        mmpResult = MMP_FAILURE;
-                MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
-	        }
-        }
-    }
-    else {
-        MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: make frame header")));
-    }
-
-    t1 = CMmpUtil::GetTickCount();
     
+            if(p_buf_videostream->get_header_size() > 0) {
+                size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
+                                                           &m_vpu_stream_buffer, 
+                                                           (BYTE*)p_buf_videostream->get_header_buffer(), p_buf_videostream->get_header_size(), 
+                                                           m_decOP.streamEndian);
+                if (size <0)
+    	        {
+    		        mmpResult = MMP_FAILURE;
+                    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
+    	        }
+            }
+    
+            if(mmpResult == MMP_SUCCESS) {
+                size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
+                                                           &m_vpu_stream_buffer, 
+                                                           p_buf_videostream->get_stream_real_ptr(), p_buf_videostream->get_stream_real_size(), 
+                                                           m_decOP.streamEndian);
+                if (size <0)
+    	        {
+    		        mmpResult = MMP_FAILURE;
+                    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
+    	        }
+            }
+        }
+        else {
+            MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: make frame header")));
+        }
+        
+	}    
+    t1 = CMmpUtil::GetTickCount();
     
 
     if(mmpResult == MMP_SUCCESS)  {
 
         if( (m_last_int_reason&(1<<INT_BIT_DEC_FIELD)) != 0) {
-            m_p_vpu_if->VPU_ClearInterrupt(m_codec_idx);
+           m_p_vpu_if->VPU_ClearInterrupt(m_codec_idx);
+           MMPDEBUGMSG(0, (TEXT("[second] INT_BIT_DEC_FIELD")));
         }
         else {
 
 	        // Start decoding a frame.
+START_DEC:            
 	        vpu_ret = m_p_vpu_if->VPU_DecStartOneFrame(m_DecHandle, &decParam);
+		    MMPDEBUGMSG(0, (TEXT("[first] VPU_DecStartOneFrame start")));
+			if(vpu_ret == RETCODE_FRAME_NOT_COMPLETE)
+			{
+				 //MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] wait instance")));
+				 //printf(".");
+				 //CMmpUtil::Sleep(1000);
+				 goto START_DEC;
+			}			
 	        if (vpu_ret != RETCODE_SUCCESS) 
 	        {
 		        mmpResult = MMP_FAILURE;
@@ -591,6 +611,13 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
     }
     m_last_int_reason = int_reason;
 
+	if(m_reUseChunk)
+	{
+		m_reUseChunk = 0;
+		mmpResult = MMP_SUCCESS;
+	    goto CHUNK_REUSE;
+	}
+	
     t3 = CMmpUtil::GetTickCount();
     
     if(mmpResult == MMP_SUCCESS) {
@@ -637,8 +664,19 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
             MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d FAIL: m_p_vpu_if->VPU_DecGetOutputInfo "), __LINE__));
         }
 		
+		if (m_output_info.numOfErrMBs) 
+		{			
+			MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] Num of Error Mbs : %d "), m_output_info.numOfErrMBs));
+		}	
+
+        if(m_output_info.chunkReuseRequired) 
+        {
+        	m_reUseChunk = 1;	
+			MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] m_output_info.chunkReuseRequired ")));
+        }			
+	
     }
-    
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] function end  m_reUseChunk =%d"),m_reUseChunk));
     return mmpResult;
 }
 

@@ -52,7 +52,7 @@ protected:
     
     int m_regFrameBufCount;
     int m_framebufSize;
-
+    int	m_reUseChunk;
     DecOpenParam m_decOP;
     DecHandle	m_DecHandle;
     //vpu_buffer_t m_vbStream;
