@@ -747,10 +747,18 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAu(class mmp_buffer_videoframe* p_buf_videofr
         encParam.picStreamBufferAddr = m_vpu_enc_buffer.phys_addr;//m_vbStream.phys_addr;	// can set the newly allocated buffer.
         encParam.picStreamBufferSize = m_vpu_enc_buffer.size;//m_vbStream.size;
 
+START_ENC:
         ret = m_p_vpu_if->VPU_EncStartOneFrame(m_EncHandle, &encParam);
+
+		if(ret == RETCODE_FRAME_NOT_COMPLETE)
+        {
+        
+        	goto START_ENC;
+        }	
+		
 	    if( ret != RETCODE_SUCCESS )
 	    {
-            MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::EncodeAuEx2] FAIL: m_p_vpu_if->VPU_EncStartOneFrame")));
+            MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::EncodeAu] FAIL: m_p_vpu_if->VPU_EncStartOneFrame")));
 		    mmpResult = MMP_FAILURE;
 	    }
     }
