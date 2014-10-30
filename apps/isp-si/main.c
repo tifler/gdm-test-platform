@@ -13,6 +13,7 @@
 #include "gisp/gisp-isp.h"
 #include "gisp/gisp-sif.h"
 #include "gisp/gisp-dxo.h"
+#include "gisp/gisp-sensor.h"
 #include "v4l2.h"
 #include "gdm-buffer.h"
 #include "stream.h"
@@ -444,6 +445,8 @@ int main(int argc, char **argv)
     sifConf.width = opt->sensor.width;
     sifConf.height = opt->sensor.height;
     sifConf.fps = opt->sensor.fps;
+    // VIGEN의 경우 PCLK을 SIF 내부적으로 Inversion 시킨다. 
+    sifConf.invPCLK = (opt->sensor.id == SENSOR_ID_VIGEN ? 1 : 0);
     DBG("SIF = (%d x %d x %d FPS)", sifConf.width, sifConf.height, sifConf.fps);
     SIFSetConfig(sif, &sifConf);
 
@@ -465,6 +468,7 @@ int main(int argc, char **argv)
     conf.needPostEvent = opt->global.needPostEvent;
     conf.estimateIRQ = opt->global.estimateIRQ;
     conf.sensorId = opt->sensor.id;
+    DBG("SensorId = %d", conf.sensorId);
 
     dxo = DXOInit(&conf);
 

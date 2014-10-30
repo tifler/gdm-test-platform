@@ -1122,8 +1122,8 @@ static inline void initSensorCmd ( ts_SENSOR_Cmd*  pttsCmd, ts_SENSOR_Status* pt
 
 	pttsCmd->stShootingParam.uiExpoTime              = DEFAULT_EXPOSURE_TIME; 
     //[[tifler:test]]
-	//pttsCmd->stImageFeature.usFrameRate              = DEFAULT_FRAMERATE;
-	pttsCmd->stImageFeature.usFrameRate              = 5 << 4;
+	pttsCmd->stImageFeature.usFrameRate              = DEFAULT_FRAMERATE;
+	//pttsCmd->stImageFeature.usFrameRate              = 5 << 4;
 	pttsCmd->usAfPosition                            = MIN_AF_POSITION;
 
 }
@@ -1199,6 +1199,9 @@ static inline void applySettingsToSensor( void )
 	else {
 		ucMode = 1;
 	}
+
+    //[[tifler:test]]
+    ucMode = 1;
 
 //	if(initdone)ucMode = 1;
 #if 0

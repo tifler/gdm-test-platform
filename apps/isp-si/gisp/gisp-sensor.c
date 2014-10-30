@@ -35,18 +35,20 @@ static inline struct SENSOR *getSensor(uint8_t sensorId)
 void DxOISP_SensorInitialize(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
-    DBG("=====>> SensorInit(%u) <<=====", sensorId);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
     ASSERT(sensor->api);
     ASSERT(sensor->api->init);
     sensor->api->init(sensor);
+    DBG("=====>> SensorInit(%s) Done <<=====", sensor->name);
 }
 
 void DxOISP_SensorUninitialize(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -58,6 +60,7 @@ void DxOISP_SensorUninitialize(uint8_t sensorId)
 void DxOISP_SensorCommandGroupOpen(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -70,6 +73,7 @@ void DxOISP_SensorCommandSet(
         uint8_t sensorId, uint16_t offset, uint16_t size, void *buffer)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -81,6 +85,7 @@ void DxOISP_SensorCommandSet(
 void DxOISP_SensorCommandGroupClose(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -92,6 +97,7 @@ void DxOISP_SensorCommandGroupClose(uint8_t sensorId)
 void DxOISP_SensorStatusGroupOpen(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -104,6 +110,7 @@ void DxOISP_SensorStatusGet(
         uint8_t sensorId, uint16_t offset, uint16_t size, void *buffer)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -115,6 +122,7 @@ void DxOISP_SensorStatusGet(
 void DxOISP_SensorStatusGroupClose(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);
@@ -126,6 +134,7 @@ void DxOISP_SensorStatusGroupClose(uint8_t sensorId)
 void DxOISP_SensorFire(uint8_t sensorId)
 {
     struct SENSOR *sensor;
+    //__CHECK_FUNC__;
     ASSERT(sensorId < SENSOR_ID_COUNT);
     sensor = getSensor(sensorId);
     ASSERT(sensor);

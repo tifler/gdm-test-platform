@@ -85,6 +85,9 @@ void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf)
 
     SensorSetMode(conf->id, i);
     SIF_WRITE(REG_SIF_PAR_IMAGE_SIZE, (conf->height << 16) | conf->width);
+
+    if (conf->invPCLK)
+        SIF_WRITE(REG_SIF_PAR_SENSOR_INVERT, 0x1);
 }
 
 void SIFExit(struct SIF *sif)
