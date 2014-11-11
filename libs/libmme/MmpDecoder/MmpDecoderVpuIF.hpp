@@ -79,7 +79,7 @@ private:
     void make_decOP_Common();
     void make_decOP_H263();
     void make_decOP_H264();
-    void make_decOP_MPEG4();
+    void make_decOP_MPEG4(int mp4class);
     void make_decOP_MPEG2();
     void make_decOP_VC1();
     void make_decOP_MSMpeg4V3();
