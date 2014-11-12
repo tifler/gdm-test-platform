@@ -120,7 +120,12 @@ void GJPEGEncEncodeFrame(struct GDMJPEGEncoder *e,
     }
 
     dstBuffer.shared_fd = dst->plane[0].fd;
-    dstBuffer.buf_size = dst->plane[0].length;
+    //[[tifler:20141111
+    //  hthwang said that:
+    //      JPU requires that dstBuffer.buf_size must be aligned 1024bytes.
+    //      And buf_size is much bigger than necessary buffer size.
+    //      So you may just cut out un-aligned size.
+    dstBuffer.buf_size = dst->plane[0].length & ~0x3ff;
     dstBuffer.vir_addr = 0;
     dstBuffer.mem_offset = 0;
     dstBuffer.stride = 0;

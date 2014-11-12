@@ -27,6 +27,10 @@ static uint32_t str2State(const char *name)
 
     if (strcasecmp(name, "video") == 0)
         state = DXO_STATE_VIDEOREC;
+    else if (strcasecmp(name, "capture_a") == 0)
+        state = DXO_STATE_CAPTURE_A;
+    else if (strcasecmp(name, "capture_b") == 0)
+        state = DXO_STATE_CAPTURE_B;
 
     return state;
 }
@@ -65,7 +69,11 @@ static void parseGlobal(dictionary *dict, struct Option *option)
     option->global.display = iniparser_getint(dict, "Global:Display", 0);
     option->global.videoEncode = iniparser_getint(dict, "Global:VideoEncode", 0);
     option->global.captureEncode = iniparser_getint(dict, "Global:CaptureEncode", 0);
-    option->global.needPostEvent = iniparser_getint(dict, "Global:NeedPostEvent", 0);
+    //[[tifler
+    //  If DxOISP_PostEvent() is not called,
+    //  transition to CAPTURE_A/B mode always fail.
+    //  Set this value as default true.
+    option->global.needPostEvent = iniparser_getint(dict, "Global:NeedPostEvent", 1);
     option->global.estimateIRQ = iniparser_getint(dict, "Global:EstimateIRQ", 0);
     option->global.showFPS = iniparser_getint(dict, "Global:ShowFPS", 0);
     str = iniparser_getstring(dict, "Global:RunState", "preview");
@@ -79,6 +87,7 @@ static void parseGlobal(dictionary *dict, struct Option *option)
     if (option->global.bt601PortId >= 0)
         option->global.vSensor = 3;
 #endif  /*0*/
+    option->global.changeState = iniparser_getint(dict, "Global:ChangeState", 0);
 }
 
 static void parseSensor(dictionary *dict, struct Option *option)

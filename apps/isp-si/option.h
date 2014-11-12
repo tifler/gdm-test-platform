@@ -19,6 +19,7 @@ struct Option {
         int showFPS;
         int vSensor;
         int bt601PortId;
+        int changeState;
     } global;
 
     struct OptionSensor {

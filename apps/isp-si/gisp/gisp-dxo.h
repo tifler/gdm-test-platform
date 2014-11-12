@@ -92,5 +92,6 @@ int DXOSetOutputFormat(struct DXO *dxo,
         enum DXOOutput output, const struct DXOOutputFormat *fmt);
 void DXORunState(struct DXO *dxo, enum DXOState state, int captureCount);
 const struct DXOPixelFormat *DXOGetPixelFormatByName(const char *name);
+enum DXOState DXOGetState(struct DXO *dxo);
 
 #endif  /*__GISP_DXO_H__*/

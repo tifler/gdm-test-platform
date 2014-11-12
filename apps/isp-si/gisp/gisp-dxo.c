@@ -204,6 +204,15 @@ static struct DXOPixelFormat dxoPixelFormats[] = {
     },
 };
 
+static const char *state2String[] = {
+    "STANDBY", 
+    "IDLE",
+    "PREVIEW",
+    "CAPTURE_A",
+    "CAPTURE_B",
+    "VIDEOREC",
+};
+
 /*****************************************************************************/
 // DxOISP Callback Functions
 
@@ -383,7 +392,7 @@ static void *irqHandlerThread(void *arg)
             if (dxo->needPostEvent) {
                 // If you turn on next statement, you will catch floating point
                 // exception.(tifler:2014.09.03)
-                //DxOISP_PostEvent();
+                DxOISP_PostEvent();
             }
         }
 
@@ -474,7 +483,11 @@ struct DXO *DXOInit(const struct DXOSystemConfig *conf)
 	dxo->dxoCmd.stSync.stControl.eMode = DxOISP_MODE_IDLE;
 	dxo->dxoCmd.stSync.stControl.ucCalibrationSelection = 0;
 	dxo->dxoCmd.stSync.stControl.ucSourceSelection = conf->sensorId;
+	dxo->dxoCmd.stSync.stCameraControl.stAfk.eMode = DxOISP_AFK_MODE_MANUAL;
 	dxo->dxoCmd.stSync.stCameraControl.stAe.eMode = DxOISP_AE_MODE_MANUAL;
+	dxo->dxoCmd.stSync.stCameraControl.stAwb.eMode = DxOISP_AWB_MODE_MANUAL;
+	dxo->dxoCmd.stSync.stCameraControl.stFlash.eMode = DxOISP_FLASH_MODE_OFF;
+	dxo->dxoCmd.stSync.stCameraControl.stAf.eMode = DxOISP_AF_MODE_MANUAL;
 
 	DxOISP_CommandGroupOpen();
 	DxOISP_CommandSetAuto(
@@ -483,6 +496,8 @@ struct DXO *DXOInit(const struct DXOSystemConfig *conf)
             dxo->dxoCmd, stSync.stControl.ucCalibrationSelection);
 	DxOISP_CommandSetAuto(
             dxo->dxoCmd, stSync.stControl.eMode);
+	DxOISP_CommandSetAuto(
+            dxo->dxoCmd, stSync.stCameraControl);
 	DxOISP_CommandGroupClose();
 	
 	do {
@@ -533,7 +548,7 @@ void DXOSetControl(struct DXO *dxo, const struct DXOControl *ctrl)
     ASSERT(dxo);
     ASSERT(ctrl);
 
-    dxo->dxoCmd.stSync.stControl.ucSourceSelection = ctrl->input;
+    //dxo->dxoCmd.stSync.stControl.ucSourceSelection = ctrl->input;
     dxo->dxoCmd.stSync.stControl.eImageOrientation =
         (ctrl->vFlip ? 2 : 0) + (ctrl->hMirror ? 1 : 0);
     dxo->dxoCmd.stSync.stControl.isTNREnabled = ctrl->enableTNR ? 1 : 0;
@@ -621,6 +636,10 @@ void DXORunState(struct DXO *dxo, enum DXOState state, int captureCount)
 
     ASSERT(dxo);
 
+    DBG("***** Changing DxO State From %s To %s",
+            state2String[dxo->dxoCmd.stSync.stControl.eMode],
+            state2String[state]);
+
     dxo->dxoCmd.stSync.stControl.eMode = state;
     if (state == DXO_STATE_CAPTURE_A || state == DXO_STATE_CAPTURE_B)
         dxo->dxoCmd.stSync.stControl.ucNbCaptureFrame = captureCount;
@@ -639,6 +658,21 @@ void DXORunState(struct DXO *dxo, enum DXOState state, int captureCount)
                 sizeof(mode), &mode);
 		DxOISP_StatusGroupClose();
 	} while(mode != state);
+
+    DBG("***** DXO State Changed To %s", state2String[state]);
+}
+
+enum DXOState DXOGetState(struct DXO *dxo)
+{
+    typeof(dxo->dxoStatus.stSync.stSystem.eMode) mode;
+
+    DxOISP_StatusGroupOpen() ;
+    DxOISP_StatusGet(
+            DxOISP_STATUS_OFFSET(stSync.stSystem.eMode),
+            sizeof(mode), &mode);
+    DxOISP_StatusGroupClose();
+
+    return (enum DXOState)mode;
 }
 
 const struct DXOPixelFormat *DXOGetPixelFormatByName(const char *name)

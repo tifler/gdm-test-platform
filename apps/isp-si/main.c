@@ -48,9 +48,11 @@ struct PortContext {
 
     pthread_mutex_t captureLock;
     uint32_t captureCount;
+    uint32_t captureIncrease;
     struct GDMJPEGEncConfig jpegConf;
     struct GDMBuffer *jpegDstBuffer;
     const char *jpegBasePath;
+    int captureDisable;
 };
 
 /*****************************************************************************/
@@ -61,6 +63,8 @@ static struct PortContext portCtx[STREAM_PORT_COUNT] = {
         .captureLock = PTHREAD_MUTEX_INITIALIZER,
     },
 };
+
+static struct DXO *DxO;
 
 /*****************************************************************************/
 
@@ -152,15 +156,23 @@ static int captureCallback(void *param, struct GDMBuffer *buffer, int index)
 
     pthread_mutex_lock(&port->captureLock);
     if (port->captureCount > 0) {
-        port->jpegDstBuffer->plane[0].used = 0;
-        GJPEGEncEncodeFrame(port->jpegEncoder,
-                buffer, port->jpegDstBuffer, &port->jpegConf);
-        writeJpeg(port->jpegDstBuffer, &port->jpegConf, port->jpegBasePath);
-        DBG("CaptureCount = %d", port->captureCount);
-        port->captureCount--;
-        // TODO capture image and save it.
+        // When first callback is called, just change state.
+        if (DXOGetState(DxO) != DXO_STATE_CAPTURE_A) {
+            DXORunState(DxO, DXO_STATE_CAPTURE_A, port->captureCount);
+        }
+        else {
+            port->jpegDstBuffer->plane[0].used = 0;
+            DBG("JPEG Config: (%d, %d, 0x%x)",
+                    port->jpegConf.image.width,
+                    port->jpegConf.image.height,
+                    port->jpegConf.image.pixelFormat);
+            GJPEGEncEncodeFrame(port->jpegEncoder,
+                    buffer, port->jpegDstBuffer, &port->jpegConf);
+            writeJpeg(port->jpegDstBuffer, &port->jpegConf, port->jpegBasePath);
+
+            port->captureCount--;
+        }
     }
-    pthread_mutex_unlock(&port->captureLock);
 
     if (port->sendToVSensor) {
         ASSERT(portCtx[STREAM_PORT_VSENSOR].stream);
@@ -168,7 +180,12 @@ static int captureCallback(void *param, struct GDMBuffer *buffer, int index)
                 portCtx[STREAM_PORT_VSENSOR].stream, buffer, index);
     }
 
-    //DBG("CAPTURE CALLBACK: Buffer Index = %d", index);
+    if (port->captureCount == 0 && DXOGetState(DxO) == DXO_STATE_CAPTURE_A)
+        DXORunState(DxO, DXO_STATE_PREVIEW, 0);
+
+    pthread_mutex_unlock(&port->captureLock);
+
+    DBG("CAPTURE CALLBACK: Buffer Index = %d", index);
     return 0;
 }
 
@@ -185,23 +202,6 @@ static int faceDetectCallback(void *param, struct GDMBuffer *buffer, int index)
 
     return 0;
 }
-
-#if 0
-static int vSensorCallback(void *param, struct GDMBuffer *buffer, int index)
-{
-    struct PortContext *port = (struct PortContext *)param;
-
-    if (port->display) {
-        //DBG("DISPLAY CALLBACK: Buffer Index = %d, Send Frame.", index);
-        GDispSendFrame(port->display, buffer, 1000);
-    }
-    else {
-        //DBG("DISPLAY CALLBACK: Buffer Index = %d", index);
-    }
-
-    return 0;
-}
-#endif  /*0*/
 
 /*****************************************************************************/
 
@@ -283,7 +283,7 @@ static void captureSignalHandler(int signo)
     DBG("[PID=%d] Capture Signal(%d) received.", getpid(), signo);
 
     pthread_mutex_lock(&port->captureLock);
-    port->captureCount++;
+    port->captureCount += port->captureIncrease;
     DBG("Increase capture count: %d", port->captureCount);
     pthread_mutex_unlock(&port->captureLock);
 }
@@ -470,9 +470,9 @@ int main(int argc, char **argv)
     conf.sensorId = opt->sensor.id;
     DBG("SensorId = %d", conf.sensorId);
 
-    dxo = DXOInit(&conf);
+    DxO = dxo = DXOInit(&conf);
 
-    ctrl.input = DXO_INPUT_SOURCE_FRONT;
+    //ctrl.input = DXO_INPUT_SOURCE_FRONT;
     ctrl.hMirror = 0;
     ctrl.vFlip = 0;
     ctrl.enableTNR = 0;
@@ -558,7 +558,18 @@ int main(int argc, char **argv)
             port->jpegConf.image.align = GISP_ALIGN;
             GDMGetImageInfo(&port->jpegConf.image);
             port->jpegConf.quality = opt->jpegEncoder.ratio;
-            port->captureCount = opt->jpegEncoder.captureCount;
+
+            if (opt->global.changeState) {
+                // If ChangeState is enabled, capture thread doesn't have to
+                // change state itself. To do this, set captureCount to zero.
+                DBG("Change DxO State is enabled");
+                port->captureIncrease = 0;
+            }
+            else  {
+                port->captureIncrease = opt->jpegEncoder.captureCount;
+                DBG("Change DxO State is not enabled. CaptureInc = %d",
+                        port->captureIncrease);
+            }
 
             memset(planeSizes, 0, sizeof(planeSizes));
             planeSizes[0] =
@@ -595,8 +606,24 @@ int main(int argc, char **argv)
     installSigHandler();
 
     while (!mainStop) {
+        int state;
+        state = DXOGetState(dxo);
+        DBG("===== CURRENT DXO STATE = %d =====", state);
         changeEffect();
         sleep(1);
+        if (opt->global.changeState) {
+            sleep(1);
+            if (state == DXO_STATE_IDLE)
+                DXORunState(dxo, DXO_STATE_PREVIEW, 0);
+            else if (state == DXO_STATE_PREVIEW)
+                DXORunState(dxo, DXO_STATE_VIDEOREC, 0);
+            else if (state == DXO_STATE_VIDEOREC)
+                DXORunState(dxo, DXO_STATE_CAPTURE_A, 1);
+            else if (state == DXO_STATE_CAPTURE_A)
+                DXORunState(dxo, DXO_STATE_CAPTURE_B, 1);
+            else //if (state == DXO_STATE_CAPTURE_B)
+                DXORunState(dxo, DXO_STATE_IDLE, 0);
+        }
     }
 
     for (i = 0; i < STREAM_PORT_COUNT; i++) {
