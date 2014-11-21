@@ -57,6 +57,8 @@ m_create_config(*pCreateConfig)
 ,m_version(0)
 ,m_revision(0)
 ,m_productId(0)
+,m_skipframeMode(0)
+,m_randomaccess(MMP_PLAY_BACK)
 
 ,m_DecHandle(NULL)
 ,m_regFrameBufCount(0)
@@ -417,6 +419,35 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeDSI(class mmp_buffer_videostream* p_buf_video
     return mmpResult;
 }
 
+
+MMP_RESULT CMmpDecoderVpuIF::Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos){
+	MMP_RESULT mmpResult = MMP_SUCCESS;
+
+	if(playformat == MMP_PLAY_BACK)
+	{
+		m_skipframeMode = 0;
+		m_randomaccess = MMP_PLAY_BACK;
+	}
+	else if(playformat == MMP_PLAY_FF)
+	{
+		m_randomaccess = MMP_PLAY_FF; // flush frame / reordering off frames
+		MMPDEBUGMSG(1, (TEXT("------------------- play MMP_PLAY_FF        ------------------ "))); 
+	}
+	else if(playformat == MMP_PLAY_REW)
+	{	
+		m_randomaccess = MMP_PLAY_REW; // flush frame / reordering off frames
+		MMPDEBUGMSG(1, (TEXT("------------------- play MMP_PLAY_REW       ------------------ "))); 	
+	}
+	else if(playformat == MMP_PLAY_RAND)
+	{
+		m_randomaccess = MMP_PLAY_RAND; // flush frame 
+		MMPDEBUGMSG(1, (TEXT("------------------- play MMP_PLAY_RAND       ------------------ "))); 	
+	}
+
+	return mmpResult;
+}
+
+
 MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe) {
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
@@ -432,7 +463,8 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
     start_tick = CMmpUtil::GetTickCount();
 
     decParam.iframeSearchEnable = 0;
-    decParam.skipframeMode = 0;
+    decParam.skipframeMode = m_skipframeMode;
+    //decParam.skipframeMode = 0;
     decParam.DecStdParam.mp2PicFlush = 0;
 
     p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
@@ -441,13 +473,42 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
     m_input_stream_count++;
     
 
-    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d cnt=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), 
+    MMPDEBUGMSG(0, (TEXT("\n[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d cnt=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), 
                   __LINE__, m_input_stream_count, stream_size,
                    p_stream[0], p_stream[1], p_stream[2], p_stream[3], 
                    p_stream[4], p_stream[5], p_stream[6], p_stream[7], 
                    p_stream[8], p_stream[9], p_stream[10], p_stream[11], 
                    p_stream[12], p_stream[13], p_stream[14], p_stream[15] 
     ));
+
+
+	if(m_randomaccess)
+    {
+    	int i;
+        
+        for(i=0; i<m_regFrameBufCount; i++)
+        	VPU_DecClrDispFlag(m_DecHandle, i);
+        
+        vpu_ret = VPU_DecFrameBufferFlush(m_DecHandle);
+        if( vpu_ret != RETCODE_SUCCESS )
+        {
+            MMPDEBUGMSG(1,(TEXT("VPU_DecGetBitstreamBuffer failed Error code is 0x%x \n"), vpu_ret));
+            return MMP_FAILURE;
+        }
+
+		if((m_randomaccess == MMP_PLAY_FF) || (m_randomaccess == MMP_PLAY_REW))
+		{
+	        vpu_ret = VPU_DecGiveCommand(m_DecHandle, DEC_DISABLE_SKIP_REORDER, 0);
+	        if( vpu_ret != RETCODE_SUCCESS )
+	        {
+				MMPDEBUGMSG(1,(TEXT("VPU_DecGiveCommand(DEC_DISABLE_SKIP_REORDER) failed Error code is 0x%x \n"), vpu_ret));
+	            return MMP_FAILURE;
+	        }
+		}
+		m_randomaccess = MMP_PLAY_BACK;    
+    }
+
+
 
 CHUNK_REUSE:
     /* check header */
@@ -484,15 +545,22 @@ CHUNK_REUSE:
             mmpResult = this->make_frameheader_Common(p_buf_videostream);
     }
 
-
+#if 0
+	if(m_input_stream_count==4)
+	{
+		printf("m_input_stream_count == 4  skipped \n");
+		return mmpResult;
+	}
+#endif	
+    
 	if(m_reUseChunk==1)
 	{
-		MMPDEBUGMSG(0, (TEXT("\n --------- Reuse Process ---------- "))); 
+		MMPDEBUGMSG(0, (TEXT("--------- Reuse Process ---------- "))); 
 	}
 	else		
 	{
         m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, m_decOP.bitstreamBuffer, 1);	
-		MMPDEBUGMSG(0, (TEXT("\n --------- NormalProcess ---------- "))); 
+		MMPDEBUGMSG(0, (TEXT("--------- NormalProcess ---------- "))); 
        
         if(mmpResult == MMP_SUCCESS) {
     
@@ -689,7 +757,8 @@ START_DEC:
 		    goto CHUNK_REUSE;
 		}	
     }
-    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] function end  m_reUseChunk =%d"),m_reUseChunk));
+	
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] function end  m_reUseChunk =%d\n"),m_reUseChunk));
     return mmpResult;
 }
 

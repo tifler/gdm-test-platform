@@ -2,7 +2,6 @@
 #include "mmp_buffer_mgr.hpp"
 #include "mmp_vpu_dev.hpp"
 
-
 #if (MMP_OS == MMP_OS_WIN32)
 #define CONTENTS_PATH "C:\\MediaSample\\AVI\\"
 #else
@@ -300,11 +299,13 @@ int mme_command_player_stop_all(int argc, char* argv[]) {
 
 int mme_command_player_seek(int argc, char* argv[]) {
 
-#if 0
     MMP_S32 hour, min, sec;
     MMP_S64 pts;
-
-    if(s_pMmpPlayer == NULL) {
+    CMmpPlayer* pPlayer =  NULL;
+	MMP_S32 player_index = 0;
+	pPlayer = s_pMmpPlayer_Arr[player_index];
+	
+    if(pPlayer == NULL) {
         MMESHELL_PRINT(MMESHELL_ERROR, ("player is not running.  \n"));
         return -1;
     }
@@ -320,9 +321,74 @@ int mme_command_player_seek(int argc, char* argv[]) {
 
     pts = (MMP_S64)(hour*3600 + min*60 + sec) * 1000000L;
     
-    s_pMmpPlayer->Seek(pts);
-#endif        
+    pPlayer->Seek(pts);
+
     return 0;
+}
+
+int mme_command_player_tool(int argc, char* argv[]) {
+
+	CMmpPlayer* pPlayer;
+    MMP_S32 pos_hour, pos_min, pos_sec, pos_msec;	
+    MMP_S32 dur_hour, dur_min, dur_sec, dur_msec;
+
+    MMP_S64 cur_pts,total_pts;
+
+	MMP_S32 player_index = 0;
+	pPlayer = s_pMmpPlayer_Arr[player_index];
+
+	//MMESHELL_PRINT(MMESHELL_INFO, ("[Player %d] mme_command_player_tool \n", player_index));
+	
+    if(pPlayer == NULL) {
+        MMESHELL_PRINT(MMESHELL_ERROR, ("player is not running.  \n"));
+        return -1;
+    }	
+
+ 
+	if(strcmp(argv[0], "pb") == 0) 
+	{
+		pPlayer->Play_Function_Tool(MMP_PLAY_BACK,cur_pts,total_pts);
+	}
+	else if(strcmp(argv[0], "ff") == 0) 
+	{
+		pPlayer->GetPlayPosition(&pos_hour, &pos_min, &pos_sec, &pos_msec);
+		pPlayer->GetDuration(&dur_hour, &dur_min, &dur_sec, &dur_msec);		
+		cur_pts = (MMP_S64)((pos_hour*3600 + pos_min*60 + pos_sec) * 1000000L);
+		total_pts = (MMP_S64)((dur_hour*3600 + dur_min*60 + dur_sec) * 1000000L); 
+	    //MMESHELL_PRINT(MMESHELL_INFO, ("[mme_command_player_tool] ff pos_hour =%d pos_min =%d pos_sec=%d \n", pos_hour, pos_min, pos_sec));
+		//MMESHELL_PRINT(MMESHELL_INFO, ("[mme_command_player_tool] ff dur_hour =%d dur_min =%d dur_sec=%d \n", dur_hour, dur_min, dur_sec));
+	    //MMESHELL_PRINT(MMESHELL_INFO, ("[mme_command_player_tool] ff cur_pts =%lld total_pts =%lld \n", cur_pts,total_pts));
+		pPlayer->Play_Function_Tool(MMP_PLAY_FF,cur_pts,total_pts);
+	}
+	else if(strcmp(argv[0], "rew") == 0) 
+	{
+		pPlayer->GetDuration(&dur_hour, &dur_min, &dur_sec, &dur_msec);
+		pPlayer->GetPlayPosition(&pos_hour, &pos_min, &pos_sec, &pos_msec);
+		cur_pts = (MMP_S64)(pos_hour*3600 + pos_min*60 + pos_sec) * 1000000L;
+		total_pts = (MMP_S64)(dur_hour*3600 + dur_min*60 + dur_sec) * 1000000L; 
+		
+		pPlayer->Play_Function_Tool(MMP_PLAY_REW,cur_pts,total_pts);	
+	}
+	else if(strcmp(argv[0], "rand") == 0) 
+	{
+        MMP_S32 hour, min, sec;
+        MMP_S64 pts;	
+		
+	    if(argc != 4) {
+	        MMESHELL_PRINT(MMESHELL_ERROR, ("ERROR:  usage  is  'seek [hour] [min] [sec]  \n"));
+	        return -1; 
+	    }	
+	    hour = atoi(argv[1]);
+	    min = atoi(argv[2]);
+	    sec = atoi(argv[3]);
+
+	    pts = (MMP_S64)(hour*3600 + min*60 + sec) * 1000000L;
+    
+    	pPlayer->Seek(pts);		
+		pPlayer->Play_Function_Tool(MMP_PLAY_RAND,cur_pts,total_pts);	
+	}
+	
+	return 0;	
 }
 
 int mme_command_player_status(int argc, char* argv[]) {

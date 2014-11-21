@@ -44,6 +44,8 @@ protected:
     Uint32 m_version;
     Uint32 m_revision;
     Uint32 m_productId;
+    Uint32 m_skipframeMode;
+    MMP_PLAY_FORMAT m_randomaccess;
 
     int m_mapType;
     
@@ -105,6 +107,7 @@ private:
     MMP_RESULT make_frameheader_Theora(class mmp_buffer_videostream* p_buf_videostream);
 
 protected:
+    virtual MMP_RESULT Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos);	
     virtual MMP_RESULT DecodeDSI(class mmp_buffer_videostream* p_buf_videostream);
     MMP_RESULT DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe);
     

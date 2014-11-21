@@ -39,6 +39,7 @@ int mme_command_player_start(int argc, char* argv[]);
 int mme_command_player_stop(int argc, char* argv[]);
 int mme_command_player_stop_all(int argc, char* argv[]);
 int mme_command_player_seek(int argc, char* argv[]);
+int mme_command_player_tool(int argc, char* argv[]);
 int mme_command_player_status(int argc, char* argv[]);
 int mme_command_player_loop(int argc, char* argv[]);
 int mme_command_player_set_first_renderer(int argc, char* argv[]);

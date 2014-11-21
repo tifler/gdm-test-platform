@@ -55,6 +55,11 @@ protected:
     virtual void Service();
 
 public:
+    MMP_PLAY_FORMAT m_playformat;
+	MMP_S64 m_cur_pos;
+	MMP_S64 m_total_pos;	
+	MMP_RESULT SetplayerMode(MMP_PLAY_FORMAT playformat);	
+	
     virtual MMP_S64 GetDuration();
     virtual MMP_S64 GetPlayPosition();
     virtual MMP_S32 GetPlayFPS();
@@ -67,6 +72,11 @@ public:
     virtual MMP_S32 GetVideoDecoderDur();
     virtual MMP_S32 GetVideoDecoderTotalDecFrameCount();
     virtual const MMP_CHAR* GetVideoDecoderClassName();
+	
+	virtual MMP_RESULT Play_Function_Tool(MMP_PLAY_FORMAT playformat,MMP_S64 curpos, MMP_S64 totalpos);
+	
+    virtual MMP_RESULT Seek(MMP_S64 pts);
+	
 
     /* Video Renderer */
     virtual void SetFirstVideoRenderer();

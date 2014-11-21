@@ -96,6 +96,7 @@ public:
     virtual MMP_S32 GetVideoDecoderDur() { return 0; }
     virtual MMP_S32 GetVideoDecoderTotalDecFrameCount() { return 0; }
     virtual const MMP_CHAR* GetVideoDecoderClassName() { return "Unknown"; }
+	virtual MMP_RESULT Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos){return (MMP_RESULT)0;}
     
     /* Video Renderer */
     virtual void SetFirstVideoRenderer() { }

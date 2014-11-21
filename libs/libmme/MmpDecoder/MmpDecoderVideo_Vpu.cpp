@@ -274,3 +274,14 @@ MMP_RESULT CMmpDecoderVideo_Vpu::DecodeAu(class mmp_buffer_videostream* p_buf_vi
 
 	return mmpResult; 
 }
+
+MMP_RESULT CMmpDecoderVideo_Vpu::Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos)
+{
+	MMP_RESULT mmpResult = MMP_SUCCESS; 
+
+    MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVideo_Vpu] Play_Function_Tool!!!")));
+	mmpResult = CLASS_DECODER_VPU::Play_Function_Tool(playformat,curpos,totalpos);
+	
+	return mmpResult;
+}
+

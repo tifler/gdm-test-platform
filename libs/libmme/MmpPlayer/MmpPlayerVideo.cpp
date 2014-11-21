@@ -320,7 +320,7 @@ void CMmpPlayerVideo::Service()
     dump_fp = fopen("d:\\work\\h264_BP_FullHD.h264", "wb");
 #endif
 #endif
-    
+    MMPDEBUGMSG(0, (TEXT("[CMmpPlayerVideo::Service] Task Start!!")));
     before_tick = CMmpUtil::GetTickCount();
 
     while(m_bServiceRun == MMP_TRUE) {

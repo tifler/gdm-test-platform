@@ -51,6 +51,7 @@ protected:
 public:
     static MMP_BOOL CheckSupportCodec(MMP_U32 format);
 
+    virtual MMP_RESULT Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos);
     virtual MMP_RESULT DecodeDSI(MMP_U8* pStream, MMP_U32 nStreamSize);
     virtual MMP_RESULT DecodeDSI(class mmp_buffer_videostream* p_buf_videostream);
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult);

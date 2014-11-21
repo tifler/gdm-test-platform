@@ -978,15 +978,18 @@ void CMmpDemuxer_Ffmpeg::queue_buffering(void) {
 MMP_RESULT CMmpDemuxer_Ffmpeg::Seek(MMP_S64 pts) {
 
     this->queue_clear();
+	
+	MMPDEBUGMSG(0, (TEXT("[CMmpDemuxer_Ffmpeg::seek) = %lld \n\r"),pts ));
 
     if(av_seek_frame(m_pAvformatCtx, -1, pts, 0)  < 0)
     {
-            
+        MMPDEBUGMSG(0, (TEXT("[CMmpDemuxer_Ffmpeg::seek) av_seek_frame error \n\r")));      
+		return MMP_FAILURE;
     }
     else {
     
-    
+        MMPDEBUGMSG(0, (TEXT("[CMmpDemuxer_Ffmpeg::seek) av_seek_frame success \n\r")));          
+		return MMP_SUCCESS;
     }
-
-    return MMP_SUCCESS;
+    
 }

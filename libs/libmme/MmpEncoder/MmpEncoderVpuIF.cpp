@@ -634,7 +634,15 @@ MMP_RESULT CMmpEncoderVpuIF::EncodeAuEx2(CMmpMediaSampleEncode* pMediaSampleEnc,
         encParam.picStreamBufferAddr = m_vpu_enc_buffer.phys_addr;//m_vbStream.phys_addr;	// can set the newly allocated buffer.
         encParam.picStreamBufferSize = m_vpu_enc_buffer.size;//m_vbStream.size;
 
+START_ENC:
         ret = m_p_vpu_if->VPU_EncStartOneFrame(m_EncHandle, &encParam);
+
+        if(ret == RETCODE_FRAME_NOT_COMPLETE)
+        {
+        	//CMmpUtil::Sleep(1000);
+        	goto START_ENC;
+        }		
+		
 	    if( ret != RETCODE_SUCCESS )
 	    {
             MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::EncodeAuEx2] FAIL: m_p_vpu_if->VPU_EncStartOneFrame")));

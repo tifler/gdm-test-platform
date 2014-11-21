@@ -153,6 +153,19 @@
 #define MMPZONE_ISR                0
 
 
+/**********************************************************************************
+  Player Option Define
+***********************************************************************************/
+
+enum MMP_PLAY_FORMAT
+{
+	MMP_PLAY_BACK,
+	MMP_PLAY_FF,
+	MMP_PLAY_REW,	
+	MMP_PLAY_RAND,
+ };
+
+
 #define UnusedParameter(x)  x = x
 
 

@@ -37,6 +37,9 @@ CMmpPlayerVideoEx1::CMmpPlayerVideoEx1(CMmpPlayerCreateProp* pPlayerProp) : CMmp
 ,m_fps(0)
 
 ,m_p_buf_videostream(NULL)
+,m_playformat(MMP_PLAY_BACK)
+,m_cur_pos(0)
+,m_total_pos(0)
 
 {
     
@@ -290,6 +293,61 @@ MMP_BOOL CMmpPlayerVideoEx1::IsFirstVideoRenderer() {
     return bFlag;
 }
 
+MMP_RESULT CMmpPlayerVideoEx1::Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos){
+
+	MMP_RESULT mmp_result = MMP_SUCCESS;
+    
+	m_playformat = playformat;
+	m_cur_pos = curpos;
+	m_total_pos = totalpos;
+	MMPDEBUGMSG(0, (TEXT("[CMmpPlayerVideoEx1] Play_Function_Tool!! m_cur_pos = %lld m_total_pos =%lld"),m_cur_pos,m_total_pos));
+	m_pDecoderVideo->Play_Function_Tool(playformat,curpos,totalpos);
+	return mmp_result;
+}
+MMP_RESULT CMmpPlayerVideoEx1::SetplayerMode(MMP_PLAY_FORMAT playformat)
+{
+    if(playformat != MMP_PLAY_BACK)
+    {
+
+		if(playformat == MMP_PLAY_FF)
+		{	
+			m_cur_pos = (MMP_S64)(m_cur_pos+ (1000000L)/2);
+			
+			if(m_cur_pos < m_total_pos) 
+			{
+				MMPDEBUGMSG(0, (TEXT("SetplayerMode m_cur_pos = %lld m_total_pos =%lld"),m_cur_pos,m_total_pos));
+				m_pDemuxer->Seek(m_cur_pos);
+				
+				return MMP_SUCCESS;
+			}
+			else
+				return MMP_FAILURE;
+		}
+		else if(playformat == MMP_PLAY_REW)
+		{
+
+			m_cur_pos = (MMP_S64)(m_cur_pos- (1000000L)/2);
+			if(m_cur_pos >= 0) 
+			{
+				MMPDEBUGMSG(0, (TEXT("SetplayerMode m_cur_pos = %lld m_total_pos =%lld"),m_cur_pos,m_total_pos));
+				m_pDemuxer->Seek(m_cur_pos);
+				return MMP_SUCCESS;
+			}
+			else
+				return MMP_FAILURE;  	
+		}
+    }
+	
+	return MMP_SUCCESS;
+
+}
+
+MMP_RESULT CMmpPlayerVideoEx1::Seek(MMP_S64 pts){
+	m_pDemuxer->Seek(pts);
+	return MMP_SUCCESS; 
+}
+
+
 void CMmpPlayerVideoEx1::SetVideoRotate(enum MMP_ROTATE rotate) {
 
     if(m_pRendererVideo != NULL) {
@@ -317,7 +375,10 @@ void CMmpPlayerVideoEx1::Service()
     while(m_bServiceRun == MMP_TRUE) {
 
         t1 = CMmpUtil::GetTickCount();
-                
+		
+		if(SetplayerMode(m_playformat) == MMP_FAILURE)
+			continue;
+			
         m_pDemuxer->GetNextVideoData(this->m_p_buf_videostream);
         if(this->m_p_buf_videostream->get_stream_size() > 0) {
 

@@ -66,6 +66,8 @@ public:
     MMP_S32 GetAvgDur();
     MMP_S32 GetTotalDecFrameCount() { return m_nTotalDecFrameCount; }
 
+
+    virtual MMP_RESULT Play_Function_Tool(MMP_PLAY_FORMAT playformat, MMP_S64 curpos, MMP_S64 totalpos){return (MMP_RESULT)0;}
     virtual MMP_RESULT DecodeAu(CMmpMediaSample* pMediaSample, CMmpMediaSampleDecodeResult* pDecResult) = 0;
     virtual MMP_RESULT DecodeAu(class mmp_buffer_videostream* p_buf_videostream, class mmp_buffer_videoframe** pp_buf_videoframe) = 0;
 };
