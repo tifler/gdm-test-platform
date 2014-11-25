@@ -125,7 +125,13 @@ MME_SRC_VPULIB = \
   $(MME_VPULIB_TOP)/vdi/linux/vdi_osal.c\
   $(MME_VPULIB_TOP)/src/vpuhelper.c\
   $(MME_VPULIB_TOP)/src/vpuio.c\
-
+  $(MME_VPULIB_TOP)/theoraparser/src/bitpack.c\
+  $(MME_VPULIB_TOP)/theoraparser/src/decode.c\
+  $(MME_VPULIB_TOP)/theoraparser/src/info.c\
+  $(MME_VPULIB_TOP)/theoraparser/src/internal.c\
+  $(MME_VPULIB_TOP)/theoraparser/src/state.c\
+  $(MME_VPULIB_TOP)/theoraparser/src/theora_parser.c\
+	
 MME_SRC_JPULIB = \
   $(MME_JPULIB_TOP)/jpuapi/jpuapi.c \
   $(MME_JPULIB_TOP)/jpuapi/jpuapifunc.c\
@@ -182,6 +188,7 @@ LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) 
             -I$(MME_TOP)/../libhwc\
             -I$(MME_TOP)/../libv4l2_api/inc\
             -I$(FFMPEG_TOP) -I$(JPEGLIB_TOP)\
+            -I$(MME_VPULIB_TOP)/theoraparser/include\
             -I$(MME_VPULIB_TOP)/vpuapi -I$(MME_VPULIB_TOP)/include -I$(MME_VPULIB_TOP)/vdi/linux/driver  -I$(MME_VPULIB_TOP)/vdi\
             -I$(MME_JPULIB_TOP)/jpuapi -I$(MME_JPULIB_TOP)/include -I$(MME_JPULIB_TOP)/jdi/linux/driver  -I$(MME_JPULIB_TOP)/jdi\
             -I$(MME_TOP)/MmpGlobal \
@@ -197,7 +204,7 @@ LOCAL_CFLAGS := -O2 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -D$(MME_PLATFORM) 
             -I$(MME_TOP)/MmpBuffer \
             
 LOCAL_CXXFLAGS := $(LOCAL_CFLAGS) -D__STDC_CONSTANT_MACROS
-LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp -lx264 -ljpeg_ody
+LOCAL_LFLAGS := -shared -lpthread -ldl -lrt -lm -lstdc++ -L$(MME_TOP)/pre-built/linux_arm_ody -lffmpeg_2.1.3_ody_vfp -lx264 -ljpeg_ody -L$(MME_VPULIB_TOP)/theoraparser/theoraparser
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS	+= -L$(BASEDIR)/libs/libion -lion
 LOCAL_LFLAGS 	+= -L$(BASEDIR)/libs/libsync -lsync

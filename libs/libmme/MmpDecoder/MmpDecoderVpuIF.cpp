@@ -67,6 +67,8 @@ m_create_config(*pCreateConfig)
 
 ,m_last_int_reason(0)
 ,m_input_stream_count(0)
+
+,m_thoParser(NULL)
 {
     int i;
 
@@ -575,18 +577,22 @@ CHUNK_REUSE:
                     MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
     	        }
             }
-    
-            if(mmpResult == MMP_SUCCESS) {
-                size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
-                                                           &m_vpu_stream_buffer, 
-                                                           p_buf_videostream->get_stream_real_ptr(), p_buf_videostream->get_stream_real_size(), 
-                                                           m_decOP.streamEndian);
-                if (size <0)
-    	        {
-    		        mmpResult = MMP_FAILURE;
-                    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
-    	        }
+			
+            if(this->m_create_config.nFormat != MMP_FOURCC_VIDEO_THEORA)
+            {
+	            if(mmpResult == MMP_SUCCESS) {
+	                size = m_p_vpu_if->WriteBsBufFromBufHelper(m_codec_idx, m_DecHandle, 
+	                                                           &m_vpu_stream_buffer, 
+	                                                           p_buf_videostream->get_stream_real_ptr(), p_buf_videostream->get_stream_real_size(), 
+	                                                           m_decOP.streamEndian);
+	                if (size <0)
+	    	        {
+	    		        mmpResult = MMP_FAILURE;
+	                    MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: WriteBsBufFromBufHelper")));
+	    	        }
+            	}
             }
+			
         }
         else {
             MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] FAIL: make frame header")));
@@ -882,6 +888,8 @@ void CMmpDecoderVpuIF::make_decOP_Theora() {
     m_decOP.bitstreamFormat = STD_THO; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.mp4DeblkEnable = 0;
 	m_decOP.mp4Class = 0; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
+
+	theora_parser_init((void **)&m_thoParser); // theora parser init	
 	
 }
 
@@ -1115,59 +1123,22 @@ MMP_RESULT CMmpDecoderVpuIF::make_seqheader_VP8(class mmp_buffer_videostream* p_
 MMP_RESULT CMmpDecoderVpuIF::make_seqheader_Theora(class mmp_buffer_videostream* p_buf_videostream) {
 
     MMP_RESULT mmpResult = MMP_SUCCESS;
-    MMP_S32 stream_size;
-    MMP_S32 w, h, framerate;
-    
-    MMP_U8 *pbHeader, *pstream;
-    MMP_S32 header_size;
-    
-    const int THO_SEQ_HEADER_LEN = 32;
+    MMP_U8 *p_stream, *p_dsi;
+    MMP_S32 stream_size, dsi_size;
+	MMP_S32 header_size;
 
-    pstream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
     stream_size = p_buf_videostream->get_stream_size();
-
-    mmpResult = p_buf_videostream->alloc_dsi_buffer(128);
-    if(mmpResult == MMP_SUCCESS) {
-    
-        framerate = p_buf_videostream->get_player_framerate();
-        w = p_buf_videostream->get_pic_width();
-        h = p_buf_videostream->get_pic_height();
-
-        pbHeader = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
-
-        header_size = THO_SEQ_HEADER_LEN;
-
-        // signature  : 4Byte
-        MMP_PUT_BYTE(pbHeader, 'C');
-        MMP_PUT_BYTE(pbHeader, 'N');
-        MMP_PUT_BYTE(pbHeader, 'M');
-        MMP_PUT_BYTE(pbHeader, 'V');
-
-        // version  : 2Byte
-        MMP_PUT_LE16(pbHeader, 0);
-
-        // header length: 2Byte
-        MMP_PUT_LE16(pbHeader, THO_SEQ_HEADER_LEN); 
-
-        // FourCC : 4Byte
-        MMP_PUT_BYTE(pbHeader, 'V');
-        MMP_PUT_BYTE(pbHeader, 'P');
-        MMP_PUT_BYTE(pbHeader, '3');
-        MMP_PUT_BYTE(pbHeader, '0');
-
-        // Size Info : 4Byte
-        MMP_PUT_LE16(pbHeader, w);    // Picture Width
-        MMP_PUT_LE16(pbHeader, h);   // Picture Height     
-
-        // Etc : 16Byte
-        MMP_PUT_LE32(pbHeader, 0);     // Frame Rate
-        MMP_PUT_LE32(pbHeader, 0);     // Time Scale
-        MMP_PUT_LE32(pbHeader, 0);     // Frame Number
-        MMP_PUT_LE32(pbHeader, 0);     // Reserved
-        
-        p_buf_videostream->set_dsi_size(header_size);
-        p_buf_videostream->set_stream_offset(0);
-    }
+	p_buf_videostream->alloc_dsi_buffer(128);
+	MMPDEBUGMSG(1, (TEXT("alloc_dsi_buffer ")));			
+	p_dsi = (MMP_U8*)p_buf_videostream->get_dsi_buffer();
+	MMPDEBUGMSG(1, (TEXT("make_seqheader_Theora p_stream =0x%x stream_size = 0x%x p_dsi = 0x%x"),p_stream, stream_size,p_dsi ));	
+	m_thoParser->open(m_thoParser->handle, p_stream, stream_size, (int *)&m_dec_init_info.thoScaleInfo);	
+	MMPDEBUGMSG(1, (TEXT("m_thoParser->open ")));		
+	header_size = theora_make_stream((void *)m_thoParser->handle,p_dsi , SEQ_INIT);
+	MMPDEBUGMSG(1, (TEXT("theora_make_stream ")));
+	p_buf_videostream->set_dsi_size(header_size);
+	p_buf_videostream->set_stream_offset(0);		
 
     return mmpResult;
 }
@@ -1336,28 +1307,34 @@ MMP_RESULT CMmpDecoderVpuIF::make_frameheader_VP8(class mmp_buffer_videostream* 
 
 MMP_RESULT CMmpDecoderVpuIF::make_frameheader_Theora(class mmp_buffer_videostream* p_buf_videostream) {
 
-#if 0
     MMP_RESULT mmpResult = MMP_FAILURE;
     MMP_U8* p_header; 
+	MMP_U8* p_stream;
     MMP_S32 stream_size;
-    
-    mmpResult = p_buf_videostream->alloc_header_buffer(12);
-    if(mmpResult == MMP_SUCCESS) {
-        
+    int ret = 0;
+	
+    p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
+    stream_size = p_buf_videostream->get_stream_size();	
+
+	if((ret  = m_thoParser->read_frame((void *)m_thoParser->handle, p_stream, stream_size)) < 0) 
+	{
+		MMPDEBUGMSG(1, (TEXT("read_frame error !!!!")));
+		return mmpResult;
+	}
+	
+    mmpResult = p_buf_videostream->alloc_header_buffer(SIZE_THO_STREAM);
+	
+	if(mmpResult == MMP_SUCCESS) {
+		
         p_header = (MMP_U8*)p_buf_videostream->get_header_buffer();
-        stream_size = p_buf_videostream->get_stream_size();
+		/* refer to 6.2.3.2 Macroblock order Matching,
+		6.2.3.3  Macroblock Packing in Programmer User Guide */		
+        stream_size = theora_make_stream((void *)m_thoParser->handle, p_header, PIC_RUN);
 
-        MMP_PUT_LE32(p_header, stream_size);
-        MMP_PUT_LE32(p_header, 0);
-        MMP_PUT_LE32(p_header, 0);
-
-        p_buf_videostream->set_header_size(12);
-        p_buf_videostream->set_stream_offset(0);
-    }
-
+        p_buf_videostream->set_header_size(stream_size);
+        p_buf_videostream->set_stream_offset(0);		
+	}
+	
     return MMP_SUCCESS;
-#else
-    return MMP_FAILURE;
-#endif
 }
 

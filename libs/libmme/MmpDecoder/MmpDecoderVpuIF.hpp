@@ -26,6 +26,7 @@
 #include "TemplateList.hpp"
 #include "mmp_buffer_mgr.hpp"
 #include "mmp_vpu_if.hpp"
+#include "theora_parser.h"
 
 class CMmpDecoderVpuIF 
 {
@@ -64,6 +65,9 @@ protected:
     
     class mmp_buffer* m_p_stream_buffer;
     vpu_buffer_t m_vpu_stream_buffer;
+
+	//thoParser
+	tho_parser_t *m_thoParser;
 
     class mmp_buffer_videoframe* m_p_buf_videoframe[MAX_FRAMEBUFFER_COUNT];
 
