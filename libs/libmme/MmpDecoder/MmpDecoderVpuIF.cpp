@@ -148,6 +148,7 @@ MMP_RESULT CMmpDecoderVpuIF::Open()
             case MMP_FOURCC_VIDEO_H263: this->make_decOP_H263(); break;
             case MMP_FOURCC_VIDEO_H264: this->make_decOP_H264(); break;
             case MMP_FOURCC_VIDEO_MPEG4: this->make_decOP_MPEG4(0); break;
+			case MMP_FOURCC_VIDEO_FLV1: this->make_decOP_MPEG4(256); break;			
 			case MMP_FOURCC_VIDEO_DIV5: this->make_decOP_MPEG4(1); break;
 			case MMP_FOURCC_VIDEO_XVID: this->make_decOP_MPEG4(2); break;			
 			case MMP_FOURCC_VIDEO_DIVX: this->make_decOP_MPEG4(5); break;			
@@ -821,7 +822,7 @@ void CMmpDecoderVpuIF::make_decOP_MPEG4(int mp4class) {
 
     m_decOP.bitstreamFormat = STD_MPEG4; //0(H.264) / 1(VC1) / 2(MPEG2) / 3(MPEG4) / 4(H263) / 5(DIVX3) / 6(RV) / 7(AVS) / 11(VP8)
     m_decOP.mp4DeblkEnable = 1;
-	MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::make_decOP_MPEG4] MPEG4 class = %d"),mp4class));	
+	MMPDEBUGMSG(1, (TEXT("[CMmpDecoderVpuIF::make_decOP_MPEG4] MPEG4 class = %d"),mp4class));	
 	m_decOP.mp4Class = mp4class; //MPEG4 CLASS 0(MPEG4) / 1(DIVX 5.0 or higher) / 2(XVID) / 5(DIVX 4.0) / 8(DIVX/XVID Auto Detect)/ 256(Sorenson spark) :
 	
 }

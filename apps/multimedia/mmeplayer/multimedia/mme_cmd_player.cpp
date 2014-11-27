@@ -33,7 +33,7 @@ static struct mme_support_extension mme_exts[] = {
     { 0, "mkv" },  
     { 0, "webm" },  
     
-    //{ 0, "flv" },  
+    { 0, "flv" },  
     //{ 0, "tp" },  
     //{ 0, "ts" },  
   

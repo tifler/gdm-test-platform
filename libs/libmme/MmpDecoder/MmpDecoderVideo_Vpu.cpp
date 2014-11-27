@@ -45,7 +45,8 @@ MMP_BOOL CMmpDecoderVideo_Vpu::CheckSupportCodec(MMP_U32 format) {
         case MMP_FOURCC_VIDEO_MSMPEG4V3: /* Divx3 */
         
         case MMP_FOURCC_VIDEO_VP80:
-		case MMP_FOURCC_VIDEO_THEORA:			
+		case MMP_FOURCC_VIDEO_THEORA:
+		case MMP_FOURCC_VIDEO_FLV1:
         //case MMP_FOURCC_VIDEO_VP60:
         //case MMP_FOURCC_VIDEO_VP6F:
         
