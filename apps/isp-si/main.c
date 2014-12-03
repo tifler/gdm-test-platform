@@ -24,6 +24,7 @@
 #include "yuv-writer.h"
 #include "file-io.h"
 #include "option.h"
+#include "media.h"
 #include "debug.h"
 
 /*****************************************************************************/
@@ -439,7 +440,12 @@ int main(int argc, char **argv)
     opt = createOption(argv[1]);
     ASSERT(opt);
 
-    sif = SIFInit(opt->global.bt601PortId >= 0 ? 1 : 0);
+    // ISP
+    isp = ISPInit();
+
+    // SIF
+    DBG("bt601PortId = %d", opt->global.bt601PortId);
+    sif = SIFInit();
 
     sifConf.id = opt->sensor.id;
     sifConf.width = opt->sensor.width;
@@ -450,16 +456,7 @@ int main(int argc, char **argv)
     DBG("SIF = (%d x %d x %d FPS)", sifConf.width, sifConf.height, sifConf.fps);
     SIFSetConfig(sif, &sifConf);
 
-    isp = ISPInit();
-    DBG("bt601PortId = %d", opt->global.bt601PortId);
-    if (opt->global.bt601PortId >= 0) {
-        ISPSetBT601Port(isp, opt->global.bt601PortId);
-        ISPSetBT601Enable(isp, 1);
-        ISPSetBT601Size(isp,
-                opt->port[opt->global.bt601PortId % 4].width,
-                opt->port[opt->global.bt601PortId % 4].height);
-    }
-
+    // DXO
     memset(&conf, 0, sizeof(conf));
     conf.sysFreqMul = opt->global.sysClkMul;
     conf.sysFreqDiv = opt->global.sysClkDiv;
@@ -596,8 +593,6 @@ int main(int argc, char **argv)
 
     // VSensor
     initVSensor(opt);
-
-    changeEffect();
 
     DXORunState(dxo, opt->global.runState, 0);
 

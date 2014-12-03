@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <linux/videodev2.h>
 
+#include "v4l2.h"
 #include "gdm-isp-ioctl.h"
 #include "gisp-sif.h"
 #include "gisp-sensor.h"
@@ -17,50 +18,46 @@
 
 /*****************************************************************************/
 
-#define SIF_IODEV_PATH                  "/dev/gisp-ctrl-sif"
-
-#define SIF_WRITE(a, v) \
-    (*(volatile uint32_t *)((char *)SIFBase + (a)) = ((uint32_t)(v)))
-#define SIF_READ(a)     \
-    (*(volatile uint32_t *)((char *)SIFBase + (a)))
+#define SIF_SUBDEV_PATH                  "/dev/v4l-subdev1"
 
 /*****************************************************************************/
 
-struct SIF {
-    struct IODevice *io;
+enum {
+    SIF_POL_VSYNC,
+    SIF_POL_HSYNC,
+    SIF_POL_PCLK,
+    SIF_POL_COUNT,
 };
 
 /*****************************************************************************/
 
-static unsigned char *SIFBase;
+struct SIF {
+    int fd;
+    unsigned polarity;
+};
 
 /*****************************************************************************/
 
-struct SIF *SIFInit(int useBT601)
+static void setPolarity(struct SIF *sif, unsigned mask, unsigned polarity)
+{
+    int ret;
+    sif->polarity &= ~mask;
+    sif->polarity |= (polarity & mask);
+    ret = v4l2_s_ctrl(sif->fd, GISP_CID_SIF_PAR_POL, sif->polarity);
+    ASSERT(ret >= 0);
+}
+
+/*****************************************************************************/
+
+struct SIF *SIFInit(void)
 {
     struct SIF *sif;
 
     sif = (struct SIF *)calloc(1, sizeof(*sif));
     ASSERT(sif);
 
-    sif->io = openIODevice(SIF_IODEV_PATH);
-    ASSERT(sif->io);
-
-    SIFBase = (unsigned char *)sif->io->mapBase;
-
-    // sensor reset
-    SIF_WRITE(REG_SIF_FPGA_CON, 0x30 | (useBT601 ? 0 : 0x800));
-    usleep(100000);
-    SIF_WRITE(REG_SIF_FPGA_CON, 0x20 | (useBT601 ? 0 : 0x800));
-
-    SIF_WRITE(REG_SIF_PAR_SENSOR_INVERT, 0x0);  // vsync normal
-    SIF_WRITE(REG_SIF_CONT_SENSOR, 1);   // sensor input enable
-    SIF_WRITE(REG_SIF_SEL_SENSOR, 1);   // PAR Front Sensor
-
-    //SIF_WRITE(0x320, (IMAGE_HEIGHT<<16)|IMAGE_WIDTH);
-    SIF_WRITE(REG_SIF_PAR_VSYNC_POINT, 0x00); // eof = vsync rear sof=href start
-    SIF_WRITE(REG_SIF_PAR_ENB_BYPASS, 0x0);  // input ctrl vsync sync action
-    SIF_WRITE(REG_SIF_FPGA_CLOCK, 0x2);   // mclk 1/2 div
+    sif->fd = open(SIF_SUBDEV_PATH, O_RDWR);
+    ASSERT(sif->fd > 0);
 
     return sif;
 }
@@ -84,16 +81,15 @@ void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf)
     }
 
     SensorSetMode(conf->id, i);
-    SIF_WRITE(REG_SIF_PAR_IMAGE_SIZE, (conf->height << 16) | conf->width);
 
     if (conf->invPCLK)
-        SIF_WRITE(REG_SIF_PAR_SENSOR_INVERT, 0x1);
+        setPolarity(sif, 0x1, 0x1);
 }
 
 void SIFExit(struct SIF *sif)
 {
     ASSERT(sif);
-    closeIODevice(sif->io);
+    close(sif->fd);
     free(sif);
 }
 

@@ -18,9 +18,8 @@ struct SIFConfig {
 
 /*****************************************************************************/
 
-struct SIF *SIFInit(int useBT601);
+struct SIF *SIFInit(void);
 void SIFExit(struct SIF *sif);
-
 void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf);
 
 #endif  /*__GISP_SIF_H__*/

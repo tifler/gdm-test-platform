@@ -28,7 +28,7 @@ GISP_OBJS		+= gisp/gisp-iodev.o gisp/gisp-sensor.o
 
 MAIN_OBJS		:= main.o v4l2.o gdm-buffer.o display.o stream.o option.o
 MAIN_OBJS		+= vid-enc.o jpeg-enc.o
-MAIN_OBJS		+= yuv-writer.o v4l2.o
+MAIN_OBJS		+= yuv-writer.o v4l2.o media.o
 MAIN_OBJS		+= file-io.o image-info.o
 
 OBJS			:= $(CALIB_OBJS)

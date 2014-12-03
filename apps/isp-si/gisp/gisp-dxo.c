@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <linux/videodev2.h>
@@ -20,6 +21,7 @@
 /*****************************************************************************/
 
 #define DEFAULT_IRQ_TIMEOUT             (1000)
+#define DXO_SUBDEV_PATH                 "/dev/v4l-subdev2"
 #define DXO_IODEV_PATH                  "/dev/gisp-ctrl-dxo"
 
 #define DXO_WRITE(a, v) \
