@@ -473,9 +473,6 @@ MMP_RESULT CMmpDecoderVpuIF::DecodeAu_PinEnd(class mmp_buffer_videostream* p_buf
     p_stream = (MMP_U8*)p_buf_videostream->get_buf_vir_addr();
     stream_size = p_buf_videostream->get_stream_size();
 
-    m_input_stream_count++;
-    
-
     MMPDEBUGMSG(0, (TEXT("\n[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d cnt=%d sz=%d (%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), 
                   __LINE__, m_input_stream_count, stream_size,
                    p_stream[0], p_stream[1], p_stream[2], p_stream[3], 
@@ -555,14 +552,24 @@ CHUNK_REUSE:
 		return mmpResult;
 	}
 #endif	
-    
+
+    MMPDEBUGMSG(0, (TEXT("\n[CMmpDecoderVpuIF::DecodeAu_PinEnd] ln=%d cnt=%d sz=%d p_stream addr =0x%x(%02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x, %02x %02x %02x %02x ) "), 
+                  __LINE__, m_input_stream_count, stream_size,p_stream,
+                   p_stream[0], p_stream[1], p_stream[2], p_stream[3], 
+                   p_stream[4], p_stream[5], p_stream[6], p_stream[7], 
+                   p_stream[8], p_stream[9], p_stream[10], p_stream[11], 
+                   p_stream[12], p_stream[13], p_stream[14], p_stream[15] 
+    ));
+
 	if(m_reUseChunk==1)
 	{
 		MMPDEBUGMSG(0, (TEXT("--------- Reuse Process ---------- "))); 
 	}
 	else		
-	{
-        m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, m_decOP.bitstreamBuffer, 1);	
+	{		
+		if(m_input_stream_count) // AVC1 format sequence after pps data reuse
+        	m_p_vpu_if->VPU_DecSetRdPtr(m_DecHandle, m_decOP.bitstreamBuffer, 1);	
+		
 		MMPDEBUGMSG(0, (TEXT("--------- NormalProcess ---------- "))); 
        
         if(mmpResult == MMP_SUCCESS) {
@@ -601,8 +608,16 @@ CHUNK_REUSE:
         
 	}    
     t1 = CMmpUtil::GetTickCount();
-    
+    #if 1
+	{
+		PhysicalAddress rdPtr, wrPtr;
+		MMP_S32 room;
+		m_p_vpu_if->VPU_DecGetBitstreamBuffer(m_DecHandle, &rdPtr, &wrPtr, (int*)&room);
+		MMPDEBUGMSG(0, (TEXT("Pre Read ptr = 0x%08x | Write ptr = 0x%08x"), rdPtr, wrPtr));	
+	}	
+	#endif
 
+	
     if(mmpResult == MMP_SUCCESS)  {
 
         if( (m_last_int_reason&(1<<INT_BIT_DEC_FIELD)) != 0) {
@@ -687,6 +702,16 @@ START_DEC:
 		    break;		
         }
     }
+
+	#if 1
+    {
+	    PhysicalAddress rdPtr, wrPtr;
+	    MMP_S32 room;
+	    m_p_vpu_if->VPU_DecGetBitstreamBuffer(m_DecHandle, &rdPtr, &wrPtr, (int*)&room);
+	    MMPDEBUGMSG(0, (TEXT("Post Read ptr = 0x%08x | Write ptr = 0x%08x"), rdPtr, wrPtr));	
+    }	
+	#endif
+	
     m_last_int_reason = int_reason;
 
 	
@@ -765,6 +790,7 @@ START_DEC:
 		}	
     }
 	
+    m_input_stream_count++;
     MMPDEBUGMSG(0, (TEXT("[CMmpDecoderVpuIF::DecodeAu_PinEnd] function end  m_reUseChunk =%d\n"),m_reUseChunk));
     return mmpResult;
 }
