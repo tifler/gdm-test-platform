@@ -2738,7 +2738,7 @@ RetCode VPU_DecGetOutputInfo(
 	if( pCodecInst->codecMode == AVC_DEC)
 	{
 		info->nalRefIdc = (val >> 7) & 0x03;
-		info->decFrameInfo = (val >> 15) & 0x0001;
+		//info->decFrameInfo = (val >> 15) & 0x0001;
 		info->picStrPresent = (val >> 27) & 0x0001;
 		info->picTimingStruct = (val >> 28) & 0x000f;
 		//update picture type when IDR frame
@@ -2749,7 +2749,16 @@ RetCode VPU_DecGetOutputInfo(
 				info->picType = PIC_TYPE_IDR;
 
 		}
-		info->avcNpfFieldInfo  = (val >> 16) & 0x0003;
+		//info->avcNpfFieldInfo  = (val >> 16) & 0x0003;
+		info->decFrameInfo  = (val >> 16) & 0x0003;
+        if (info->indexFrameDisplay>=0)
+        {
+            if (info->indexFrameDisplay == info->indexFrameDecoded)
+                info->avcNpfFieldInfo = info->decFrameInfo;
+            else
+                info->avcNpfFieldInfo = pDecInfo->decOutInfo[info->indexFrameDisplay].decFrameInfo;
+        }
+		
 		val = VpuReadReg(pCodecInst->coreIdx, RET_DEC_PIC_HRD_INFO);
 		info->avcHrdInfo.cpbMinus1 = val>>2;
 		info->avcHrdInfo.vclHrdParamFlag = (val>>1)&1;
@@ -2781,11 +2790,20 @@ RetCode VPU_DecGetOutputInfo(
 		info->fieldSequence       = (val >> 25) & 0x0007;
 		info->frameDct            = (val >> 28) & 0x0001;
 		info->progressiveSequence = (val >> 29) & 0x0001;
-		info->mp2NpfFieldInfo = (val >> 16) & 0x0003;
+		//info->mp2NpfFieldInfo = (val >> 16) & 0x0003;
 		val = VpuReadReg(pCodecInst->coreIdx, RET_DEC_PIC_SEQ_EXT_INFO);
 		info->mp2DispVerSize = (val>>1) & 0x3fff;
 		info->mp2DispHorSize = (val>>15) & 0x3fff;
 
+        info->decFrameInfo        = (val >> 16) & 0x0003;
+
+        if (info->indexFrameDisplay >= 0)
+        {
+            if (info->indexFrameDisplay == info->indexFrameDecoded)
+                info->mp2NpfFieldInfo = info->decFrameInfo;
+            else
+                info->mp2NpfFieldInfo = pDecInfo->decOutInfo[info->indexFrameDisplay].decFrameInfo;
+        }
 	}
 
 
