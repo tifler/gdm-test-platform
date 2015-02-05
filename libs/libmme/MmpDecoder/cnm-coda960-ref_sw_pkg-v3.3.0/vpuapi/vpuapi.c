@@ -904,8 +904,12 @@ RetCode VPU_DecGetInitialInfo(DecHandle handle,
 	
 	VpuWriteReg(pCodecInst->coreIdx, pDecInfo->frameDisplayFlagRegAddr, 0);
 	
+    printf("[hthwang %s %s] ln=%d \n", __FILE__, __func__, __LINE__ );
 	BitIssueCommand(pCodecInst->coreIdx, pCodecInst, SEQ_INIT);
 	if (vdi_wait_interrupt(pCodecInst->coreIdx, VPU_BUSY_CHECK_TIMEOUT, BIT_INT_REASON) == -1) {
+
+        printf("[hthwang %s %s] ln=%d \n", __FILE__, __func__, __LINE__ );
+
 		if (pCodecInst->loggingEnable)
 			vdi_log(pCodecInst->coreIdx, SEQ_INIT, 2);
 		info->rdPtr = VpuReadReg(pCodecInst->coreIdx, pDecInfo->streamRdPtrRegAddr);
@@ -916,6 +920,7 @@ RetCode VPU_DecGetInitialInfo(DecHandle handle,
 		LeaveLock(pCodecInst->coreIdx);
 		return RETCODE_VPU_RESPONSE_TIMEOUT;
 	}
+    printf("[hthwang %s %s] ln=%d \n", __FILE__, __func__, __LINE__ );
 
 	if (pCodecInst->loggingEnable)
 		vdi_log(pCodecInst->coreIdx, SEQ_INIT, 0);
@@ -942,9 +947,10 @@ RetCode VPU_DecGetInitialInfo(DecHandle handle,
     info->picWidth = ( (val >> 16) & 0xffff );
     info->picHeight = ( val & 0xffff );
 
+    val = VpuReadReg(pCodecInst->coreIdx, RET_DEC_SEQ_SUCCESS);
 
-	val = VpuReadReg(pCodecInst->coreIdx, RET_DEC_SEQ_SUCCESS);
-	info->seqInitErrReason = 0;
+    printf("[hthwang %s %s] ln=%d w=%d h=%d success_val=%d \n", __FILE__, __func__, __LINE__ , info->picWidth , info->picHeight, val);
+    info->seqInitErrReason = 0;
 #ifdef SUPPORT_MEM_PROTECT
 	if (val & (1<<31)) {
 		SetPendingInst(pCodecInst->coreIdx, 0);

@@ -78,23 +78,13 @@ env define
 **********************************************************/
 
 /* VPU */
-#if 0
-#define GDM_VPU_BASE                 (0xED310000)
-#define GDM_VPU_SIZE                 (SZ_64K)
-#define GDM_VPU_IRQ                  (IRQ_CODEC)
-#endif
 #define MMP_VPU_DEVICE_NAME "/dev/vpu"
-#define MMP_VPU_REG_BASE		0xED310000
+#define MMP_VPU_REG_BASE		0x17310000 //0xED310000
 #define MMP_VPU_REG_SIZE		(1024*64)
 
 /* JPU */
-#if 0
-#define GDM_JPU_BASE                 (0xED300000)
-#define GDM_JPU_SIZE                 (SZ_64K)
-#define GDM_JPU_IRQ                  (IRQ_JPEG)
-#endif
 #define MMP_JPU_DEVICE_NAME "/dev/jpu"
-#define MMP_JPU_REG_BASE		0xED300000
+#define MMP_JPU_REG_BASE		0x17300000 //0xED300000
 #define MMP_JPU_REG_SIZE		(1024*64)
 #define MMP_JDI_DRAM_PHYSICAL_BASE	0x00
 #define MMP_JDI_DRAM_PHYSICAL_SIZE	(128*1024*1024)

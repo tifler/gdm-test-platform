@@ -23,7 +23,8 @@
 // SRAM BASE - SEC AXI
 //------------------------------------------------------------------------------
 //#define ANA_CODEC_SRAM_BASE      0xECA80000
-#define ANA_CODEC_SRAM_BASE      0xED400000 // OCMEM changed hw interim
+//#define ANA_CODEC_SRAM_BASE      0xED400000 // OCMEM changed hw interim
+#define ANA_CODEC_SRAM_BASE      0x17400000 // OCMEM changed hw interim
 //------------------------------------------------------------------------------
 // REGISTER BASE
 //------------------------------------------------------------------------------
