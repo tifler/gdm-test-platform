@@ -763,6 +763,16 @@ static void setGain(ts_sensorRegister* pstRegister, uint16_t usAGain[], uint16_t
 		usAgain = pstRegister->usAG << 4;
 	#endif
 
+        //[[tifler
+        //  When DxOISP_PostEvent() is called, setGain() raises SIGFPE.
+        //  Because sometimes usAgain is zero, so __aeabi_ldiv0() raises
+        //  SIGFPE.
+        //  Only for debugging, I added fixup code below.
+        if (usAgain == 0) {
+            usAgain = 1;
+        }
+        //]]tifler
+
 		uiInvGain = (1 << (GAIN_FRAC_PART * 2)) / usAgain;
 		for (i=0; i<DxOISP_NB_CHANNEL; i++) {
 			pstRegister->usDG[i] = SHIFT_RND(uiTotalGain[i] * uiInvGain, (GAIN_FRAC_PART-2));

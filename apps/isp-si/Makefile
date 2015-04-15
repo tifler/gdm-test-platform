@@ -72,7 +72,8 @@ LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmsgio -lmsgio
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libv4l2_api -lv4l2_api
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmme -lmme
 
-COPY_TARGET_DIR	:= /usr/bin
+COPY_SOURCE_DIR	:= tc
+COPY_TARGET_DIR	:= /usr/share
 
 #------------------------------------------------------------------------------
 # DO NOT EDIT UNDER THIS LINE
