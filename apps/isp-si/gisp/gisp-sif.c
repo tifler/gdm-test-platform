@@ -1,12 +1,15 @@
+#include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <linux/videodev2.h>
+#include <linux/v4l2-subdev.h>
 
 #include "v4l2.h"
 #include "gdm-isp-ioctl.h"
@@ -38,13 +41,31 @@ struct SIF {
 
 /*****************************************************************************/
 
-static void setPolarity(struct SIF *sif, unsigned mask, unsigned polarity)
+static void sifSetPolarity(struct SIF *sif, unsigned mask, unsigned polarity)
 {
     int ret;
     sif->polarity &= ~mask;
     sif->polarity |= (polarity & mask);
     ret = v4l2_s_ctrl(sif->fd, GISP_CID_SIF_PAR_POL, sif->polarity);
     ASSERT(ret >= 0);
+}
+
+static void sifSetSize(struct SIF *sif, unsigned width, unsigned height)
+{
+    int ret;
+    struct v4l2_subdev_format fmt;
+
+    memset(&fmt, 0, sizeof(fmt));
+
+    fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
+    fmt.format.width = width;
+    fmt.format.height = height;
+    DBG("sifSetSize(%u, %u)", width, height);
+    ret = ioctl(sif->fd, VIDIOC_SUBDEV_S_FMT, &fmt);
+
+    if (ret != 0) {
+        ERR("VIDIOC_SUBDEV_S_FMT: Failed.");
+    }
 }
 
 /*****************************************************************************/
@@ -82,8 +103,11 @@ void SIFSetConfig(struct SIF *sif, const struct SIFConfig *conf)
 
     SensorSetMode(conf->id, i);
 
+    // SIF 실제 크기를 제어해야 한다.
+    sifSetSize(sif, conf->width, conf->height);
+
     if (conf->invPCLK)
-        setPolarity(sif, 0x1, 0x1);
+        sifSetPolarity(sif, 0x1, 0x1);
 }
 
 void SIFExit(struct SIF *sif)

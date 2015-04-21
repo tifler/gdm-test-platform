@@ -433,12 +433,16 @@ int main(int argc, char **argv)
     struct DXO *dxo;
     struct Option *opt;
     struct PortContext *port;
+    struct MEDIA_DEVICE *media;
 
     if (argc != 2)
         helpExit(argc, argv);
 
     opt = createOption(argv[1]);
     ASSERT(opt);
+
+    // media: only for debugging
+    media = mediaInit();
 
     // ISP
     isp = ISPInit();
