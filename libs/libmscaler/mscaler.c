@@ -200,6 +200,15 @@ static struct MScalerPixelFormat pixelFormats[] = {
         .bitperpixel = { 16 },
         .hw_format = HW_FMT_422_3P,
     },
+    // 420_1P
+    {
+        MAKE_COLOR_FORMAT(V4L2_PIX_FMT_YUV420),
+        .description = "YUV 4:2:0 contiguous 3-planar, Y/Cb/Cr",
+        .planes = 1,
+        .components = 3,
+        .bitperpixel = { 12 },
+        .hw_format = HW_FMT_420_3P,
+    },
     // 420_2P
     {
         // NV12의 경우 plane을 두개로 하지만 실제로는 하나로 할당 받도록 처리
