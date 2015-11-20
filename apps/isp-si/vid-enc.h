@@ -28,11 +28,36 @@ struct GDMEncConfig {
 
 /*****************************************************************************/
 
+#ifdef	SUPPORT_VID_ENC
 struct GDMEncoder *GEncOpen(
         const struct GDMEncConfig *conf, const char *path, unsigned long flags);
 void GEncClose(struct GDMEncoder *e);
 void GEncStart(struct GDMEncoder *e);
 void GEncStop(struct GDMEncoder *e);
 int GEncEncodeFrame(struct GDMEncoder *e, struct GDMBuffer *frame);
+#else
+struct GDMEncoder *GEncOpen(
+        const struct GDMEncConfig *conf, const char *path, unsigned long flags)
+{
+	return (struct GDMEncoder *)0;
+}
+
+void GEncClose(struct GDMEncoder *e)
+{
+}
+
+void GEncStart(struct GDMEncoder *e)
+{
+}
+
+void GEncStop(struct GDMEncoder *e)
+{
+}
+
+int GEncEncodeFrame(struct GDMEncoder *e, struct GDMBuffer *frame)
+{
+	return 0;
+}
+#endif	/*SUPPORT_VID_ENC*/
 
 #endif  /*__VID_ENC_H__*/

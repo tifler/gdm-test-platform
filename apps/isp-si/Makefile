@@ -14,6 +14,11 @@ BASEDIR	:= $(shell pwd)/../..
 endif
 #------------------------------------------------------------------------------
 
+#SUPPORT_VIDEO_ENCODER	:=y
+#SUPPORT_JPEG_ENCODER	:=y
+
+#------------------------------------------------------------------------------
+
 TARGET			:= isp
 
 CALIB_OBJS		:= gisp/calibData/data.o gisp/calibData/calibDataTabSelection.o
@@ -27,16 +32,23 @@ GISP_OBJS		:= gisp/gisp-isp.o gisp/gisp-dxo.o gisp/gisp-sif.o
 GISP_OBJS		+= gisp/gisp-iodev.o gisp/gisp-sensor.o
 
 MAIN_OBJS		:= main.o v4l2.o gdm-buffer.o display.o stream.o option.o
-MAIN_OBJS		+= vid-enc.o jpeg-enc.o
 MAIN_OBJS		+= yuv-writer.o v4l2.o media.o
 MAIN_OBJS		+= file-io.o image-info.o
+ifeq ($(SUPPORT_VIDEO_ENCODER), y)
+LOCAL_CFLAGS	+= -DSUPPORT_VID_ENC
+MAIN_OBJS		+= vid-enc.o
+endif
+ifeq ($(SUPPORT_JPEG_ENCODER), y)
+LOCAL_CFLAGS	+= -DSUPPORT_JPEG_ENC
+MAIN_OBJS		+= jpeg-enc.o
+endif
 
 OBJS			:= $(CALIB_OBJS)
 OBJS			+= $(SENSOR_OBJS)
 OBJS			+= $(GISP_OBJS)
 OBJS			+= $(MAIN_OBJS)
 
-LOCAL_CFLAGS	:=-DDATA_SYMS_H_DIR=gisp/firmware/correctionData/include
+LOCAL_CFLAGS	+=-DDATA_SYMS_H_DIR=gisp/firmware/correctionData/include
 LOCAL_CFLAGS	+=-DDATA_GLOBAL_HEADER=gisp/firmware/include/DxOISP.h
 LOCAL_CFLAGS	+=-DDATA_ROOT_DIR=gisp/firmware/correctionData/include
 LOCAL_CFLAGS	+=-DCHIP_VENDOR_PATH_ISP_INC_DIR=gisp/firmware/include
@@ -54,7 +66,7 @@ LOCAL_CFLAGS	+=-g
 
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libhwc
 LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmsgio
-LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmme
+#LOCAL_CFLAGS    += -I$(BASEDIR)/libs/libmme
 LOCAL_CFLAGS	+= -I$(BASEDIR)/libs/libv4l2_api/inc/
 LOCAL_CFLAGS    += -I$(BASEDIR)/include
 
@@ -70,7 +82,7 @@ LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libhwc -lhwc -lpthread
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libsync -lsync
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmsgio -lmsgio
 LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libv4l2_api -lv4l2_api
-LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmme -lmme
+#LOCAL_LFLAGS    += -L$(BASEDIR)/libs/libmme -lmme
 
 COPY_SOURCE_DIR	:= tc
 COPY_TARGET_DIR	:= /usr/share
