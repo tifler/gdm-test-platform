@@ -124,6 +124,11 @@ static int videoCallback(void *param, struct GDMBuffer *buffer, int index)
                 portCtx[STREAM_PORT_VSENSOR].stream, buffer, index);
     }
 
+    if (port->yuvWriter && port->yuvCount == 0) {
+	    INFO("YUV Writing was done. Exit.\n");
+	    exit(0);
+    }
+
     return 0;
 }
 
